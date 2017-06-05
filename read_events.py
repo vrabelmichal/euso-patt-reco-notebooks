@@ -8,21 +8,48 @@ import ROOT
 import matplotlib.pyplot as plt
 from eusotrees.exptree import ExpTree
 
+
 class GtuPdmData:
     photon_count_data = None
     gtu = -1
     gtu_time = -1
     gtu_time1 = -1
 
-    l1trg_events = []
+    # gtu_global = -1         #  "gtuGlobal/I"
+    trg_box_per_gtu = -1    #  "trgBoxPerGTU/I"
+    trg_pmt_per_gtu = -1    #  "trgPMTPerGTU/I"
+    trg_ec_per_gtu = -1     #  "trgECPerGTU/I"
+    n_persist = -1          #  "&nPersist/I"
+    gtu_in_persist = -1     #  "&gtuInPersist/I"
+    sum_l1_pdm = -1         #  "sumL1PDM/I"
+    sum_l1_ec = None                #  "sumL1EC[9]/I"
+    sum_l1_pmt = None   #  "sumL1PMT[18][2]/I"
 
-    def __init__(self, photon_count_data, gtu, gtu_time, gtu_time1):
+    l1trg_events = None
+
+    def __init__(self, photon_count_data, gtu, gtu_time, gtu_time1,
+                 trg_box_per_gtu, trg_pmt_per_gtu, trg_ec_per_gtu,
+                 n_persist, gtu_in_persist, sum_l1_pdm, sum_l1_ec, sum_l1_pmt,
+                 l1trg_events=[]):
         self.photon_count_data = photon_count_data
         self.gtu = np.asscalar(gtu) if isinstance(gtu, np.ndarray) else gtu
         self.gtu_time = np.asscalar(gtu_time) if isinstance(gtu_time, np.ndarray) else gtu_time
         self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
 
+        self.trg_box_per_gtu = trg_box_per_gtu
+        self.trg_pmt_per_gtu = trg_pmt_per_gtu
+        self.trg_ec_per_gtu = trg_ec_per_gtu
+        self.n_persist = n_persist
+        self.gtu_in_persist = gtu_in_persist
+        self.sum_l1_pdm = sum_l1_pdm
+        self.sum_l1_ec = sum_l1_ec
+        self.sum_l1_pmt = sum_l1_pmt
 
+        self.sum_l1_ec = np.array([-1]*9, dtype=np.int32)
+        self.sum_l1_pmt = np.negative(np.ones((18,2), dtype=np.int32))
+
+        self.l1trg_events = l1trg_events
+        
 class L1TrgEvent:
     gtu_pdm_data = None
     ec_id = -1
@@ -33,7 +60,7 @@ class L1TrgEvent:
     sum_l1 = -1
     thr_l1 = -1
     persist_l1 = -1
-    
+
     def __init__(self, gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1):
         self.gtu_pdm_data = gtu_pdm_data
         self.ec_id = np.asscalar(ec_id) if isinstance(ec_id, np.ndarray) else ec_id
@@ -181,23 +208,36 @@ class AckL1EventReader:
 
     _current_l1trg_entry = -1
     _current_tevent_entry = -1
+    _current_gtusry_entry = -1
 
-    _l1trg_ecID = np.array([-1], dtype=np.int32)
-    _l1trg_pmtRow = np.array([-1], dtype=np.int32)
-    _l1trg_pmtCol = np.array([-1], dtype=np.int32)
-    _l1trg_pixRow = np.array([-1], dtype=np.int32)
-    _l1trg_pixCol = np.array([-1], dtype=np.int32)
-    _l1trg_gtuGlobal = np.array([-1], dtype=np.int32)
-    _l1trg_packetID = np.array([-1], dtype=np.int32)
-    _l1trg_gtuInPacket = np.array([-1], dtype=np.int32)
-    _l1trg_sumL1 = np.array([-1], dtype=np.int32)
-    _l1trg_thrL1 = np.array([-1], dtype=np.int32)
-    _l1trg_persistL1 = np.array([-1], dtype=np.int32)
+    _l1trg_ecID = None # np.array([-1], dtype=np.int32)
+    _l1trg_pmtRow = None # np.array([-1], dtype=np.int32)
+    _l1trg_pmtCol = None # np.array([-1], dtype=np.int32)
+    _l1trg_pixRow = None # np.array([-1], dtype=np.int32)
+    _l1trg_pixCol = None # np.array([-1], dtype=np.int32)
+    _l1trg_gtuGlobal = None # np.array([-1], dtype=np.int32)
+    _l1trg_packetID = None # np.array([-1], dtype=np.int32)
+    _l1trg_gtuInPacket = None # np.array([-1], dtype=np.int32)
+    _l1trg_sumL1 = None # np.array([-1], dtype=np.int32)
+    _l1trg_thrL1 = None # np.array([-1], dtype=np.int32)
+    _l1trg_persistL1 = None # np.array([-1], dtype=np.int32)
+
+    _gtusry_gtuGlobal = None # np.array([-1], dtype=np.int32) #  "gtuGlobal/I"
+    _gtusry_trgBoxPerGTU = None # np.array([-1], dtype=np.int32) #  "trgBoxPerGTU/I"
+    _gtusry_trgPMTPerGTU = None # np.array([-1], dtype=np.int32) #  "trgPMTPerGTU/I"
+    _gtusry_trgECPerGTU = None # np.array([-1], dtype=np.int32) #  "trgECPerGTU/I"
+    _gtusry_nPersist = None # np.array([-1], dtype=np.int32) #  "&nPersist/I"
+    _gtusry_gtuInPersist = None # np.array([-1], dtype=np.int32) #  "&gtuInPersist/I"
+
+    _gtusry_sumL1PDM = None # np.array([-1], dtype=np.int32) #  "sumL1PDM/I"
+    _gtusry_sumL1EC = None # np.array([-1]*9, dtype=np.int32) #  "sumL1EC[9]/I"
+    _gtusry_sumL1PMT = None # np.negative(np.ones((18,2), dtype=np.int32)) #  "sumL1PMT[18][2]/I"
+    _gtusry_trgPMT = None # np.negative(np.ones((18,2), dtype=np.int32)) #  "sumL1PMT[18][2]/I"
 
     _tevent_photon_count_data = None
-    _tevent_gtu = np.array([-1], dtype=np.int32)
-    _tevent_gtu_time = np.array([-1], dtype=np.double)
-    _tevent_gtu_time1 = np.array([-1], dtype=np.double)
+    _tevent_gtu = None # np.array([-1], dtype=np.int32)
+    _tevent_gtu_time = None # np.array([-1], dtype=np.double)
+    _tevent_gtu_time1 = None # np.array([-1], dtype=np.double)
     # ...
 
     last_gtu_pdm_data = None
@@ -212,6 +252,18 @@ class AckL1EventReader:
     def __init__(self, acquisition_pathname, kenji_l1_pathname):
         self.acquisition_file, self.t_texp, self.t_tevent = self.open_acquisition(acquisition_pathname)
         self.kenji_l1_file, self.t_l1trg, self.t_gtusry, self.t_thrtable = self.open_kenji_l1(kenji_l1_pathname)
+
+        self._l1trg_ecID = np.array([-1], dtype=np.int32)
+        self._l1trg_pmtRow = np.array([-1], dtype=np.int32)
+        self._l1trg_pmtCol = np.array([-1], dtype=np.int32)
+        self._l1trg_pixRow = np.array([-1], dtype=np.int32)
+        self._l1trg_pixCol = np.array([-1], dtype=np.int32)
+        self._l1trg_gtuGlobal = np.array([-1], dtype=np.int32)
+        self._l1trg_packetID = np.array([-1], dtype=np.int32)
+        self._l1trg_gtuInPacket = np.array([-1], dtype=np.int32)
+        self._l1trg_sumL1 = np.array([-1], dtype=np.int32)
+        self._l1trg_thrL1 = np.array([-1], dtype=np.int32)
+        self._l1trg_persistL1 = np.array([-1], dtype=np.int32)
 
         self._get_branch_or_raise(kenji_l1_pathname, self.t_l1trg, "ecID").SetAddress(self._l1trg_ecID)
         self._get_branch_or_raise(kenji_l1_pathname, self.t_l1trg, "pmtRow").SetAddress(self._l1trg_pmtRow)
@@ -237,10 +289,34 @@ class AckL1EventReader:
         # l1trg->Branch("thrL1", & thrL1, "thrL1/I");
         # l1trg->Branch("persistL1", & persistL1, "persistL1/I");
 
-
+        # !!!
+        #
         # thrtable->Branch("triggerThresholds", triggerThresholds, "triggerThresholds[100][5]/F");
+        #
+        # !!!
 
-        # TODO gtusry
+        self._gtusry_gtuGlobal = np.array([-1], dtype=np.int32)  # "gtuGlobal/I"
+        self._gtusry_trgBoxPerGTU = np.array([-1], dtype=np.int32)  # "trgBoxPerGTU/I"
+        self._gtusry_trgPMTPerGTU = np.array([-1], dtype=np.int32)  # "trgPMTPerGTU/I"
+        self._gtusry_trgECPerGTU = np.array([-1], dtype=np.int32)  # "trgECPerGTU/I"
+        self._gtusry_nPersist = np.array([-1], dtype=np.int32)  # "&nPersist/I"
+        self._gtusry_gtuInPersist = np.array([-1], dtype=np.int32)  # "&gtuInPersist/I"
+
+        self._gtusry_sumL1PDM = np.array([-1], dtype=np.int32)  # "sumL1PDM/I"
+        self._gtusry_sumL1EC = np.array([-1] * 9, dtype=np.int32)  # "sumL1EC[9]/I"
+        self._gtusry_sumL1PMT = np.negative(np.ones((18, 2), dtype=np.int32))  # "sumL1PMT[18][2]/I"
+        self._gtusry_trgPMT = np.negative(np.ones((18, 2), dtype=np.int32))  # "sumL1PMT[18][2]/I"
+
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "gtuGlobal").SetAddress(self._gtusry_gtuGlobal)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "trgBoxPerGTU").SetAddress(self._gtusry_trgBoxPerGTU)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "trgPMTPerGTU").SetAddress(self._gtusry_trgPMTPerGTU)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "trgECPerGTU").SetAddress(self._gtusry_trgECPerGTU)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "nPersist").SetAddress(self._gtusry_nPersist)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "gtuInPersist").SetAddress(self._gtusry_gtuInPersist)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "sumL1PDM").SetAddress(self._gtusry_sumL1PDM)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "sumL1EC").SetAddress(self._gtusry_sumL1EC)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "sumL1PMT").SetAddress(self._gtusry_sumL1PMT)
+        self._get_branch_or_raise(kenji_l1_pathname, self.t_gtusry, "trgPMT").SetAddress(self._gtusry_trgPMT)
 
         # gtusry->Branch("gtuGlobal", & gtuGlobal, "gtuGlobal/I");
         # gtusry->Branch("trgBoxPerGTU", & trgBoxPerGTU, "trgBoxPerGTU/I");
@@ -253,8 +329,6 @@ class AckL1EventReader:
         # gtusry->Branch("sumL1EC", sumL1EC, "sumL1EC[9]/I");
         # gtusry->Branch("sumL1PMT", sumL1PMT, "sumL1PMT[18][2]/I");
         #
-        # Int_t
-        # trgPMT[18][2];
         # gtusry->Branch("trgPMT", trgPMT, "trgPMT[18][2]/I");
 
         self.ExpTree = ExpTree(self.t_texp, self.acquisition_file)
@@ -262,6 +336,10 @@ class AckL1EventReader:
         self._tevent_photon_count_data = np.zeros((self.ExpTree.ccbCount, self.ExpTree.pdmCount,
                                                    self.ExpTree.pmtCountX * self.ExpTree.pixelCountX,
                                                    self.ExpTree.pmtCountY * self.ExpTree.pixelCountY), dtype=np.ubyte)
+
+        self._tevent_gtu = np.array([-1], dtype=np.int32)
+        self._tevent_gtu_time = np.array([-1], dtype=np.double)
+        self._tevent_gtu_time1 = np.array([-1], dtype=np.double)
 
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "photon_count_data").SetAddress(self._tevent_photon_count_data)
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu").SetAddress(self._tevent_gtu)
@@ -301,10 +379,17 @@ class AckL1EventReader:
             self._current_tevent_entry += 1
             self.t_tevent.GetEntry(self._current_tevent_entry)
 
+    def _search_for_gtusry_by_gtu(self, gtu):
+        while (self._current_gtusry_entry < 0 or self._gtusry_gtuGlobal != gtu) and \
+                        self._current_gtusry_entry < self.t_gtusry_entries:
+            self._current_gtusry_entry += 1
+            self.t_gtusry.GetEntry(self._current_gtusry_entry)
+
     # TODO shold be able to iterate either over GTU or over trigger events
     def __iter__(self):
         self._current_l1trg_entry = -1
         self._current_tevent_entry = -1
+        self._current_gtusry_entry = -1
         return self
 
     # iterate over trigger events
@@ -324,14 +409,27 @@ class AckL1EventReader:
                 self._current_tevent_entry = -1
                 self._search_for_tevent_by_gtu(self._l1trg_gtuGlobal)
                 if self._tevent_gtu != self._l1trg_gtuGlobal:
-                    raise Exception("GTU {} from trigger data file was not found in acquisition file")
+                    raise Exception("GTU {} from trigger data file (tree l1trg) was not found in acquisition file (tree tevent)")
 
-            self.last_gtu_pdm_data = GtuPdmData(self._tevent_photon_count_data, self._tevent_gtu, self._tevent_gtu_time, self._tevent_gtu_time1)
+            self._search_for_gtusry_by_gtu(self._l1trg_gtuGlobal)
 
-        return L1TrgEvent.from_mario_format(self.last_gtu_pdm_data, self._l1trg_ecID,
-                          self._l1trg_pmtRow, self._l1trg_pmtCol,
-                          self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1 )
+            if self._gtusry_gtuGlobal != self._l1trg_gtuGlobal:
+                self._current_gtusry_entry = -1
+                self._search_for_gtusry_by_gtu(self._l1trg_gtuGlobal)
+                if self._gtusry_gtuGlobal != self._l1trg_gtuGlobal:
+                    raise Exception("GTU {} from trigger data file (tree l1trg) was not found in trigger data file (tree gtusry)")
 
+            self.last_gtu_pdm_data = GtuPdmData(self._tevent_photon_count_data, self._tevent_gtu, self._tevent_gtu_time, self._tevent_gtu_time1,
+                                                self._gtusry_trgBoxPerGTU, self._gtusry_trgPMTPerGTU, self._gtusry_trgECPerGTU,
+                                                self._gtusry_nPersist, self._gtusry_gtuInPersist,
+                                                self._gtusry_sumL1PDM, self._gtusry_sumL1EC, self._gtusry_sumL1PMT)
+
+        l1trg_ev = L1TrgEvent.from_mario_format(self.last_gtu_pdm_data, self._l1trg_ecID,
+                      self._l1trg_pmtRow, self._l1trg_pmtCol,
+                      self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1)
+        self.last_gtu_pdm_data.l1trg_events.append(l1trg_ev) # not very correct in this form - not all events are going to be associated to the GTU
+
+        return l1trg_ev
         #
         # def next(self):
         #     kenji_l1trg_entries = self.t_l1trg.GetEntries()     # 23331
