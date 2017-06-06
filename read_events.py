@@ -6,6 +6,7 @@ import argparse
 import sys
 import ROOT
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpl_patches
 from eusotrees.exptree import ExpTree
 
 
@@ -13,7 +14,7 @@ class GtuPdmData:
     photon_count_data = None
     gtu = -1
     gtu_time = -1
-    gtu_time1 = -1
+    # gtu_time1 = -1
 
     # gtu_global = -1         #  "gtuGlobal/I"
     trg_box_per_gtu = -1    #  "trgBoxPerGTU/I"
@@ -27,14 +28,14 @@ class GtuPdmData:
 
     l1trg_events = None
 
-    def __init__(self, photon_count_data, gtu, gtu_time, gtu_time1,
+    def __init__(self, photon_count_data, gtu, gtu_time, #gtu_time1,
                  trg_box_per_gtu, trg_pmt_per_gtu, trg_ec_per_gtu,
                  n_persist, gtu_in_persist, sum_l1_pdm, sum_l1_ec, sum_l1_pmt,
                  l1trg_events=[]):
         self.photon_count_data = photon_count_data
         self.gtu = np.asscalar(gtu) if isinstance(gtu, np.ndarray) else gtu
         self.gtu_time = np.asscalar(gtu_time) if isinstance(gtu_time, np.ndarray) else gtu_time
-        self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
+        # self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
 
         self.trg_box_per_gtu = np.asscalar(trg_box_per_gtu) if isinstance(trg_box_per_gtu, np.ndarray) else trg_box_per_gtu 
         self.trg_pmt_per_gtu = np.asscalar(trg_pmt_per_gtu) if isinstance(trg_pmt_per_gtu, np.ndarray) else trg_pmt_per_gtu
@@ -234,7 +235,7 @@ class AckL1EventReader:
     _tevent_photon_count_data = None
     _tevent_gtu = None # np.array([-1], dtype=np.int32)
     _tevent_gtu_time = None # np.array([-1], dtype=np.double)
-    _tevent_gtu_time1 = None # np.array([-1], dtype=np.double)
+    #_tevent_gtu_time1 = None # np.array([-1], dtype=np.double)
     # ...
 
     last_gtu_pdm_data = None
@@ -336,12 +337,12 @@ class AckL1EventReader:
 
         self._tevent_gtu = np.array([-1], dtype=np.int32)
         self._tevent_gtu_time = np.array([-1], dtype=np.double)
-        self._tevent_gtu_time1 = np.array([-1], dtype=np.double)
+        #self._tevent_gtu_time1 = np.array([-1], dtype=np.double)
 
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "photon_count_data").SetAddress(self._tevent_photon_count_data)
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu").SetAddress(self._tevent_gtu)
         self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu_time").SetAddress(self._tevent_gtu_time)
-        self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu_time1").SetAddress(self._tevent_gtu_time1)
+        # self._get_branch_or_raise(acquisition_pathname, self.t_tevent, "gtu_time1").SetAddress(self._tevent_gtu_time1)
 
         self.kenji_l1trg_entries = self.t_l1trg.GetEntries()     # 23331
         self.t_gtusry_entries = self.t_gtusry.GetEntries()       # 16512
@@ -447,7 +448,7 @@ class AckL1EventReader:
                     if aer._gtusry_gtuGlobal != aer._l1trg_gtuGlobal:
                         raise Exception("GTU {} from trigger data file (tree l1trg) was not found in trigger data file (tree gtusry)".format(aer._l1trg_gtuGlobal))
 
-                aer.last_gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, aer._tevent_gtu_time1,
+                aer.last_gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, #aer._tevent_gtu_time1,
                                                     aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
                                                     aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
                                                     aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
@@ -492,7 +493,7 @@ class AckL1EventReader:
                     raise Exception(
                         "GTU {} from acquisition data file (tree tevent) was not found in trigger data file (tree gtusry)".format(aer._tevent_gtu))
 
-            gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, aer._tevent_gtu_time1,
+            gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, #aer._tevent_gtu_time1,
                                         aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
                                         aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
                                         aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
@@ -514,6 +515,8 @@ def main(argv):
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
+    parser.add_argument('--gtu-before', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--gtu-after', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
 
     args = parser.parse_args()
 
@@ -535,7 +538,6 @@ def main(argv):
     #                                                                                             l1trg_ev.thr_l1,
     #                                                                                             l1trg_ev.persist_l1))
     #     plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
-    #     # plt.imshow(np.reshape(e.gtu_pdm_data.photon_count_data[0][0], e.gtu_pdm_data.photon_count_data[0][0].shape, 'C'))
     #     plt.colorbar()
     #     plt.show()
     #
@@ -545,8 +547,8 @@ def main(argv):
 
     for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
 
-        print("GTU {} ({}; {}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
-               .format(gtu_pdm_data.gtu, gtu_pdm_data.gtu_time, gtu_pdm_data.gtu_time1,
+        print("GTU {} ({}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
+               .format(gtu_pdm_data.gtu, gtu_pdm_data.gtu_time,
                        gtu_pdm_data.trg_box_per_gtu, gtu_pdm_data.trg_pmt_per_gtu, gtu_pdm_data.trg_ec_per_gtu,
                        gtu_pdm_data.n_persist, gtu_pdm_data.gtu_in_persist))
         for l1trg_ev in gtu_pdm_data.l1trg_events:
@@ -562,10 +564,25 @@ def main(argv):
             for l1trg_ev in gtu_pdm_data.l1trg_events:
                 det_array[l1trg_ev.pix_col, l1trg_ev.pix_row] = pdm_data[l1trg_ev.pix_col, l1trg_ev.pix_row]
 
-            plt.imshow(np.transpose(det_array))
-            # plt.imshow(np.transpose(gtu_pdm_data.photon_count_data[0][0]))
+            det_array_t = np.transpose(det_array)
+
+            fig, ax = plt.subplots(1)
+
+            plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
+            # ax.imshow(det_array_t)
             plt.colorbar()
+
+            # Create a Rectangle patch
+            # for l1trg_ev in gtu_pdm_data.l1trg_events:
+            #     rect = mpl_patches.Rectangle((l1trg_ev.pix_row, l1trg_ev.pix_col), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+            #     ax.add_patch(rect)
+
+            rect = mpl_patches.Rectangle((0, 1), 1, 1, linewidth=1, edgecolor='r',
+                                         facecolor='none')
+            ax.add_patch(rect)
+
             plt.show()
+
 
 if __name__ == "__main__":
     # execute only if run as a script
