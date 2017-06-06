@@ -36,17 +36,14 @@ class GtuPdmData:
         self.gtu_time = np.asscalar(gtu_time) if isinstance(gtu_time, np.ndarray) else gtu_time
         self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
 
-        self.trg_box_per_gtu = trg_box_per_gtu
-        self.trg_pmt_per_gtu = trg_pmt_per_gtu
-        self.trg_ec_per_gtu = trg_ec_per_gtu
-        self.n_persist = n_persist
-        self.gtu_in_persist = gtu_in_persist
-        self.sum_l1_pdm = sum_l1_pdm
+        self.trg_box_per_gtu = np.asscalar(trg_box_per_gtu) if isinstance(trg_box_per_gtu, np.ndarray) else trg_box_per_gtu 
+        self.trg_pmt_per_gtu = np.asscalar(trg_pmt_per_gtu) if isinstance(trg_pmt_per_gtu, np.ndarray) else trg_pmt_per_gtu
+        self.trg_ec_per_gtu = np.asscalar(trg_ec_per_gtu) if isinstance(trg_ec_per_gtu, np.ndarray) else trg_ec_per_gtu
+        self.n_persist = np.asscalar(n_persist) if isinstance(n_persist, np.ndarray) else n_persist
+        self.gtu_in_persist = np.asscalar(gtu_in_persist) if isinstance(gtu_in_persist, np.ndarray) else gtu_in_persist
+        self.sum_l1_pdm = np.asscalar(sum_l1_pdm) if isinstance(sum_l1_pdm, np.ndarray) else sum_l1_pdm
         self.sum_l1_ec = sum_l1_ec
         self.sum_l1_pmt = sum_l1_pmt
-
-        self.sum_l1_ec = np.array([-1]*9, dtype=np.int32)
-        self.sum_l1_pmt = np.negative(np.ones((18,2), dtype=np.int32))
 
         self.l1trg_events = l1trg_events
         
@@ -183,7 +180,7 @@ class L1TrgEvent:
         abspixx = abs_pmtx * 8 + pix_x
         abspixy = abs_pmty * 8 + (8-pix_y);  # Top-to-bottom
 
-        return mpmt_row, mpmt_col, abspixx, abspixy
+        return abs_pmtx, abs_pmty, abspixx, abspixy
         #return abspixy * 100 + abspixx
         
 
@@ -385,64 +382,132 @@ class AckL1EventReader:
             self._current_gtusry_entry += 1
             self.t_gtusry.GetEntry(self._current_gtusry_entry)
 
-    # TODO shold be able to iterate either over GTU or over trigger events
-    def __iter__(self):
-        self._current_l1trg_entry = -1
-        self._current_tevent_entry = -1
-        self._current_gtusry_entry = -1
-        return self
+    def _search_for_l1trg_events_by_gtu(self, gtu, gtu_pdm_data=None, presume_sorted=True):
+        if not presume_sorted: # or self._l1trg_gtuGlobal > gtu:
+            self._current_l1trg_entry = -1
 
-    # iterate over trigger events
-    def __next__(self):
-        self._current_l1trg_entry += 1
+        events_list = []
 
-        if self._current_l1trg_entry >= self.kenji_l1trg_entries:
-            raise StopIteration
+        while self._current_l1trg_entry < self.kenji_l1trg_entries:
+            if self._current_l1trg_entry == -1 or (presume_sorted and self._l1trg_gtuGlobal < gtu) or (not presume_sorted and self._l1trg_gtuGlobal != gtu) :
+                self._current_l1trg_entry += 1
+                self.t_l1trg.GetEntry(self._current_l1trg_entry)
 
-        self.t_l1trg.GetEntry(self._current_l1trg_entry)
+            # if self._current_l1trg_entry == 168:
+            #     print(">"*30, "Entry 168 read", "<"*30)
 
-        if self.last_gtu_pdm_data is None or self.last_gtu_pdm_data.gtu != self._l1trg_gtuGlobal:
-
-            self._search_for_tevent_by_gtu(self._l1trg_gtuGlobal)
-
-            if self._tevent_gtu != self._l1trg_gtuGlobal:
-                self._current_tevent_entry = -1
-                self._search_for_tevent_by_gtu(self._l1trg_gtuGlobal)
-                if self._tevent_gtu != self._l1trg_gtuGlobal:
-                    raise Exception("GTU {} from trigger data file (tree l1trg) was not found in acquisition file (tree tevent)")
-
-            self._search_for_gtusry_by_gtu(self._l1trg_gtuGlobal)
-
-            if self._gtusry_gtuGlobal != self._l1trg_gtuGlobal:
-                self._current_gtusry_entry = -1
-                self._search_for_gtusry_by_gtu(self._l1trg_gtuGlobal)
-                if self._gtusry_gtuGlobal != self._l1trg_gtuGlobal:
-                    raise Exception("GTU {} from trigger data file (tree l1trg) was not found in trigger data file (tree gtusry)")
-
-            self.last_gtu_pdm_data = GtuPdmData(self._tevent_photon_count_data, self._tevent_gtu, self._tevent_gtu_time, self._tevent_gtu_time1,
-                                                self._gtusry_trgBoxPerGTU, self._gtusry_trgPMTPerGTU, self._gtusry_trgECPerGTU,
-                                                self._gtusry_nPersist, self._gtusry_gtuInPersist,
-                                                self._gtusry_sumL1PDM, self._gtusry_sumL1EC, self._gtusry_sumL1PMT)
-
-        l1trg_ev = L1TrgEvent.from_mario_format(self.last_gtu_pdm_data, self._l1trg_ecID,
+            if self._l1trg_gtuGlobal == gtu:
+                events_list.append(L1TrgEvent.from_mario_format(gtu_pdm_data, self._l1trg_ecID,
                       self._l1trg_pmtRow, self._l1trg_pmtCol,
-                      self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1)
-        self.last_gtu_pdm_data.l1trg_events.append(l1trg_ev) # not very correct in this form - not all events are going to be associated to the GTU
+                      self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1))
+                self._current_l1trg_entry += 1
+                self.t_l1trg.GetEntry(self._current_l1trg_entry)
+            elif presume_sorted and self._l1trg_gtuGlobal > gtu:
+                break
 
-        return l1trg_ev
-        #
-        # def next(self):
-        #     kenji_l1trg_entries = self.t_l1trg.GetEntries()     # 23331
-        #     t_gtusry_entries = self.t_gtusry.GetEntries()       # 16512
-        #     t_thrtable_entries = self.t_thrtable.GetEntries()   # 1
-        #     texp_entries = self.t_texp.GetEntries()             # 1
-        #     tevent_entries = self.t_tevent.GetEntries()         # 16512
-        #
-        #     print(kenji_l1trg_entries)                          # 23331
-        #     print(tevent_entries)
-        #
-        #     pass
+        return events_list
 
+    class L1TrgEventIterator:
+        ack_ev_reader = None
+
+        def __init__(self, ack_ev_reader):
+            self.ack_ev_reader = ack_ev_reader
+
+        def __iter__(self):
+            self.ack_ev_reader._current_l1trg_entry = -1
+            self.ack_ev_reader._current_tevent_entry = -1
+            self.ack_ev_reader._current_gtusry_entry = -1
+            return self
+
+        def __next__(self):
+            aer = self.ack_ev_reader
+
+            aer._current_l1trg_entry += 1
+
+            if aer._current_l1trg_entry >= aer.kenji_l1trg_entries:
+                raise StopIteration
+
+            aer.t_l1trg.GetEntry(aer._current_l1trg_entry)
+
+            if aer.last_gtu_pdm_data is None or aer.last_gtu_pdm_data.gtu != aer._l1trg_gtuGlobal:
+
+                aer._search_for_tevent_by_gtu(aer._l1trg_gtuGlobal)
+
+                if aer._tevent_gtu != aer._l1trg_gtuGlobal:
+                    aer._current_tevent_entry = -1
+                    aer._search_for_tevent_by_gtu(aer._l1trg_gtuGlobal)
+                    if aer._tevent_gtu != aer._l1trg_gtuGlobal:
+                        raise Exception("GTU {} from trigger data file (tree l1trg) was not found in acquisition file (tree tevent)".format(aer._l1trg_gtuGlobal))
+
+                aer._search_for_gtusry_by_gtu(aer._l1trg_gtuGlobal)
+
+                if aer._gtusry_gtuGlobal != aer._l1trg_gtuGlobal:
+                    aer._current_gtusry_entry = -1
+                    aer._search_for_gtusry_by_gtu(aer._l1trg_gtuGlobal)
+                    if aer._gtusry_gtuGlobal != aer._l1trg_gtuGlobal:
+                        raise Exception("GTU {} from trigger data file (tree l1trg) was not found in trigger data file (tree gtusry)".format(aer._l1trg_gtuGlobal))
+
+                aer.last_gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, aer._tevent_gtu_time1,
+                                                    aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
+                                                    aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
+                                                    aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
+
+            l1trg_ev = L1TrgEvent.from_mario_format(aer.last_gtu_pdm_data, aer._l1trg_ecID,
+                          aer._l1trg_pmtRow, aer._l1trg_pmtCol,
+                          aer._l1trg_pixRow, aer._l1trg_pixCol, aer._l1trg_sumL1, aer._l1trg_thrL1, aer. _l1trg_persistL1)
+            aer.last_gtu_pdm_data.l1trg_events.append(l1trg_ev) # not very correct in this form - not all events are going to be associated to the GTU
+
+            return l1trg_ev
+
+    class GtuPdmDataIterator:
+        ack_ev_reader = None
+        presume_sorted = True
+
+        def __init__(self, ack_ev_reader, presume_sorted = True):
+            self.ack_ev_reader = ack_ev_reader
+            self.presume_sorted = presume_sorted
+
+        def __iter__(self):
+            self.ack_ev_reader._current_l1trg_entry = -1
+            self.ack_ev_reader._current_tevent_entry = -1
+            self.ack_ev_reader._current_gtusry_entry = -1
+            return self
+
+        # TODO iterate over gtu
+        def __next__(self):
+            aer = self.ack_ev_reader
+            aer._current_tevent_entry += 1
+
+            if aer._current_tevent_entry >= aer.tevent_entries:
+                raise StopIteration
+
+            aer.t_tevent.GetEntry(aer._current_tevent_entry)
+
+            aer._search_for_gtusry_by_gtu(aer._tevent_gtu)
+
+            if aer._gtusry_gtuGlobal != aer._tevent_gtu:
+                aer._current_gtusry_entry = -1
+                aer._search_for_gtusry_by_gtu(aer._tevent_gtu)
+                if aer._gtusry_gtuGlobal != aer._tevent_gtu:
+                    raise Exception(
+                        "GTU {} from acquisition data file (tree tevent) was not found in trigger data file (tree gtusry)".format(aer._tevent_gtu))
+
+            gtu_pdm_data = GtuPdmData(aer._tevent_photon_count_data, aer._tevent_gtu, aer._tevent_gtu_time, aer._tevent_gtu_time1,
+                                        aer._gtusry_trgBoxPerGTU, aer._gtusry_trgPMTPerGTU, aer._gtusry_trgECPerGTU,
+                                        aer._gtusry_nPersist, aer._gtusry_gtuInPersist,
+                                        aer._gtusry_sumL1PDM, aer._gtusry_sumL1EC, aer._gtusry_sumL1PMT)
+
+            l1trg_events = aer._search_for_l1trg_events_by_gtu(aer._tevent_gtu, gtu_pdm_data)
+
+            gtu_pdm_data.l1trg_events = l1trg_events
+
+            return gtu_pdm_data
+
+    def iter_l1trg_events(self):
+        return self.L1TrgEventIterator(self)
+
+    def iter_gtu_pdm_data(self):
+        return self.GtuPdmDataIterator(self)
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Find patterns inside triggered pixes')
@@ -455,15 +520,52 @@ def main(argv):
     ack_l1_reader = AckL1EventReader(args.acquisition_file, args.kenji_l1trigger_file)
     # e = next(ack_l1_reader)
 
-    for e in ack_l1_reader:
+    dbg_i = 0
+    # for l1trg_ev in ack_l1_reader.iter_l1trg_events():
+    #     print("GTU {} ({}; {}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
+    #     .format(l1trg_ev.gtu_pdm_data.gtu, l1trg_ev.gtu_pdm_data.gtu_time, l1trg_ev.gtu_pdm_data.gtu_time1,
+    #             l1trg_ev.gtu_pdm_data.trg_box_per_gtu, l1trg_ev.gtu_pdm_data.trg_pmt_per_gtu, l1trg_ev.gtu_pdm_data.trg_ec_per_gtu,
+    #             l1trg_ev.gtu_pdm_data.n_persist, l1trg_ev.gtu_pdm_data.gtu_in_persist))
+    #     print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col,
+    #                                                                                             l1trg_ev.pix_row,
+    #                                                                                             l1trg_ev.pmt_col,
+    #                                                                                             l1trg_ev.pmt_row,
+    #                                                                                             l1trg_ev.ec_id,
+    #                                                                                             l1trg_ev.sum_l1,
+    #                                                                                             l1trg_ev.thr_l1,
+    #                                                                                             l1trg_ev.persist_l1))
+    #     plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
+    #     # plt.imshow(np.reshape(e.gtu_pdm_data.photon_count_data[0][0], e.gtu_pdm_data.photon_count_data[0][0].shape, 'C'))
+    #     plt.colorbar()
+    #     plt.show()
+    #
+    #     dbg_i += 1
+    #     if dbg_i > 5:
+    #         break
 
-        print(e.pix_col, e.pix_row, e.pmt_col, e.pmt_row, e.__dict__, e.gtu_pdm_data.photon_count_data[0][0])
-        plt.imshow(np.transpose(e.gtu_pdm_data.photon_count_data[0][0]))
-        # plt.imshow(np.reshape(e.gtu_pdm_data.photon_count_data[0][0], e.gtu_pdm_data.photon_count_data[0][0].shape, 'C'))
-        plt.colorbar()
-        plt.show()
+    for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
 
-    print(e)
+        print("GTU {} ({}; {}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
+               .format(gtu_pdm_data.gtu, gtu_pdm_data.gtu_time, gtu_pdm_data.gtu_time1,
+                       gtu_pdm_data.trg_box_per_gtu, gtu_pdm_data.trg_pmt_per_gtu, gtu_pdm_data.trg_ec_per_gtu,
+                       gtu_pdm_data.n_persist, gtu_pdm_data.gtu_in_persist))
+        for l1trg_ev in gtu_pdm_data.l1trg_events:
+            print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col, l1trg_ev.pix_row, l1trg_ev.pmt_col, l1trg_ev.pmt_row, l1trg_ev.ec_id,
+                                  l1trg_ev.sum_l1, l1trg_ev.thr_l1, l1trg_ev.persist_l1))
+
+        if len(gtu_pdm_data.l1trg_events) > 0:
+            pdm_data = gtu_pdm_data.photon_count_data[0][0]
+
+            print(pdm_data)
+
+            det_array = np.zeros_like(pdm_data)
+            for l1trg_ev in gtu_pdm_data.l1trg_events:
+                det_array[l1trg_ev.pix_col, l1trg_ev.pix_row] = pdm_data[l1trg_ev.pix_col, l1trg_ev.pix_row]
+
+            plt.imshow(np.transpose(det_array))
+            # plt.imshow(np.transpose(gtu_pdm_data.photon_count_data[0][0]))
+            plt.colorbar()
+            plt.show()
 
 if __name__ == "__main__":
     # execute only if run as a script
