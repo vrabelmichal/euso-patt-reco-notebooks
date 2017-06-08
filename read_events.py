@@ -8,6 +8,7 @@ import ROOT
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patches
 from eusotrees.exptree import ExpTree
+import collections
 
 
 class GtuPdmData:
@@ -32,7 +33,13 @@ class GtuPdmData:
                  trg_box_per_gtu, trg_pmt_per_gtu, trg_ec_per_gtu,
                  n_persist, gtu_in_persist, sum_l1_pdm, sum_l1_ec, sum_l1_pmt,
                  l1trg_events=[]):
-        self.photon_count_data = photon_count_data
+
+        self.photon_count_data = np.zeros_like(photon_count_data)
+
+        for ccb_index in range(0,len(photon_count_data)):
+            for pdm_index in range(0,len(photon_count_data[ccb_index])):
+                self.photon_count_data[ccb_index, pdm_index] = np.transpose(np.fliplr(photon_count_data[ccb_index, pdm_index])) # np.fliplr(np.transpose(photon_count_data[ccb_index, pdm_index]))
+
         self.gtu = np.asscalar(gtu) if isinstance(gtu, np.ndarray) else gtu
         self.gtu_time = np.asscalar(gtu_time) if isinstance(gtu_time, np.ndarray) else gtu_time
         # self.gtu_time1 = np.asscalar(gtu_time1) if isinstance(gtu_time1, np.ndarray) else gtu_time1
@@ -59,7 +66,11 @@ class L1TrgEvent:
     thr_l1 = -1
     persist_l1 = -1
 
-    def __init__(self, gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1):
+    packet_id = -1      # ideally this should be in GtuPdmData, but this is from l1trg tree
+    gtu_in_packet = -1
+
+    def __init__(self, gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1,
+                 packet_id = -1, gtu_in_packet = -1):
         self.gtu_pdm_data = gtu_pdm_data
         self.ec_id = np.asscalar(ec_id) if isinstance(ec_id, np.ndarray) else ec_id
         self.pmt_row = np.asscalar(pmt_row) if isinstance(pmt_row, np.ndarray) else pmt_row
@@ -70,120 +81,35 @@ class L1TrgEvent:
         self.thr_l1 = np.asscalar(thr_l1) if isinstance(thr_l1, np.ndarray) else thr_l1
         self.persist_l1 = np.asscalar(persist_l1) if isinstance(persist_l1, np.ndarray) else persist_l1
 
+        self.packet_id = np.asscalar(packet_id) if isinstance(packet_id, np.ndarray) else packet_id
+        self.gtu_in_packet = np.asscalar(gtu_in_packet) if isinstance(gtu_in_packet, np.ndarray) else gtu_in_packet
+
     @classmethod
-    def from_mario_format(cls, gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1):
-        e = L1TrgEvent(gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1)
-        e.pmt_col, e.pmt_row, e.pix_col, e.pix_row = cls.mario2pdm(e.pmt_col, e.pmt_row, e.pix_col, e.pix_row)
+    def from_mario_format(cls, gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1,
+                          packet_id = -1, gtu_in_packet = -1):
+        e = L1TrgEvent(gtu_pdm_data, ec_id, pmt_row, pmt_col, pix_row, pix_col, sum_l1, thr_l1, persist_l1, packet_id, gtu_in_packet)
+        e.o_pmt_col = e.pmt_col; e.o_pmt_row = e.pmt_row; e.o_pix_col = e.pix_col; e.o_pix_row = e.pix_row
+        e.pmt_col, e.pmt_row, e.pix_col, e.pix_row = cls.mario2pdm_for_mpl(e.pmt_col, e.pmt_row, e.pix_col, e.pix_row)
         return e
 
-    # rewritten from kenji's c++ version
     @classmethod
-    def mario2pdm(cls, mpmt_col=0, mpmt_row=0, pix_x=0, pix_y=0):
-        abs_pmtx = 0
-        abs_pmty = 0
-
+    def mario2pdm_for_mpl(cls, mpmt_col=0, mpmt_row=0, pix_x=0, pix_y=0):
         if mpmt_row >= 18 or mpmt_row < 0:
             raise Exception("Something is rotten in the state of row#. mario")
-        
+
         if mpmt_col >= 2 or mpmt_col < 0:
             raise Exception("Something is rotten in the state of col#. mario")
 
-        # EC1
-        if mpmt_col == 0 and mpmt_row == 0:
-            abs_pmtx = 0;abs_pmty = 5;
-        if mpmt_col == 1 and mpmt_row == 0 :
-            abs_pmtx = 1;abs_pmty = 5;
-        if mpmt_col == 0 and mpmt_row == 1 :
-            abs_pmtx = 0;abs_pmty = 4;
-        if mpmt_col == 1 and mpmt_row == 1 :
-            abs_pmtx = 1;abs_pmty = 4;
+        ec_index = mpmt_row // 2
+        pmt_row_in_ec = mpmt_row % 2
+        lech_pmt_row = (ec_index // 3) * 2 + pmt_row_in_ec
+        lech_pmt_col = (ec_index % 3) * 2 + mpmt_col
 
-        # EC2
-        if mpmt_col == 0 and mpmt_row == 2 :
-            abs_pmtx = 2;abs_pmty = 5;
-        if mpmt_col == 1 and mpmt_row == 2 :
-            abs_pmtx = 3;abs_pmty = 5;
-        if mpmt_col == 0 and mpmt_row == 3 :
-            abs_pmtx = 2;abs_pmty = 4;
-        if mpmt_col == 1 and mpmt_row == 3 :
-            abs_pmtx = 3;abs_pmty = 4;
+        abspix_col = lech_pmt_col*8 + pix_x
+        abspix_row = lech_pmt_row*8 + pix_y
 
-        # EC3
-        if mpmt_col == 0 and mpmt_row == 4 :
-            abs_pmtx = 4;abs_pmty = 5;
-        if mpmt_col == 1 and mpmt_row == 4 :
-            abs_pmtx = 5;abs_pmty = 5;
-        if mpmt_col == 0 and mpmt_row == 5 :
-            abs_pmtx = 4;abs_pmty = 4;
-        if mpmt_col == 1 and mpmt_row == 5 :
-            abs_pmtx = 5;abs_pmty = 4;
+        return lech_pmt_col, lech_pmt_row, abspix_col, abspix_row
 
-        # EC4
-        if mpmt_col == 0 and mpmt_row == 6 :
-            abs_pmtx = 0;abs_pmty = 3;
-        if mpmt_col == 1 and mpmt_row == 6 :
-            abs_pmtx = 1;abs_pmty = 3;
-        if mpmt_col == 0 and mpmt_row == 7 :
-            abs_pmtx = 0;abs_pmty = 2;
-        if mpmt_col == 1 and mpmt_row == 7 :
-            abs_pmtx = 1;abs_pmty = 2;
-
-        # EC5
-        if mpmt_col == 0 and mpmt_row == 8 :
-            abs_pmtx = 2;abs_pmty = 3;
-        if mpmt_col == 1 and mpmt_row == 8 :
-            abs_pmtx = 3;abs_pmty = 3;
-        if mpmt_col == 0 and mpmt_row == 9 :
-            abs_pmtx = 2;abs_pmty = 2;
-        if mpmt_col == 1 and mpmt_row == 9 :
-            abs_pmtx = 3;abs_pmty = 2;
-
-        # EC6
-        if mpmt_col == 0 and mpmt_row == 10 :
-            abs_pmtx = 4;abs_pmty = 3;
-        if mpmt_col == 1 and mpmt_row == 10 :
-            abs_pmtx = 5;abs_pmty = 3;
-        if mpmt_col == 0 and mpmt_row == 11 :
-            abs_pmtx = 4;abs_pmty = 2;
-        if mpmt_col == 1 and mpmt_row == 11 :
-            abs_pmtx = 5;abs_pmty = 2;
-
-        # EC7
-        if mpmt_col == 0 and mpmt_row == 12 :
-            abs_pmtx = 0;abs_pmty = 1;
-        if mpmt_col == 1 and mpmt_row == 12 :
-            abs_pmtx = 1;abs_pmty = 1;
-        if mpmt_col == 0 and mpmt_row == 13 :
-            abs_pmtx = 0;abs_pmty = 0;
-        if mpmt_col == 1 and mpmt_row == 13 :
-            abs_pmtx = 1;abs_pmty = 0;
-
-        # EC8
-        if mpmt_col == 0 and mpmt_row == 14 :
-            abs_pmtx = 2;abs_pmty = 1;
-        if mpmt_col == 1 and mpmt_row == 14 :
-            abs_pmtx = 3;abs_pmty = 1;
-        if mpmt_col == 0 and mpmt_row == 15 :
-            abs_pmtx = 2;abs_pmty = 0;
-        if mpmt_col == 1 and mpmt_row == 15 :
-            abs_pmtx = 3;abs_pmty = 0;
-
-        # EC9
-        if mpmt_col == 0 and mpmt_row == 16 :
-            abs_pmtx = 4;abs_pmty = 1;
-        if mpmt_col == 1 and mpmt_row == 16 :
-            abs_pmtx = 5;abs_pmty = 1;
-        if mpmt_col == 0 and mpmt_row == 17 :
-            abs_pmtx = 4;abs_pmty = 0;
-        if mpmt_col == 1 and mpmt_row == 17 :
-            abs_pmtx = 5;abs_pmty = 0;
-
-        abspixx = abs_pmtx * 8 + pix_x
-        abspixy = abs_pmty * 8 + (8-pix_y);  # Top-to-bottom
-
-        return abs_pmtx, abs_pmty, abspixx, abspixy
-        #return abspixy * 100 + abspixx
-        
 
 class AckL1EventReader:
     acquisition_file = None
@@ -196,7 +122,7 @@ class AckL1EventReader:
     t_gtusry = None
     t_thrtable = None
 
-    ExpTree = None
+    exp_tree = None
 
     kenji_l1trg_entries = -1
     t_gtusry_entries = -1
@@ -329,11 +255,11 @@ class AckL1EventReader:
         #
         # gtusry->Branch("trgPMT", trgPMT, "trgPMT[18][2]/I");
 
-        self.ExpTree = ExpTree(self.t_texp, self.acquisition_file)
+        self.exp_tree = ExpTree(self.t_texp, self.acquisition_file)
 
-        self._tevent_photon_count_data = np.zeros((self.ExpTree.ccbCount, self.ExpTree.pdmCount,
-                                                   self.ExpTree.pmtCountX * self.ExpTree.pixelCountX,
-                                                   self.ExpTree.pmtCountY * self.ExpTree.pixelCountY), dtype=np.ubyte)
+        self._tevent_photon_count_data = np.zeros((self.exp_tree.ccbCount, self.exp_tree.pdmCount,
+                                                   self.exp_tree.pmtCountX * self.exp_tree.pixelCountX,
+                                                   self.exp_tree.pmtCountY * self.exp_tree.pixelCountY), dtype=np.ubyte)
 
         self._tevent_gtu = np.array([-1], dtype=np.int32)
         self._tevent_gtu_time = np.array([-1], dtype=np.double)
@@ -371,6 +297,15 @@ class AckL1EventReader:
         t_thrtable = f.Get("thrtable")          # 1 entry - single table
         return f, t_l1trg, t_gtusry, t_thrtable
 
+    # def get_tevent_entry(self, num = None):
+    #     if num is None:
+    #         self.t_tevent.GetEntry(self._current_tevent_entry)
+    #     else:
+    #         self.t_tevent.GetEntry(num)
+    #         self._current_l1trg_entry = num # practically unnecesarry
+    #     self._tevent_photon_count_data = np.filplr(np.transpose(self._tevent_photon_count_data))
+
+
     def _search_for_tevent_by_gtu(self, gtu):
         while (self._current_tevent_entry < 0 or self._tevent_gtu != gtu) and \
                         self._current_tevent_entry < self.tevent_entries:
@@ -400,7 +335,12 @@ class AckL1EventReader:
             if self._l1trg_gtuGlobal == gtu:
                 events_list.append(L1TrgEvent.from_mario_format(gtu_pdm_data, self._l1trg_ecID,
                       self._l1trg_pmtRow, self._l1trg_pmtCol,
-                      self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1))
+                      self._l1trg_pixRow, self._l1trg_pixCol, self._l1trg_sumL1, self._l1trg_thrL1, self. _l1trg_persistL1,
+                      self._l1trg_packetID, self._l1trg_gtuInPacket))
+
+                # _l1trg_packetID = None  # np.array([-1], dtype=np.int32)
+                # _l1trg_gtuInPacket = None  # np.array([-1], dtype=np.int32)
+
                 self._current_l1trg_entry += 1
                 self.t_l1trg.GetEntry(self._current_l1trg_entry)
             elif presume_sorted and self._l1trg_gtuGlobal > gtu:
@@ -510,6 +450,122 @@ class AckL1EventReader:
     def iter_gtu_pdm_data(self):
         return self.GtuPdmDataIterator(self)
 
+
+def visualize_frame(gtu_pdm_data, exp_tree, pcd = None):
+    fig, ax = plt.subplots(1)
+
+    det_width =  exp_tree.pmtCountX * exp_tree.pixelCountX
+    det_height = exp_tree.pmtCountY * exp_tree.pixelCountY
+    pmt_width =  exp_tree.pdmPixelCountX / exp_tree.pmtCountX
+    pmt_height = exp_tree.pdmPixelCountY / exp_tree.pmtCountY
+
+    # det_array = np.zeros_like(pcd)
+    # pdm_pcd = pcd[0,0]
+    # for l1trg_ev in gtu_pdm_data.l1trg_events:
+    #     det_array[0][0][l1trg_ev.pix_row, l1trg_ev.pix_col] = gtu_pdm_data.photon_count_data[0][0][l1trg_ev.pix_row, l1trg_ev.pix_col]
+
+    if pcd is None:
+        pcd = gtu_pdm_data.photon_count_data
+
+    plt.imshow(pcd, extent=[0, det_width, det_height, 0])
+    plt.colorbar()
+
+    if gtu_pdm_data is not None:
+        for l1trg_ev in gtu_pdm_data.l1trg_events:
+            # if l1trg_ev.pix_row == 1:
+            rect = mpl_patches.Rectangle((l1trg_ev.pix_col, l1trg_ev.pix_row), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+
+        for tmp_pmt_x in range(0, exp_tree.pmtCountX):
+            for tmp_pmt_y in range(0, exp_tree.pmtCountY):
+                rect = mpl_patches.Rectangle((tmp_pmt_x*pmt_width, tmp_pmt_y*pmt_height), pmt_width, pmt_height, linewidth=1, edgecolor='black', facecolor='none')
+                ax.add_patch(rect)
+
+    plt.show()
+
+def print_frame_info(gtu_pdm_data):
+    print("GTU {} ({}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
+          .format(gtu_pdm_data.gtu, gtu_pdm_data.gtu_time,
+                  gtu_pdm_data.trg_box_per_gtu, gtu_pdm_data.trg_pmt_per_gtu, gtu_pdm_data.trg_ec_per_gtu,
+                  gtu_pdm_data.n_persist, gtu_pdm_data.gtu_in_persist))
+    for l1trg_ev in gtu_pdm_data.l1trg_events:
+        print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col,
+                                                                                                l1trg_ev.pix_row,
+                                                                                                l1trg_ev.pmt_col,
+                                                                                                l1trg_ev.pmt_row,
+                                                                                                l1trg_ev.ec_id,
+                                                                                                l1trg_ev.sum_l1,
+                                                                                                l1trg_ev.thr_l1,
+                                                                                                l1trg_ev.persist_l1),
+              " orig: ", l1trg_ev.o_pmt_col, l1trg_ev.o_pmt_row, "; ", l1trg_ev.o_pix_col, l1trg_ev.o_pix_row)
+
+
+def read_l1trg_events(ack_l1_reader):
+    for l1trg_ev in ack_l1_reader.iter_l1trg_events():
+        print_frame_info(l1trg_ev.gtu_pdm_data)
+        # print("GTU {} ({}; {}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
+        # .format(l1trg_ev.gtu_pdm_data.gtu, l1trg_ev.gtu_pdm_data.gtu_time, l1trg_ev.gtu_pdm_data.gtu_time1,
+        #         l1trg_ev.gtu_pdm_data.trg_box_per_gtu, l1trg_ev.gtu_pdm_data.trg_pmt_per_gtu, l1trg_ev.gtu_pdm_data.trg_ec_per_gtu,
+        #         l1trg_ev.gtu_pdm_data.n_persist, l1trg_ev.gtu_pdm_data.gtu_in_persist))
+        # print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col,
+        #                                                                                         l1trg_ev.pix_row,
+        #                                                                                         l1trg_ev.pmt_col,
+        #                                                                                         l1trg_ev.pmt_row,
+        #                                                                                         l1trg_ev.ec_id,
+        #                                                                                         l1trg_ev.sum_l1,
+        #                                                                                         l1trg_ev.thr_l1,
+        #                                                                                         l1trg_ev.persist_l1))
+        # plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
+        # plt.colorbar()
+        # plt.show()
+
+
+def process_event(frames, pixels_mask = None):
+    print(len(frames))
+
+    event_frames = []
+
+    triggered_pixel_sum_l1_frames = []
+    triggered_pixel_thr_l1_frames = []
+    triggered_pixel_persist_l1_frames = []
+
+    for gtu_pdm_data in frames:
+        pcd = gtu_pdm_data.photon_count_data
+        if len(pcd) > 0 and len(pcd[0]) > 0:
+            event_frames.append(pcd)
+            triggered_pixel_sum_l1 = np.zeros_like(pcd)
+            triggered_pixel_thr_l1 = np.zeros_like(pcd)
+            triggered_pixel_persist_l1 = np.zeros_like(pcd)
+            for l1trg_event in gtu_pdm_data.l1trg_events:
+                triggered_pixel_sum_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.sum_l1
+                triggered_pixel_thr_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.thr_l1
+                triggered_pixel_persist_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.persist_l1
+            triggered_pixel_sum_l1_frames.append(triggered_pixel_sum_l1)
+            triggered_pixel_thr_l1_frames.append(triggered_pixel_thr_l1)
+            triggered_pixel_persist_l1_frames.append(triggered_pixel_persist_l1)
+
+
+    if len(event_frames) == 0:
+        return None
+
+    # possibly find threshold with average background (another parameter?)
+
+
+    # consider pixels mask
+    if pixels_mask is None:
+        pixels_mask = np.ones_like(event_frames[0])
+
+    weights_mask = np.ones_like(event_frames[0])
+    # sum_l1
+    # persist_l1
+    weights_mask = np.multiply(weights_mask, pixels_mask) # applying mask, should be last
+
+    max_values_arr = np.maximum.reduce(event_frames)
+
+    return None
+
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description='Find patterns inside triggered pixes')
     # parser.add_argument('files', nargs='+', help='List of files to convert')
@@ -517,71 +573,51 @@ def main(argv):
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
     parser.add_argument('--gtu-before', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--gtu-after', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--persistency-depth', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
     args = parser.parse_args()
 
     ack_l1_reader = AckL1EventReader(args.acquisition_file, args.kenji_l1trigger_file)
     # e = next(ack_l1_reader)
 
-    dbg_i = 0
-    # for l1trg_ev in ack_l1_reader.iter_l1trg_events():
-    #     print("GTU {} ({}; {}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
-    #     .format(l1trg_ev.gtu_pdm_data.gtu, l1trg_ev.gtu_pdm_data.gtu_time, l1trg_ev.gtu_pdm_data.gtu_time1,
-    #             l1trg_ev.gtu_pdm_data.trg_box_per_gtu, l1trg_ev.gtu_pdm_data.trg_pmt_per_gtu, l1trg_ev.gtu_pdm_data.trg_ec_per_gtu,
-    #             l1trg_ev.gtu_pdm_data.n_persist, l1trg_ev.gtu_pdm_data.gtu_in_persist))
-    #     print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col,
-    #                                                                                             l1trg_ev.pix_row,
-    #                                                                                             l1trg_ev.pmt_col,
-    #                                                                                             l1trg_ev.pmt_row,
-    #                                                                                             l1trg_ev.ec_id,
-    #                                                                                             l1trg_ev.sum_l1,
-    #                                                                                             l1trg_ev.thr_l1,
-    #                                                                                             l1trg_ev.persist_l1))
-    #     plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
-    #     plt.colorbar()
-    #     plt.show()
-    #
-    #     dbg_i += 1
-    #     if dbg_i > 5:
-    #         break
+    frame_circ_buffer = collections.deque(maxlen=args.gtu_before+args.persistency_depth+args.gtu_after)
+
+    process_event_down_counter = np.inf
+    packet_id = -1
 
     for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
+        frame_circ_buffer.append(gtu_pdm_data)
 
-        print("GTU {} ({}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
-               .format(gtu_pdm_data.gtu, gtu_pdm_data.gtu_time,
-                       gtu_pdm_data.trg_box_per_gtu, gtu_pdm_data.trg_pmt_per_gtu, gtu_pdm_data.trg_ec_per_gtu,
-                       gtu_pdm_data.n_persist, gtu_pdm_data.gtu_in_persist))
-        for l1trg_ev in gtu_pdm_data.l1trg_events:
-            print("    pix: {},{}; PMT: {},{}; EC: {}; sumL1: {}, thrL1: {}, persistL1: {} ".format(l1trg_ev.pix_col, l1trg_ev.pix_row, l1trg_ev.pmt_col, l1trg_ev.pmt_row, l1trg_ev.ec_id,
-                                  l1trg_ev.sum_l1, l1trg_ev.thr_l1, l1trg_ev.persist_l1))
+        gtu_in_packet = gtu_pdm_data.gtu % args.packet_size
+        if gtu_in_packet == 0:
+            packet_id += 1 # starts at -1
+
+        print_frame_info(gtu_pdm_data)
 
         if len(gtu_pdm_data.l1trg_events) > 0:
-            pdm_data = gtu_pdm_data.photon_count_data[0][0]
+            process_event_down_counter = args.gtu_after
 
-            print(pdm_data)
+            for l1trg_event in gtu_pdm_data.l1trg_events:
+                if l1trg_event.packet_id != packet_id:
+                    raise Exception("Unexpected L1 trigger event's packet id (actual: {}, expected: {})".format(l1trg_event.packet_id, packet_id))
+                if l1trg_event.gtu_in_packet != gtu_in_packet:
+                    raise Exception("Unexpected L1 trigger event's gtu in packet (actual: {}, expected: {})".format(l1trg_event.gtu_in_packet, gtu_in_packet))
 
-            det_array = np.zeros_like(pdm_data)
-            for l1trg_ev in gtu_pdm_data.l1trg_events:
-                det_array[l1trg_ev.pix_col, l1trg_ev.pix_row] = pdm_data[l1trg_ev.pix_col, l1trg_ev.pix_row]
+            # pcd = gtu_pdm_data.photon_count_data
+            # if len(pcd) > 0 and len(pcd[0]) > 0:
+            #     visualize_frame(gtu_pdm_data, ack_l1_reader.exp_tree)
 
-            det_array_t = np.transpose(det_array)
+        if not np.isinf(process_event_down_counter):    #TODO add packet id check
+            if process_event_down_counter == 0 or gtu_in_packet == 127:
+                process_event(frame_circ_buffer)
+                process_event_down_counter = np.inf
+            elif process_event_down_counter > 0:
+                if len(gtu_pdm_data.l1trg_events) == 0: # TODO this might require increase size of the circular buffer
+                    process_event_down_counter -= 1
+            else:
+                raise Exception("Unexpected value of process_event_down_counter")
 
-            fig, ax = plt.subplots(1)
-
-            plt.imshow(np.transpose(l1trg_ev.gtu_pdm_data.photon_count_data[0][0]))
-            # ax.imshow(det_array_t)
-            plt.colorbar()
-
-            # Create a Rectangle patch
-            # for l1trg_ev in gtu_pdm_data.l1trg_events:
-            #     rect = mpl_patches.Rectangle((l1trg_ev.pix_row, l1trg_ev.pix_col), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
-            #     ax.add_patch(rect)
-
-            rect = mpl_patches.Rectangle((0, 1), 1, 1, linewidth=1, edgecolor='r',
-                                         facecolor='none')
-            ax.add_patch(rect)
-
-            plt.show()
 
 
 if __name__ == "__main__":
