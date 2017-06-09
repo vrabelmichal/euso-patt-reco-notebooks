@@ -9,6 +9,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpl_patches
 from eusotrees.exptree import ExpTree
 import collections
+from enum import Enum
+
+from skimage.transform import hough_line, hough_line_peaks
+from skimage.draw import line
 
 
 class GtuPdmData:
@@ -54,7 +58,7 @@ class GtuPdmData:
         self.sum_l1_pmt = sum_l1_pmt
 
         self.l1trg_events = l1trg_events
-        
+
 class L1TrgEvent:
     gtu_pdm_data = None
     ec_id = -1
@@ -450,8 +454,53 @@ class AckL1EventReader:
     def iter_gtu_pdm_data(self):
         return self.GtuPdmDataIterator(self)
 
+class EventFilterOptions:
+    class Cond(Enum):
+        lt = 1
+        le = 2
+        eq = 3
+        ge = 4
+        gt = 5
 
-def visualize_frame(gtu_pdm_data, exp_tree, pcd = None):
+    n_persist = -1
+    n_persist_cond = Cond.lt
+    sum_l1_pdm = -1
+    sum_l1_pdm_cond = Cond.lt
+    sum_l1_ec_one = -1
+    sum_l1_ec_one_cond = Cond.lt
+    sum_l1_pmt_one = -1
+    sum_l1_pmt_one_cond = Cond.lt
+
+    def cmp(self, val1, val2, cmp_type):
+        if cmp_type == EventFilterOptions.Cond.lt:
+            return val1 < val2
+        elif cmp_type == EventFilterOptions.Cond.le:
+            return val1 <= val2
+        elif cmp_type == EventFilterOptions.Cond.eq:
+            return val1 == val2
+        elif cmp_type == EventFilterOptions.Cond.ge:
+            return val1 >= val2
+        else:
+            val1 > val2
+
+    def has_one_cell_valid(self, v, m, cond):
+        for i in self.m.shape[0]:
+            for j in self.m.shape[1]:
+                if self.cmp(v, m[i][j], cond): #TODO one or all?
+                    return True
+        return False
+
+    def check_pdm_gtu(self, pdm_gtu_data):
+        if not (self.cmp(self.n_persist, pdm_gtu_data.n_persist, self.n_persist_cond) and self.cmp(self.sum_l1_pdm, pdm_gtu_data.sum_l1_pdm, self.sum_l1_pdm_cond)):
+            return False
+        if not self.has_one_cell_valid(self.sum_l1_ec_one, pdm_gtu_data.sum_l1_ec, self.sum_l1_ec_one_cond):
+            return False
+        if not self.has_one_cell_valid(self.sum_l1_pmt_one, pdm_gtu_data.sum_l1_pmt, self.sum_l1_pmt_one_cond):
+            return False
+        return True
+
+
+def visualize_frame(pcd, exp_tree, l1trg_events=[], title=None, show=True, vmin=None, vmax=None):
     fig, ax = plt.subplots(1)
 
     det_width =  exp_tree.pmtCountX * exp_tree.pixelCountX
@@ -464,24 +513,43 @@ def visualize_frame(gtu_pdm_data, exp_tree, pcd = None):
     # for l1trg_ev in gtu_pdm_data.l1trg_events:
     #     det_array[0][0][l1trg_ev.pix_row, l1trg_ev.pix_col] = gtu_pdm_data.photon_count_data[0][0][l1trg_ev.pix_row, l1trg_ev.pix_col]
 
-    if pcd is None:
-        pcd = gtu_pdm_data.photon_count_data
+    if title is not None:
+        ax.set_title(title)
 
-    plt.imshow(pcd, extent=[0, det_width, det_height, 0])
-    plt.colorbar()
+    cax = ax.imshow(pcd, extent=[0, det_width, det_height, 0], vmin=vmin, vmax=vmax)
+    fig.colorbar(cax)
 
-    if gtu_pdm_data is not None:
-        for l1trg_ev in gtu_pdm_data.l1trg_events:
-            # if l1trg_ev.pix_row == 1:
-            rect = mpl_patches.Rectangle((l1trg_ev.pix_col, l1trg_ev.pix_row), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+    for l1trg_ev in l1trg_events:
+        # if l1trg_ev.pix_row == 1:
+        rect = mpl_patches.Rectangle((l1trg_ev.pix_col, l1trg_ev.pix_row), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+        ax.add_patch(rect)
+
+    for tmp_pmt_x in range(0, exp_tree.pmtCountX):
+        for tmp_pmt_y in range(0, exp_tree.pmtCountY):
+            rect = mpl_patches.Rectangle((tmp_pmt_x*pmt_width, tmp_pmt_y*pmt_height), pmt_width, pmt_height, linewidth=1, edgecolor='black', facecolor='none')
             ax.add_patch(rect)
 
-        for tmp_pmt_x in range(0, exp_tree.pmtCountX):
-            for tmp_pmt_y in range(0, exp_tree.pmtCountY):
-                rect = mpl_patches.Rectangle((tmp_pmt_x*pmt_width, tmp_pmt_y*pmt_height), pmt_width, pmt_height, linewidth=1, edgecolor='black', facecolor='none')
-                ax.add_patch(rect)
+    if show:
+        plt.show()
 
-    plt.show()
+
+def visualize_frame_num_relation(frame_num_x, l1trg_events_by_frame_num=[], att_name="pix_col", title=None, show=True, vmin=None, vmax=None):
+    fig, ax = plt.subplots(1)
+
+    if title is not None:
+        ax.set_title(title)
+
+    cax = ax.imshow(frame_num_x, extent=[0, frame_num_x.shape[1], frame_num_x.shape[0], 0], vmin=vmin, vmax=vmax)
+    fig.colorbar(cax)
+
+    for frame_num, l1trg_events in enumerate(l1trg_events_by_frame_num):
+        # if l1trg_ev.pix_row == 1:
+        for l1trg_ev in l1trg_events:
+            rect = mpl_patches.Rectangle((frame_num, getattr(l1trg_ev, att_name)), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+    if show:
+        plt.show()
+
 
 def print_frame_info(gtu_pdm_data):
     print("GTU {} ({}); trgBoxPerGTU: {}, trgPmtPerGTU: {}, trgPmtPerGTU: {}; nPersist: {}, gtuInPersist: {}"
@@ -520,7 +588,90 @@ def read_l1trg_events(ack_l1_reader):
         # plt.show()
 
 
-def process_event(frames, pixels_mask = None):
+def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step=1):
+    max_distance = np.hypot(image.shape[0], image.shape[1])
+    num_rho = int(np.ceil(max_distance*2/rho_step))
+    rho_correction_lower = -size + max_distance
+    rho_correction_upper = size  + max_distance
+    #phi_range = phi_range - np.pi / 2
+    acc_matrix = np.zeros((num_rho, len(phi_range)))
+    nc_acc_matrix = np.zeros((num_rho, len(phi_range)))
+
+    phi_corr_arr = np.ones((100,len(phi_range)))
+
+    phi_corr = 1
+    for phi_index, phi in enumerate(phi_range):
+        phi_norm_pi_over_2 = (phi - np.floor(phi/(np.pi/2))*np.pi/2)
+        if phi_norm_pi_over_2 <= np.pi/4:
+            phi_corr = image.shape[1] / np.sqrt(image.shape[1] ** 2 + (image.shape[1] * np.tan( phi_norm_pi_over_2 )) ** 2)
+        else:
+            phi_corr = image.shape[0] / np.sqrt(image.shape[0] ** 2 + (image.shape[0] * np.tan( np.pi/2 - phi_norm_pi_over_2 )) ** 2) #np.sqrt(image.shape[0] ** 2 + (image.shape[0] / np.tan( phi_norm_pi_over_2 - np.pi/4 )) ** 2) / image.shape[1]
+
+        # for l in range(0,len(phi_corr_arr)):
+        #     phi_corr_arr[l,phi_index] = phi_corr
+
+        # phi_corr = 1 #(np.cos(phi*4) + 1)/2 + 1
+        for i in range(0, len(image)): # row, y-axis
+            for j in range(0, len(image[i])): # col, x-axis
+                rho = j*np.cos(phi) + i*np.sin(phi)
+                #
+                # if rho < 0:
+                #     print("rho =",rho, "phi =", phi, "phi_index =", phi_index, "i =", i, "j=", j)
+
+                rho_index_lower = int((rho+rho_correction_lower) // rho_step)
+                rho_index_upper = int((rho+rho_correction_upper) // rho_step + 1)
+
+                if rho_index_lower < 0:
+                    rho_index_lower = 0
+
+                if rho_index_upper > num_rho:
+                    rho_index_upper = num_rho
+
+                for rho_index in range(rho_index_lower,rho_index_upper):
+                    acc_matrix[rho_index, phi_index] +=  image[i,j] * phi_corr
+                    nc_acc_matrix[rho_index, phi_index] +=  image[i,j]
+
+
+
+    # fig1, ax = plt.subplots(1)
+    # cax=ax.imshow(phi_corr_arr, aspect='auto')
+    # fig1.colorbar(cax)
+
+    acc_matrix_max_pos = np.unravel_index(acc_matrix.argmax(), acc_matrix.shape)
+    acc_matrix_max = acc_matrix[acc_matrix_max_pos]
+
+    acc_matrix_max_rho = rho_step*rho_index - max_distance # TODO this should be range !!!
+    acc_matrix_max_phi = phi_range[acc_matrix_max_pos[1]]
+
+
+    print("acc_matrix: max={}, max_row={} ({}), max_col={} ({})".format(acc_matrix_max, acc_matrix_max_pos[0], acc_matrix_max_rho, acc_matrix_max_pos[1], np.rad2deg(acc_matrix_max_phi) ))
+
+    ###
+
+    nc_acc_matrix_max_pos = np.unravel_index(nc_acc_matrix.argmax(), nc_acc_matrix.shape)
+    nc_acc_matrix_max = nc_acc_matrix[nc_acc_matrix_max_pos]
+
+    nc_acc_matrix_max_rho = rho_step*rho_index - max_distance # TODO this should be range !!!
+    nc_acc_matrix_max_phi = phi_range[nc_acc_matrix_max_pos[1]]
+
+    print("nc_acc_matrix: max={}, max_row={} ({}), max_col={} ({})".format(nc_acc_matrix_max, nc_acc_matrix_max_pos[0], nc_acc_matrix_max_rho, nc_acc_matrix_max_pos[1], np.rad2deg(nc_acc_matrix_max_phi) ))
+
+    ###
+
+    fig2, (ax1, ax2) = plt.subplots(2)
+
+    ax1.imshow(acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
+    ax2.imshow(nc_acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
+
+    fig3, ax3 = plt.subplots(1)
+    cax3 = ax3.imshow(acc_matrix, aspect='auto')
+    fig3.colorbar(cax3)
+
+
+
+    return acc_matrix
+
+def process_event(frames, exp_tree, pixels_mask = None):
     print(len(frames))
 
     event_frames = []
@@ -529,26 +680,64 @@ def process_event(frames, pixels_mask = None):
     triggered_pixel_thr_l1_frames = []
     triggered_pixel_persist_l1_frames = []
 
-    for gtu_pdm_data in frames:
+    all_event_triggers = []
+    event_triggers_by_frame = [None]*len(frames)
+
+    for frame_num, gtu_pdm_data in enumerate(frames):
         pcd = gtu_pdm_data.photon_count_data
         if len(pcd) > 0 and len(pcd[0]) > 0:
-            event_frames.append(pcd)
-            triggered_pixel_sum_l1 = np.zeros_like(pcd)
-            triggered_pixel_thr_l1 = np.zeros_like(pcd)
-            triggered_pixel_persist_l1 = np.zeros_like(pcd)
-            for l1trg_event in gtu_pdm_data.l1trg_events:
-                triggered_pixel_sum_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.sum_l1
-                triggered_pixel_thr_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.thr_l1
-                triggered_pixel_persist_l1[l1trg_event.pix_row, l1trg_event.pix_col] = l1trg_event.persist_l1
+            # TODO warning now only the very first PDM is processed
+            event_frames.append(pcd[0][0])
+            triggered_pixel_sum_l1 = np.zeros_like(pcd[0][0])
+            triggered_pixel_thr_l1 = np.zeros_like(pcd[0][0])
+            triggered_pixel_persist_l1 = np.zeros_like(pcd[0][0])
+
+            all_event_triggers += gtu_pdm_data.l1trg_events
+            event_triggers_by_frame[frame_num] = gtu_pdm_data.l1trg_events
+
+            for l1trg_ev in gtu_pdm_data.l1trg_events:
+                triggered_pixel_sum_l1[l1trg_ev.pix_row, l1trg_ev.pix_col] = l1trg_ev.sum_l1
+                triggered_pixel_thr_l1[l1trg_ev.pix_row, l1trg_ev.pix_col] = l1trg_ev.thr_l1
+                triggered_pixel_persist_l1[l1trg_ev.pix_row, l1trg_ev.pix_col] = l1trg_ev.persist_l1
             triggered_pixel_sum_l1_frames.append(triggered_pixel_sum_l1)
             triggered_pixel_thr_l1_frames.append(triggered_pixel_thr_l1)
             triggered_pixel_persist_l1_frames.append(triggered_pixel_persist_l1)
 
+    pdm_max_list = [np.max(frame) for frame in event_frames]
+    max_value = np.max(pdm_max_list)
+    pdm_min_list = [np.max(frame) for frame in event_frames]
+    min_value = np.min(pdm_min_list)
+
+    # for frame_num, gtu_pdm_data in enumerate(frames):
+    #     pcd = gtu_pdm_data.photon_count_data
+    #     if len(pcd) > 0 and len(pcd[0]) > 0:
+    #     # TODO warning now only the very
+    #         visualize_frame(pcd[0][0], exp_tree, gtu_pdm_data.l1trg_events, "frame: {}, GTU: {}".format(frame_num, gtu_pdm_data.gtu), True, min_value, max_value)
 
     if len(event_frames) == 0:
-        return None
+        raise Exception("Nothing to visualize")
+
 
     # possibly find threshold with average background (another parameter?)
+
+    frame_num_y = []
+    frame_num_x = []
+
+    for frame in event_frames:
+        frame_num_y.append(np.sum(frame, axis=1).reshape(-1,1)) # summing the x axis
+        frame_num_x.append(np.sum(frame, axis=0).reshape(-1,1)) # summing the y axis
+
+
+    frame_num_y = np.hstack(frame_num_y)
+    frame_num_x = np.hstack(frame_num_x)
+
+    # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
+    #
+    # visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
+    # visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
+    #
+    # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
+    # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
 
 
     # consider pixels mask
@@ -562,8 +751,15 @@ def process_event(frames, pixels_mask = None):
 
     max_values_arr = np.maximum.reduce(event_frames)
 
-    return None
+    visualize_frame(max_values_arr, exp_tree, all_event_triggers, "max_values_arr", False)
 
+    gray_hough_line(max_values_arr)
+    # hough_line()
+    # hough_line_peaks()
+
+    plt.show()
+
+    return None
 
 
 def main(argv):
@@ -571,12 +767,26 @@ def main(argv):
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
+    parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
     parser.add_argument('--gtu-before', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--gtu-after', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--persistency-depth', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
+    parser.add_argument('--start-gtu', type=int, default=0, help="GTU before will be skipped")
+
+    parser.add_argument('--filter-n-persist-gt', type=int, default=-1, help="Accept only events with at least one GTU with nPersist more than this value.")
+    parser.add_argument('--filter-sum-l1-pdm-gt', type=int, default=-1, help="Accept only events with at least one GTU with sumL1PDM more than this value.")
+    parser.add_argument('--filter-sum-l1-ec-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one EC sumL1PDM more than this value.")
+    parser.add_argument('--filter-sum-l1-pmt-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one PMT sumL1PMT more than this value.")
+
     args = parser.parse_args()
+
+    filter_options = EventFilterOptions()
+    filter_options.n_persist = args.filter_n_persist_gt
+    filter_options.sum_l1_pdm = args.filter_sum_l1_pdm_gt
+    filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
+    filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
     ack_l1_reader = AckL1EventReader(args.acquisition_file, args.kenji_l1trigger_file)
     # e = next(ack_l1_reader)
@@ -598,11 +808,11 @@ def main(argv):
         if len(gtu_pdm_data.l1trg_events) > 0:
             process_event_down_counter = args.gtu_after
 
-            for l1trg_event in gtu_pdm_data.l1trg_events:
-                if l1trg_event.packet_id != packet_id:
-                    raise Exception("Unexpected L1 trigger event's packet id (actual: {}, expected: {})".format(l1trg_event.packet_id, packet_id))
-                if l1trg_event.gtu_in_packet != gtu_in_packet:
-                    raise Exception("Unexpected L1 trigger event's gtu in packet (actual: {}, expected: {})".format(l1trg_event.gtu_in_packet, gtu_in_packet))
+            for l1trg_ev in gtu_pdm_data.l1trg_events:
+                if l1trg_ev.packet_id != packet_id:
+                    raise Exception("Unexpected L1 trigger event's packet id (actual: {}, expected: {})".format(l1trg_ev.packet_id, packet_id))
+                if l1trg_ev.gtu_in_packet != gtu_in_packet:
+                    raise Exception("Unexpected L1 trigger event's gtu in packet (actual: {}, expected: {})".format(l1trg_ev.gtu_in_packet, gtu_in_packet))
 
             # pcd = gtu_pdm_data.photon_count_data
             # if len(pcd) > 0 and len(pcd[0]) > 0:
@@ -610,7 +820,11 @@ def main(argv):
 
         if not np.isinf(process_event_down_counter):    #TODO add packet id check
             if process_event_down_counter == 0 or gtu_in_packet == 127:
-                process_event(frame_circ_buffer)
+
+                if gtu_pdm_data.gtu >= args.start_gtu:
+                    # TODO check event - filetr_options
+                    process_event(frame_circ_buffer, ack_l1_reader.exp_tree)
+
                 process_event_down_counter = np.inf
             elif process_event_down_counter > 0:
                 if len(gtu_pdm_data.l1trg_events) == 0: # TODO this might require increase size of the circular buffer
