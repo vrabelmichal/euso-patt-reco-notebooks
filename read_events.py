@@ -587,7 +587,6 @@ def read_l1trg_events(ack_l1_reader):
         # plt.colorbar()
         # plt.show()
 
-
 def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step=1):
     max_distance = np.hypot(image.shape[0], image.shape[1])
     num_rho = int(np.ceil(max_distance*2/rho_step))
@@ -599,8 +598,11 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step
 
     phi_corr_arr = np.ones((100,len(phi_range)))
 
+    max_acc_matrix_val = 0
+
     phi_corr = 1
     for phi_index, phi in enumerate(phi_range):
+        # print("hough > phi = {} ({})".format(np.rad2deg(phi), phi_index))
         phi_norm_pi_over_2 = (phi - np.floor(phi/(np.pi/2))*np.pi/2)
         if phi_norm_pi_over_2 <= np.pi/4:
             phi_corr = image.shape[1] / np.sqrt(image.shape[1] ** 2 + (image.shape[1] * np.tan( phi_norm_pi_over_2 )) ** 2)
@@ -629,6 +631,11 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step
 
                 for rho_index in range(rho_index_lower,rho_index_upper):
                     acc_matrix[rho_index, phi_index] +=  image[i,j] * phi_corr
+
+                    if acc_matrix[rho_index, phi_index] > max_acc_matrix_val:
+                        max_acc_matrix_val = acc_matrix[rho_index, phi_index]
+                        print("new max val [{},{}] = {} | rho={} ({},{})  phi={} ({} rad)".format(rho_index, phi_index, max_acc_matrix_val, rho, rho_index_lower, rho_index_upper, np.rad2deg(phi), phi))
+
                     nc_acc_matrix[rho_index, phi_index] +=  image[i,j]
 
 
@@ -640,18 +647,25 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step
     acc_matrix_max_pos = np.unravel_index(acc_matrix.argmax(), acc_matrix.shape)
     acc_matrix_max = acc_matrix[acc_matrix_max_pos]
 
-    acc_matrix_max_rho = rho_step*rho_index - max_distance # TODO this should be range !!!
+    acc_matrix_max_rho_base = rho_step*acc_matrix_max_pos[0]
+    acc_matrix_max_rho_range = (acc_matrix_max_rho_base - rho_correction_lower, acc_matrix_max_rho_base - rho_correction_upper)
     acc_matrix_max_phi = phi_range[acc_matrix_max_pos[1]]
 
 
-    print("acc_matrix: max={}, max_row={} ({}), max_col={} ({})".format(acc_matrix_max, acc_matrix_max_pos[0], acc_matrix_max_rho, acc_matrix_max_pos[1], np.rad2deg(acc_matrix_max_phi) ))
+    print("acc_matrix: max={}, max_row={} ({},{}) , max_col={} ({})"
+          .format(acc_matrix_max,
+                  acc_matrix_max_pos[0], acc_matrix_max_rho_range[0], acc_matrix_max_rho_range[1],
+                  acc_matrix_max_pos[1], np.rad2deg(acc_matrix_max_phi) ))
+
+    #  ({} = {}*{} - ({} = -{} + {}) + {}/2)
+    #        rho_step,rho_index, rho_correction_lower, size, max_distance, size,
 
     ###
 
     nc_acc_matrix_max_pos = np.unravel_index(nc_acc_matrix.argmax(), nc_acc_matrix.shape)
     nc_acc_matrix_max = nc_acc_matrix[nc_acc_matrix_max_pos]
 
-    nc_acc_matrix_max_rho = rho_step*rho_index - max_distance # TODO this should be range !!!
+    nc_acc_matrix_max_rho = rho_step*nc_acc_matrix_max_pos[0] - max_distance # TODO this should be range !!!
     nc_acc_matrix_max_phi = phi_range[nc_acc_matrix_max_pos[1]]
 
     print("nc_acc_matrix: max={}, max_row={} ({}), max_col={} ({})".format(nc_acc_matrix_max, nc_acc_matrix_max_pos[0], nc_acc_matrix_max_rho, nc_acc_matrix_max_pos[1], np.rad2deg(nc_acc_matrix_max_phi) ))
@@ -667,7 +681,33 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 90), rho_step
     cax3 = ax3.imshow(acc_matrix, aspect='auto')
     fig3.colorbar(cax3)
 
+    fig4, ax4 = plt.subplots(1)
+    cax4 = ax4.imshow(image, aspect='auto', extent=[0, image.shape[1], image.shape[0], 0])
+    ax4.set_title("Hough input img")
+    # y0 = (acc_matrix_max_rho - 0 * np.cos(acc_matrix_max_phi)) / np.sin(angle)
+    # y1 = (acc_matrix_max_rho - image.shape[1] * np.cos(angle)) / np.sin(angle)
 
+    for acc_matrix_max_rho in acc_matrix_max_rho_range:
+        p = np.zeros((2,2))
+
+        p[0,1] = x0 = 0
+        p[0,0] = y0 = acc_matrix_max_rho / np.sin(acc_matrix_max_phi)
+
+        p[1,1] = x1 = image.shape[0]
+        p[1,0] = y1 = (acc_matrix_max_rho - image.shape[1] * np.cos(acc_matrix_max_phi)) / np.sin(acc_matrix_max_phi)
+
+        for i in range(0,len(p)):
+            if p[i,0] < 0:
+                p[i,0] = 0  # y
+                p[i,1] = acc_matrix_max_rho/np.cos(acc_matrix_max_phi) # x
+            elif p[i,0] > image.shape[0]:
+                p[i,0] = image.shape[0] # y
+                p[i,1] = (acc_matrix_max_rho - p[i,0]*np.sin(acc_matrix_max_phi))/np.cos(acc_matrix_max_phi) # x
+
+
+        print("line (y,x) [{},{}] , [{},{}]".format(p[0,0],p[0,1],p[1,0],p[1,1]))
+
+        ax4.plot((p[:,1]), (p[:,0]), '-r')
 
     return acc_matrix
 
@@ -724,20 +764,21 @@ def process_event(frames, exp_tree, pixels_mask = None):
     frame_num_x = []
 
     for frame in event_frames:
-        frame_num_y.append(np.sum(frame, axis=1).reshape(-1,1)) # summing the x axis
-        frame_num_x.append(np.sum(frame, axis=0).reshape(-1,1)) # summing the y axis
-
+        frame_num_y.append(np.max(frame, axis=1).reshape(-1,1)) # summing the x axis
+        frame_num_x.append(np.max(frame, axis=0).reshape(-1,1)) # summing the y axis
+        # frame_num_y.append(np.sum(frame, axis=1).reshape(-1,1)) # summing the x axis
+        # frame_num_x.append(np.sum(frame, axis=0).reshape(-1,1)) # summing the y axis
 
     frame_num_y = np.hstack(frame_num_y)
     frame_num_x = np.hstack(frame_num_x)
 
-    # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
-    #
-    # visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
-    # visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
-    #
-    # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
-    # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
+    visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
+
+    visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
+    visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
+
+    visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
+    visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
 
 
     # consider pixels mask
@@ -750,10 +791,15 @@ def process_event(frames, exp_tree, pixels_mask = None):
     weights_mask = np.multiply(weights_mask, pixels_mask) # applying mask, should be last
 
     max_values_arr = np.maximum.reduce(event_frames)
+    sum_values_arr = np.add.reduce(event_frames)
 
     visualize_frame(max_values_arr, exp_tree, all_event_triggers, "max_values_arr", False)
+    visualize_frame(sum_values_arr, exp_tree, all_event_triggers, "sum_values_arr", False)
 
     gray_hough_line(max_values_arr)
+
+    print(len(frames))
+
     # hough_line()
     # hough_line_peaks()
 
@@ -768,8 +814,8 @@ def main(argv):
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
-    parser.add_argument('--gtu-before', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
-    parser.add_argument('--gtu-after', type=int, default=5, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--gtu-before', type=int, default=6, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--gtu-after', type=int, default=6, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--persistency-depth', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
