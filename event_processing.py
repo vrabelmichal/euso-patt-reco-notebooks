@@ -16,6 +16,25 @@ from event_reading import *
 
 import skimage.transform
 
+class EventProcessingParams(object):
+    triggered_pixels_group_max_gap = 5
+
+    triggered_pixels_ht_size = 1
+    triggered_pixels_ht_phi_num_steps = 90 # 2 deg per step
+    triggered_pixels_ht_rho_step = 2
+
+    x_y_neighbour_selection_rules = [NeighbourSelectionRules(3, .3, False),
+                           NeighbourSelectionRules(3, 1, True),
+                           NeighbourSelectionRules(1, .9, True)]
+
+    x_y_ht_size = .5
+    x_y_ht_phi_num_steps = 90 # 2 deg per step
+    x_y_ht_rho_step = 2
+
+    x_y_ht_peak_threshold_frac_of_max = .85
+    x_y_ht_peak_gap = 3
+    x_y_ht_global_peak_threshold_frac_of_max = .95
+
 
 def translate_struct(struct, trans_func):
     """
@@ -317,7 +336,7 @@ def visualize_hough_lines(image, lines, title=None, value_lines_groups=None):
             ax4.plot((p[:,1]), (p[:,0]), '-r')
 
 
-class NeighbourSelectionOptions:
+class NeighbourSelectionRules:
     max_gap = 3
     val_ratio_thr = 1
     grow = True
@@ -389,7 +408,7 @@ def find_minimal_dimensions(cluster_im):
 
 
 # not optimal implementation
-def select_neighbours(initial_seed_points, image, selections=[NeighbourSelectionOptions(3,1,True)]):
+def select_neighbours(initial_seed_points, image, selections=[NeighbourSelectionRules(3, 1, True)]):
     # seed_points iterable of pairs
     # presuming 2d matrix
 
@@ -582,8 +601,7 @@ def select_trigger_groups(trigger_points, max_gap=3):
     #     ...
     #     it.iternext()
 
-
-def process_event(frames, exp_tree, pixels_mask = None):
+def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_mask = None, do_visualization=True):
     print(len(frames))
 
     event_frames = []
@@ -630,8 +648,7 @@ def process_event(frames, exp_tree, pixels_mask = None):
     #         visualize_frame(pcd[0][0], exp_tree, gtu_pdm_data.l1trg_events, "frame: {}, GTU: {}".format(frame_num, gtu_pdm_data.gtu), True, min_value, max_value)
 
     if len(event_frames) == 0:
-        raise Exception("Nothing to visualize")
-
+        raise Exception("No event_frames to process")
 
     # possibly find threshold with average background (another parameter?)
 
@@ -647,14 +664,13 @@ def process_event(frames, exp_tree, pixels_mask = None):
     frame_num_y = np.hstack(frame_num_y)
     frame_num_x = np.hstack(frame_num_x)
 
-    # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
 
-    visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
-    visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
-
-    # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
-    # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
-
+    if do_visualization:
+        # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
+        visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
+        visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
+        # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
+        # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
 
     triggers_y_t_proj = set()
     triggers_x_t_proj = set()
@@ -676,27 +692,80 @@ def process_event(frames, exp_tree, pixels_mask = None):
     max_values_arr = np.maximum.reduce(event_frames)
     sum_values_arr = np.add.reduce(event_frames)
 
-    visualize_frame(max_values_arr, exp_tree, all_event_triggers, "max_values_arr", False)
-    # visualize_frame(sum_values_arr, exp_tree, all_event_triggers, "sum_values_arr", False)
+    if do_visualization:
+        visualize_frame(max_values_arr, exp_tree, all_event_triggers, "max_values_arr", False)
+        # visualize_frame(sum_values_arr, exp_tree, all_event_triggers, "sum_values_arr", False)
 
-    trigger_neighbours, trigg_groups = select_neighbours(triggered_pixels_coords,max_values_arr,[NeighbourSelectionOptions(3,.3,False), NeighbourSelectionOptions(3,1,True), NeighbourSelectionOptions(1,.9,True)])
-    # trigger_neighbours_yt = select_neighbours(triggers_y_t_proj, frame_num_y)
-    # trigger_neighbours_xt = select_neighbours(triggers_x_t_proj, frame_num_x)
+    #################################
+    #  Triggered pixels
+    #################################
 
-    groups_of_trigger_groups = select_trigger_groups(triggered_pixels_coords, 5)
+    # Groups of triggered pixels
+    #   Parameters:
+    #   triggered_pixels_group_max_gap  - row and column-vise distance (distance diagonally is sqrt(N^2 + N^2))
+
+
+    groups_of_trigger_groups = select_trigger_groups(triggered_pixels_coords, proc_params.triggered_pixels_group_max_gap)
     for triggers_group in groups_of_trigger_groups:
         trigg_im = np.zeros_like(max_values_arr)
         for trigg_point in triggers_group:
             trigg_im[trigg_point] = max_values_arr[trigg_point]
 
-        fig, ax = plt.subplots(1)
-        ax.imshow(trigg_im)
-        ax.set_title("Trigger group: {}".format(str(triggers_group)))
-        # gray_hough_line(trigg_im, 1)
+        if do_visualization:
+            fig, ax = plt.subplots(1)
+            ax.imshow(trigg_im)
+            ax.set_title("Trigger group: {}".format(str(triggers_group)))
+            # gray_hough_line(trigg_im, 1)
+
+    ######
 
     print(groups_of_trigger_groups)
 
+    ######
+
+    # Hough transform on integrated triggered pixels
+    #   Parameters:
+    #   triggered_pixels_ht_size
+    #   triggered_pixels_ht_phi_num_steps
+    #   triggered_pixels_ht_rho_step
+
+    integrated_triggered_pixel_sum_l1 = np.add.reduce(triggered_pixel_sum_l1_frames)
+
+    trigg_acc_matrix, trigg_max_distance, trigg_rho_range_opts, trigg_phi_range = \
+        gray_hough_line(integrated_triggered_pixel_sum_l1, proc_params.triggered_pixels_ht_size,
+                        np.linspace(0,np.pi, proc_params.triggered_pixels_ht_phi_num_steps),
+                        proc_params.triggered_pixels_ht_rho_step)
+
+    #####
+
+    if do_visualization:
+        # TODO vis
+        pass
+
+    #####
+
+    #################################
+    #  X - Y integrated event (maximal pixel value)
+    #################################
+
+    # Selecting neighbouring pixels around triggered pixels
+    #   Parameters:
+    #   neighbour_selection_rules_x_y
+
+    # Tested using this neighbour selection rules:
+    # [NeighbourSelectionRules(3, .3, False),
+    #  NeighbourSelectionRules(3, 1, True),
+    #  NeighbourSelectionRules(1, .9, True)]
+
+    trigger_neighbours, trigg_groups = \
+        select_neighbours(triggered_pixels_coords, max_values_arr, proc_params.x_y_neighbour_selection_rules)
+
     max_values_arr_trigg = trigger_neighbours*max_values_arr
+
+    #TODO
+    # trigger_neighbours_yt = select_neighbours(triggers_y_t_proj, frame_num_y)
+    # trigger_neighbours_xt = select_neighbours(triggers_x_t_proj, frame_num_x)
+
     # max_trigger_neighbours_yt = trigger_neighbours_yt*frame_num_y
     # max_trigger_neighbours_xt = trigger_neighbours_xt*frame_num_x
 
@@ -705,38 +774,86 @@ def process_event(frames, exp_tree, pixels_mask = None):
     # gray_hough_line(max_trigger_neighbours_xt)
     # gray_hough_line(max_values_arr)
 
+    #####
+
+    # Hough transform on seleceted neighbourhood in X-Y projection
+    #   Parameters:
+    #   x_y_ht_size = .5
+    #   x_y_ht_phi_num_steps = 90 # 2 deg per step
+    #   x_y_ht_rho_step = 2
 
     #hint: use np.argmax(cond), np.where(cond), np,select  np.argwhere
 
-    acc_matrix, max_distance, rho_range_opts, phi_range = gray_hough_line(max_values_arr_trigg, .5, np.linspace(0,np.pi,90), 2)
-    # visualize_hough_space(acc_matrix, phi_range, rho_range_opts)
+    x_y_acc_matrix, x_y_max_distance, x_y_rho_range_opts, x_y_phi_range = \
+        gray_hough_line(max_values_arr_trigg, proc_params.x_y_ht_size,
+                        np.linspace(0,np.pi,proc_params.x_y_ht_phi_num_steps),
+                        proc_params.x_y_ht_rho_step)
 
+    # visualize_hough_space(x_y_acc_matrix, phi_range, rho_range_opts)
 
-    acc_matrix_max_pos = np.unravel_index(acc_matrix.argmax(), acc_matrix.shape)
-    acc_matrix_max = acc_matrix[acc_matrix_max_pos]
+    ##
+
+    # Position of maximum value in the hough space - x_y_acc_matrix
+
+    acc_matrix_max_pos = np.unravel_index(x_y_acc_matrix.argmax(), x_y_acc_matrix.shape)
+    acc_matrix_max = x_y_acc_matrix[acc_matrix_max_pos]
+
+    # TODO need to save/extract: rho, phi, line_rot, coord_0_x, coord_0_y, coord_1_x, coord_1_y
+
+    ##
+
+    # Positions of peaks in hough space
+    #   Parameters:
+    #   x_y_ht_peak_threshold_frac_of_max
 
     filter_func = np.vectorize(lambda v1,v2: 0 if v1<v2 else v1)
-    perc_max_peaks_arr = filter_func(acc_matrix, acc_matrix_max * .85)
+    perc_max_peaks_arr = filter_func(x_y_acc_matrix, acc_matrix_max * proc_params.x_y_ht_peak_threshold_frac_of_max)
     perc_max_peaks_pos = get_field_positions(perc_max_peaks_arr, lambda v: v > 0) # np.where ?
 
+    # Find clusters in the hough space
+    #   Parameters:
+    #   x_y_ht_peak_gap
 
-    perc_max_peaks_arr_clusters = find_pixel_clusters(perc_max_peaks_arr, 3)
+    cluster_with_maximum = None
+
+    perc_max_peaks_arr_clusters = find_pixel_clusters(perc_max_peaks_arr, proc_params.x_y_ht_peak_gap)
     for cluster_seed, cluster_im in perc_max_peaks_arr_clusters.items():
-        cluster_dimensions = find_minimal_dimensions(cluster_im)  # todo convert from indexes to rho and phi
+        cluster_dimensions = find_minimal_dimensions(cluster_im)
+
+        if cluster_im[acc_matrix_max_pos] != 0:
+            cluster_with_maximum = cluster_im[acc_matrix_max_pos]
+
+        # todo convert from indexes to rho and phi
         print("Hough space cluster {} dimensions {}".format(str(cluster_seed), str(cluster_dimensions)))
 
+    assert cluster_with_maximum is not None
 
-    fig_max_peaks, ax_max_peaks = plt.subplots(1)
-    ax_max_peaks.imshow(perc_max_peaks_arr)
-    ax_max_peaks.set_title("90% of maximum peak")
+    # TODO need to save: clusers - dimensions, size, counts sum;
 
+    if do_visualization:
+        fig_max_peaks, ax_max_peaks = plt.subplots(1)
+        ax_max_peaks.imshow(perc_max_peaks_arr)
+        ax_max_peaks.set_title("{}% of maximum peak",proc_params.x_y_ht_peak_threshold_frac_of_max*100)
 
-    num_non_zero = np.count_nonzero(acc_matrix)
-    print("num_non_zero", num_non_zero)
-    n_max_peaks_pos = find_n_max_values(acc_matrix, int(np.ceil(num_non_zero*.1)))
+    ##
+
+    # Absolute peak - only small fluctuation from the maximal peak is allowed
+    #   Parameters:
+    #   x_y_ht_global_peak_threshold_frac_of_max
+
+    perc_global_peaks_arr = filter_func(x_y_acc_matrix, acc_matrix_max * proc_params.x_y_ht_global_peak_threshold_frac_of_max)
+    perc_max_peaks_pos = get_field_positions(perc_max_peaks_arr, lambda v: v > 0) # np.where ?
+
+    # TODO need to save phi, rho, line_rot, coord_0_x, coord_0_y, coord_1_x, coord_1_y
+
+    # TODO x_gtu  y_gtu
+
+    # num_non_zero = np.count_nonzero(x_y_acc_matrix)
+    # print("num_non_zero", num_non_zero)
+    # n_max_peaks_pos = find_n_max_values(x_y_acc_matrix, int(np.ceil(num_non_zero*.1)))
 
     # rho_range = np.arange(rho_range_opts[0],rho_range_opts[1],rho_range_opts[2])
-    # peaks_hspace, peaks_angles, peaks_dists = skimage.transform.hough_line_peaks(acc_matrix, phi_range, rho_range) #, 2, 2
+    # peaks_hspace, peaks_angles, peaks_dists = skimage.transform.hough_line_peaks(x_y_acc_matrix, phi_range, rho_range) #, 2, 2
     #
     # print("peaks_angles", peaks_angles)
     # print("peaks_dists", peaks_dists)
@@ -755,7 +872,7 @@ def process_event(frames, exp_tree, pixels_mask = None):
     # ax_hist2d.set_ylabel("rho")
     # ax_hist2d.set_xlabel("phi")
 
-    # value_points_groups = split_values_to_groups(max_lines_pos, acc_matrix)
+    # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
     # value_lines_groups = {}
     # for k,l in value_points_groups.items():
     #     value_lines_groups[k] = [hough_space_max2val_single(v, phi_range, rho_range_opts) for v in l]
@@ -763,28 +880,28 @@ def process_event(frames, exp_tree, pixels_mask = None):
     # visualize_hough_lines(max_values_arr_trigg, skimage_max_lines[:,:2], "Lines selected from max_values_arr")
 
 
-    n_max_lines_pos_ndarray = np.array(n_max_peaks_pos)
+    # n_max_lines_pos_ndarray = np.array(n_max_peaks_pos)
 
-    fig_hist2d, ax_hist2d = plt.subplots(1)
-    ax_hist2d.hist2d(n_max_lines_pos_ndarray[:,1], n_max_lines_pos_ndarray[:,0], bins=40)
-    ax_hist2d.set_ylabel("rho")
-    ax_hist2d.set_xlabel("phi")
-    ax_hist2d.set_title("Max 10% of points")
+    # fig_hist2d, ax_hist2d = plt.subplots(1)
+    # ax_hist2d.hist2d(n_max_lines_pos_ndarray[:,1], n_max_lines_pos_ndarray[:,0], bins=40)
+    # ax_hist2d.set_ylabel("rho")
+    # ax_hist2d.set_xlabel("phi")
+    # ax_hist2d.set_title("Max 10% of points")
 
     #
     # print("max_lines_pos", max_lines_pos)
 
-    perc_max_lines = hough_space_index_to_val(perc_max_peaks_pos, phi_range, rho_range_opts)
+    perc_max_lines = hough_space_index_to_val(perc_max_peaks_pos, x_y_phi_range, x_y_rho_range_opts)
     # max_lines = hough_space_max2val(max_lines_pos, phi_range, rho_range_opts)
     # print("max_lines", max_lines)
     #
     #
-    # value_points_groups = split_values_to_groups(max_lines_pos, acc_matrix)
+    # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
 
     value_points_groups = split_all_filed_values_to_groups(perc_max_peaks_arr)
     value_lines_groups = {}
     for k,l in value_points_groups.items():
-        value_lines_groups[k] = [hough_space_index_to_val_single(v, phi_range, rho_range_opts) for v in l]
+        value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
 
     visualize_hough_lines(max_values_arr_trigg, perc_max_lines, "Lines selected from max_values_arr", value_lines_groups)
 
