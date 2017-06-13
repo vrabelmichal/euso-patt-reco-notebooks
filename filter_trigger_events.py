@@ -20,8 +20,8 @@ def main(argv):
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
-    parser.add_argument('--gtu-before-trigger', type=int, default=6, help="Number of GTU included in track finding data before the trigger")
-    parser.add_argument('--gtu-after-trigger', type=int, default=6, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--gtu-before-trigger', type=int, default=3, help="Number of GTU included in track finding data before the trigger")
+    parser.add_argument('--gtu-after-trigger', type=int, default=3, help="Number of GTU included in track finding data before the trigger")
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
@@ -50,21 +50,26 @@ def main(argv):
 
 def read_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigger, gtu_after_trigger, packet_size, filter_options):
 
-    before_trg_frames_circ_buffer = collections.deque(maxlen=gtu_before_trigger)
+    before_trg_frames_circ_buffer = collections.deque(maxlen=gtu_before_trigger+1) # +1 -> the last gtu in the buffer is triggered
     frame_buffer = []
+    gtu_after_trigger -= 1 # -1 -> when counter is 0 the frame is still saved
 
     process_event_down_counter = np.inf
     packet_id = -1
 
     for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
-        if np.isinf(process_event_down_counter):
-            before_trg_frames_circ_buffer.append(gtu_pdm_data)
-        else:
-            frame_buffer.append(gtu_pdm_data)
 
         gtu_in_packet = gtu_pdm_data.gtu % packet_size
         if gtu_in_packet == 0:
             packet_id += 1 # starts at -1
+            before_trg_frames_circ_buffer.clear()
+            frame_buffer.clear()
+            process_event_down_counter = np.inf
+
+        if np.isinf(process_event_down_counter):
+            before_trg_frames_circ_buffer.append(gtu_pdm_data)
+        else:
+            frame_buffer.append(gtu_pdm_data)
 
         print_frame_info(gtu_pdm_data)
 
