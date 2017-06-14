@@ -13,8 +13,8 @@ import itertools
 from event_processing import *
 from event_visualization import *
 from event_reading import *
+from trigger_event_analysis_record import *
 
-import skimage.transform
 
 class EventProcessingParams(object):
     triggered_pixels_group_max_gap = 5
@@ -285,6 +285,31 @@ def hough_space_index_to_val(indexes, phi_range, rho_range_opts):
     return o
 
 
+def calc_line_coords(phi, rho, width, height):
+    p = np.zeros((2,2))
+    p[0, 1] = 0
+    if phi != 0:
+        p[0, 0] = rho / np.sin(phi)
+    else:
+        p[0, 0] = -1
+
+    p[1, 1] = height
+    if phi != 0:
+        p[1, 0] = (rho - width * np.cos(phi)) / np.sin(phi)
+    else:
+        p[1, 0] = height + 1
+
+    for pi in range(0, len(p)):
+        if p[pi, 0] < 0:
+            p[pi, 0] = 0  # y
+            p[pi, 1] = rho / np.cos(phi)  # x
+        elif p[pi, 0] > height:
+            p[pi, 0] = height  # y
+            p[pi, 1] = (rho - p[pi, 0] * np.sin(phi)) / np.cos(phi)  # x
+
+    return p
+
+
 def visualize_hough_lines(image, lines, title=None, value_lines_groups=None):
     fig4, ax4 = plt.subplots(1)
     cax4 = ax4.imshow(image, aspect='auto', extent=[0, image.shape[1], image.shape[0], 0])
@@ -303,30 +328,7 @@ def visualize_hough_lines(image, lines, title=None, value_lines_groups=None):
     print(lines_colors)
 
     for line in lines:
-        p = np.zeros((2,2))
-
-        phi = line[1]
-        rho = line[0]
-
-        p[0, 1] = 0
-        if phi != 0:
-            p[0, 0] = rho / np.sin(phi)
-        else:
-            p[0, 0] = -1
-
-        p[1, 1] = image.shape[0]
-        if phi != 0:
-            p[1, 0] = (rho - image.shape[1] * np.cos(phi)) / np.sin(phi)
-        else:
-            p[1, 0] = image.shape[0] + 1
-
-        for pi in range(0, len(p)):
-            if p[pi, 0] < 0:
-                p[pi, 0] = 0  # y
-                p[pi, 1] = rho / np.cos(phi)  # x
-            elif p[pi, 0] > image.shape[0]:
-                p[pi, 0] = image.shape[0]  # y
-                p[pi, 1] = (rho - p[pi, 0] * np.sin(phi)) / np.cos(phi)  # x
+        p = calc_line_coords(line[1], line[0], image.shape[1], image.shape[0])
 
         print("line (y,x) [{},{}] , [{},{}]".format(p[0,0],p[0,1],p[1,0],p[1,1]))
 
@@ -601,7 +603,11 @@ def select_trigger_groups(trigger_points, max_gap=3):
     #     ...
     #     it.iternext()
 
-def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_mask = None, do_visualization=True):
+
+def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params=EventProcessingParams(), pixels_mask = None, do_visualization=True):
+    frames = trigger_event_record.gtu_data
+    exp_tree = trigger_event_record.exp_tree
+
     print(len(frames))
 
     event_frames = []
@@ -736,11 +742,37 @@ def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_
                         np.linspace(0,np.pi, proc_params.triggered_pixels_ht_phi_num_steps),
                         proc_params.triggered_pixels_ht_rho_step)
 
+    trigg_acc_matrix_max_pos = np.unravel_index(trigg_acc_matrix.argmax(), trigg_acc_matrix.shape)
+    trigg_max_line = hough_space_index_to_val_single(trigg_acc_matrix_max_pos, trigg_phi_range, trigg_rho_range_opts)
+
+    trigger_event_record.triggered_pixels = triggered_pixels_coords
+    trigger_event_record.triggered_pixel_groups = groups_of_trigger_groups
+    trigger_event_record.triggered_pixels_x_y_hough_transform = trigg_acc_matrix
+    trigger_event_record.triggered_pixels_x_y_hough_transform__max_peak_rho = trigg_max_line[0]
+    trigger_event_record.triggered_pixels_x_y_hough_transform__max_peak_phi = trigg_max_line[1]
+
+    trigger_event_record.triggered_pixels_x_y_hough_transform__max_peak_line_coords = \
+        calc_line_coords(trigg_max_line[1], trigg_max_line[0],
+                         integrated_triggered_pixel_sum_l1[1], integrated_triggered_pixel_sum_l1[0])
     #####
 
     if do_visualization:
         # TODO vis
         pass
+
+    #####
+
+    #TODO
+    # trigger_neighbours_yt = select_neighbours(triggers_y_t_proj, frame_num_y)
+    # trigger_neighbours_xt = select_neighbours(triggers_x_t_proj, frame_num_x)
+
+    # max_trigger_neighbours_yt = trigger_neighbours_yt*frame_num_y
+    # max_trigger_neighbours_xt = trigger_neighbours_xt*frame_num_x
+
+    # gray_hough_line(max_values_arr_trigg, 3)
+    # gray_hough_line(max_trigger_neighbours_yt)
+    # gray_hough_line(max_trigger_neighbours_xt)
+    # gray_hough_line(max_values_arr)
 
     #####
 
@@ -762,17 +794,9 @@ def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_
 
     max_values_arr_trigg = trigger_neighbours*max_values_arr
 
-    #TODO
-    # trigger_neighbours_yt = select_neighbours(triggers_y_t_proj, frame_num_y)
-    # trigger_neighbours_xt = select_neighbours(triggers_x_t_proj, frame_num_x)
-
-    # max_trigger_neighbours_yt = trigger_neighbours_yt*frame_num_y
-    # max_trigger_neighbours_xt = trigger_neighbours_xt*frame_num_x
-
-    # gray_hough_line(max_values_arr_trigg, 3)
-    # gray_hough_line(max_trigger_neighbours_yt)
-    # gray_hough_line(max_trigger_neighbours_xt)
-    # gray_hough_line(max_values_arr)
+    trigger_event_record.triggers_x_y_neighbourhood = trigger_neighbours
+    trigger_event_record.triggers_x_y_neighbourhood_size = np.count_nonzero(trigger_neighbours)
+    trigger_event_record.triggers_x_y_neighbourhood_dimensions = find_minimal_dimensions(trigger_neighbours)
 
     #####
 
@@ -795,10 +819,16 @@ def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_
 
     # Position of maximum value in the hough space - x_y_acc_matrix
 
-    acc_matrix_max_pos = np.unravel_index(x_y_acc_matrix.argmax(), x_y_acc_matrix.shape)
-    acc_matrix_max = x_y_acc_matrix[acc_matrix_max_pos]
+    x_y_acc_matrix_max_pos = np.unravel_index(x_y_acc_matrix.argmax(), x_y_acc_matrix.shape)
+    acc_matrix_max = x_y_acc_matrix[trigg_acc_matrix_max_pos]
 
-    # TODO need to save/extract: rho, phi, line_rot, coord_0_x, coord_0_y, coord_1_x, coord_1_y
+    x_y_acc_matrix_max_line = hough_space_index_to_val_single(x_y_acc_matrix_max_pos, x_y_phi_range, x_y_rho_range_opts)
+
+    trigger_event_record.hough_transform_x_y__max_peak_rho = x_y_acc_matrix_max_line[0]
+    trigger_event_record.hough_transform_x_y__max_peak_phi = x_y_acc_matrix_max_line[1]
+    trigger_event_record.hough_transform_x_y__max_peak_coords = \
+        calc_line_coords(x_y_acc_matrix_max_line[1], x_y_acc_matrix_max_line[0],
+                         x_y_acc_matrix[1], x_y_acc_matrix[0])
 
     ##
 
@@ -820,15 +850,17 @@ def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_
     for cluster_seed, cluster_im in perc_max_peaks_arr_clusters.items():
         cluster_dimensions = find_minimal_dimensions(cluster_im)
 
-        if cluster_im[acc_matrix_max_pos] != 0:
-            cluster_with_maximum = cluster_im[acc_matrix_max_pos]
+        if cluster_im[trigg_acc_matrix_max_pos] != 0:
+            cluster_with_maximum = cluster_im[trigg_acc_matrix_max_pos]
 
         # todo convert from indexes to rho and phi
         print("Hough space cluster {} dimensions {}".format(str(cluster_seed), str(cluster_dimensions)))
 
     assert cluster_with_maximum is not None
 
-    # TODO need to save: clusers - dimensions, size, counts sum;
+    trigger_event_record.hough_transform_x_y__clusters_above_thr = [cluster for _, cluster in perc_max_peaks_arr_clusters.items()]
+    trigger_event_record.hough_transform_x_y__cluster_dimensions = [find_minimal_dimensions(cluster) for _, cluster in perc_max_peaks_arr_clusters.items()]
+    trigger_event_record.hough_transform_x_y__cluster_counts_sums = [np.sum(cluster*max_values_arr) for _, cluster in perc_max_peaks_arr_clusters.items()]
 
     if do_visualization:
         fig_max_peaks, ax_max_peaks = plt.subplots(1)
@@ -842,77 +874,32 @@ def process_event(frames, exp_tree, proc_params=EventProcessingParams(), pixels_
     #   x_y_ht_global_peak_threshold_frac_of_max
 
     perc_global_peaks_arr = filter_func(x_y_acc_matrix, acc_matrix_max * proc_params.x_y_ht_global_peak_threshold_frac_of_max)
-    perc_max_peaks_pos = get_field_positions(perc_max_peaks_arr, lambda v: v > 0) # np.where ?
+    perc_global_peaks_pos = get_field_positions(perc_max_peaks_arr, lambda v: v > 0) # np.where ?
 
-    # TODO need to save phi, rho, line_rot, coord_0_x, coord_0_y, coord_1_x, coord_1_y
+    trigger_event_record.hough_transform_x_y__thr_peak_rho = avg_rho = np.sum([p[0] for p in perc_global_peaks_pos]) / len(perc_global_peaks_pos)
+    trigger_event_record.hough_transform_x_y__thr_peak_phi = avg_phi = np.sum([p[1] for p in perc_global_peaks_pos]) / len(perc_global_peaks_pos)
 
-    # TODO x_gtu  y_gtu
+    trigger_event_record.hough_transform_x_y__thr_peak_line_coords = calc_line_coords(avg_phi, avg_rho, max_values_arr.shape[1], max_values_arr.shape[0])
 
-    # num_non_zero = np.count_nonzero(x_y_acc_matrix)
-    # print("num_non_zero", num_non_zero)
-    # n_max_peaks_pos = find_n_max_values(x_y_acc_matrix, int(np.ceil(num_non_zero*.1)))
+    if do_visualization:
+        perc_max_lines = hough_space_index_to_val(perc_max_peaks_pos, x_y_phi_range, x_y_rho_range_opts)
+        # max_lines = hough_space_max2val(max_lines_pos, phi_range, rho_range_opts)
+        # print("max_lines", max_lines)
+        #
+        # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
+        value_points_groups = split_all_filed_values_to_groups(perc_max_peaks_arr)
+        value_lines_groups = {}
+        for k,l in value_points_groups.items():
+            value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
 
-    # rho_range = np.arange(rho_range_opts[0],rho_range_opts[1],rho_range_opts[2])
-    # peaks_hspace, peaks_angles, peaks_dists = skimage.transform.hough_line_peaks(x_y_acc_matrix, phi_range, rho_range) #, 2, 2
-    #
-    # print("peaks_angles", peaks_angles)
-    # print("peaks_dists", peaks_dists)
-    # fig, ax = plt.subplots(1)
-    # ax.imshow(peaks_hspace)
-    # ax.set_title("skimage.transform.hough_line_peaks hspace")
-    # plt.show()
-
-    # skimage_max_lines = np.hstack( (np.array(peaks_dists).reshape(-1,1) , np.array(peaks_angles).reshape(-1,1) , np.array(peaks_hspace).reshape(-1,1)  ))
-
-    # print("skimage max lines")
-    # print(skimage_max_lines)
-    #
-    # fig_hist2d, ax_hist2d = plt.subplots(1)
-    # ax_hist2d.hist2d(skimage_max_lines[:,1], skimage_max_lines[:,0], bins=40)
-    # ax_hist2d.set_ylabel("rho")
-    # ax_hist2d.set_xlabel("phi")
-
-    # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
-    # value_lines_groups = {}
-    # for k,l in value_points_groups.items():
-    #     value_lines_groups[k] = [hough_space_max2val_single(v, phi_range, rho_range_opts) for v in l]
-
-    # visualize_hough_lines(max_values_arr_trigg, skimage_max_lines[:,:2], "Lines selected from max_values_arr")
-
-
-    # n_max_lines_pos_ndarray = np.array(n_max_peaks_pos)
-
-    # fig_hist2d, ax_hist2d = plt.subplots(1)
-    # ax_hist2d.hist2d(n_max_lines_pos_ndarray[:,1], n_max_lines_pos_ndarray[:,0], bins=40)
-    # ax_hist2d.set_ylabel("rho")
-    # ax_hist2d.set_xlabel("phi")
-    # ax_hist2d.set_title("Max 10% of points")
-
-    #
-    # print("max_lines_pos", max_lines_pos)
-
-    perc_max_lines = hough_space_index_to_val(perc_max_peaks_pos, x_y_phi_range, x_y_rho_range_opts)
-    # max_lines = hough_space_max2val(max_lines_pos, phi_range, rho_range_opts)
-    # print("max_lines", max_lines)
-    #
-    #
-    # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
-
-    value_points_groups = split_all_filed_values_to_groups(perc_max_peaks_arr)
-    value_lines_groups = {}
-    for k,l in value_points_groups.items():
-        value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
-
-    visualize_hough_lines(max_values_arr_trigg, perc_max_lines, "Lines selected from max_values_arr", value_lines_groups)
+        visualize_hough_lines(max_values_arr_trigg, perc_max_lines, "Lines selected from max_values_arr", value_lines_groups)
 
 
     # rho_acc_matrix visulaization would go here
 
 
+    # TODO x_gtu  y_gtu
 
-
-
-    print(len(frames))
 
     # hough_line()
     # hough_line_peaks()
