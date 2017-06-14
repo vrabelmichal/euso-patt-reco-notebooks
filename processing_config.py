@@ -17,7 +17,8 @@ proc_params.x_y_ht_rho_step = 2
 
 proc_params.x_y_ht_peak_threshold_frac_of_max = .85
 proc_params.x_y_ht_peak_gap = 3
-proc_params.x_y_ht_global_peak_threshold_frac_of_max = .95
+# proc_params.x_y_ht_global_peak_threshold_frac_of_max = .95
+proc_params.x_y_ht_global_peak_threshold_frac_of_max = .98
 
 trigger_event_string_column_order = \
     ["source_file_acquisition", "source_file_trigger",

@@ -23,12 +23,14 @@ def main(argv):
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
-    parser.add_argument('-o', '--outfile', default="/dev/null", help="Output file in tab separated format")
+    parser.add_argument('-o', '--outfile', default=None, help="Output file in tab separated format")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
     parser.add_argument('--gtu-before-trigger', type=int, default=4, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--gtu-after-trigger', type=int, default=4, help="Number of GTU included in track finding data before the trigger")
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
+
+    parser.add_argument("--visualize", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib plots are shown.")
 
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
     parser.add_argument('--last-gtu', type=int, default=sys.maxsize, help="GTU after will be skipped")
@@ -65,84 +67,98 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
     #TODO
     event_start_gtu = -1
 
-    with open(outfile_path,"w") as outfile:
+    if outfile_path is not None:
+        outfile = open(outfile_path,"w")
+    else:
+        outfile = sys.stdout
 
-        print("\t".join(TriggerEventAnalysisRecord.get_string_column_order()), file=outfile)
-        outfile.flush()
+    print("\t".join(TriggerEventAnalysisRecord.get_string_column_order()), file=outfile)
+    outfile.flush()
 
-        for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
+    for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
 
-            gtu_in_packet = gtu_pdm_data.gtu % packet_size
-            if gtu_in_packet == 0:
-                packet_id += 1 # starts at -1
-                before_trg_frames_circ_buffer.clear()
-                frame_buffer.clear()
-                process_event_down_counter = np.inf
-                event_start_gtu = -1
+        gtu_in_packet = gtu_pdm_data.gtu % packet_size
+        if gtu_in_packet == 0:
+            packet_id += 1 # starts at -1
+            before_trg_frames_circ_buffer.clear()
+            frame_buffer.clear()
+            process_event_down_counter = np.inf
+            event_start_gtu = -1
+
+        if np.isinf(process_event_down_counter):
+            before_trg_frames_circ_buffer.append(gtu_pdm_data)
+        else:
+            frame_buffer.append(gtu_pdm_data)
+
+        print_frame_info(gtu_pdm_data)
+
+        if len(gtu_pdm_data.l1trg_events) > 0:
 
             if np.isinf(process_event_down_counter):
-                before_trg_frames_circ_buffer.append(gtu_pdm_data)
+                frame_buffer.extend(before_trg_frames_circ_buffer)
+                before_trg_frames_circ_buffer.clear()
+                event_start_gtu = gtu_pdm_data.gtu
+
+            process_event_down_counter = gtu_after_trigger
+
+            for l1trg_ev in gtu_pdm_data.l1trg_events:
+                if l1trg_ev.packet_id != packet_id:
+                    raise Exception("Unexpected L1 trigger event's packet id (actual: {}, expected: {})".format(l1trg_ev.packet_id, packet_id))
+                if l1trg_ev.gtu_in_packet != gtu_in_packet:
+                    raise Exception("Unexpected L1 trigger event's gtu in packet (actual: {}, expected: {})".format(l1trg_ev.gtu_in_packet, gtu_in_packet))
+
+            # pcd = gtu_pdm_data.photon_count_data
+            # if len(pcd) > 0 and len(pcd[0]) > 0:
+            #     visualize_frame(gtu_pdm_data, ack_l1_reader.exp_tree)
+
+        if not np.isinf(process_event_down_counter):
+            if process_event_down_counter == 0 or gtu_in_packet == 127:
+                if gtu_pdm_data.gtu >= first_gtu and gtu_pdm_data.gtu <= last_gtu and filter_options.check_pdm_gtu(gtu_pdm_data):
+
+                    ########################################################################################
+
+                    ev = TriggerEventAnalysisRecord()
+                    ev.source_file_acquisition = context.acquisition_file
+                    ev.source_file_trigger = context.kenji_l1trigger_file
+                    ev.exp_tree = ack_l1_reader.exp_tree
+                    ev.global_gtu = event_start_gtu
+                    ev.packet_id = packet_id
+                    ev.gtu_in_packet = event_start_gtu % packet_size
+                    ev.gtu_data = frame_buffer
+
+                    process_event(trigger_event_record=ev,
+                                  proc_params=processing_config.proc_params, do_visualization=context.visualize)
+
+                    ########################################################################################
+
+                    print(str(ev), file=outfile)
+                    outfile.flush()
+
+                    # time.sleep(7)
+
+                process_event_down_counter = np.inf
+                before_trg_frames_circ_buffer.extend(frame_buffer)
+                frame_buffer.clear()
+                event_start_gtu = -1
+
+            elif process_event_down_counter > 0:
+                if len(gtu_pdm_data.l1trg_events) == 0: # TODO this might require increase size of the circular buffer
+                    process_event_down_counter -= 1
             else:
-                frame_buffer.append(gtu_pdm_data)
+                raise Exception("Unexpected value of process_event_down_counter")
 
-            print_frame_info(gtu_pdm_data)
+    if outfile_path is not None:
+        outfile.close()
 
-            if len(gtu_pdm_data.l1trg_events) > 0:
 
-                if np.isinf(process_event_down_counter):
-                    frame_buffer.extend(before_trg_frames_circ_buffer)
-                    before_trg_frames_circ_buffer.clear()
-                    event_start_gtu = gtu_pdm_data.gtu
-
-                process_event_down_counter = gtu_after_trigger
-
-                for l1trg_ev in gtu_pdm_data.l1trg_events:
-                    if l1trg_ev.packet_id != packet_id:
-                        raise Exception("Unexpected L1 trigger event's packet id (actual: {}, expected: {})".format(l1trg_ev.packet_id, packet_id))
-                    if l1trg_ev.gtu_in_packet != gtu_in_packet:
-                        raise Exception("Unexpected L1 trigger event's gtu in packet (actual: {}, expected: {})".format(l1trg_ev.gtu_in_packet, gtu_in_packet))
-
-                # pcd = gtu_pdm_data.photon_count_data
-                # if len(pcd) > 0 and len(pcd[0]) > 0:
-                #     visualize_frame(gtu_pdm_data, ack_l1_reader.exp_tree)
-
-            if not np.isinf(process_event_down_counter):
-                if process_event_down_counter == 0 or gtu_in_packet == 127:
-                    if gtu_pdm_data.gtu >= first_gtu and gtu_pdm_data.gtu <= last_gtu and filter_options.check_pdm_gtu(gtu_pdm_data):
-
-                        ########################################################################################
-
-                        ev = TriggerEventAnalysisRecord()
-                        ev.source_file_acquisition = context.acquisition_file
-                        ev.source_file_trigger = context.kenji_l1trigger_file
-                        ev.exp_tree = ack_l1_reader.exp_tree
-                        ev.global_gtu = event_start_gtu
-                        ev.packet_id = packet_id
-                        ev.gtu_in_packet = event_start_gtu % packet_size
-                        ev.gtu_data = frame_buffer
-
-                        # process_event(trigger_event_record=ev,
-                        #               proc_params=processing_config.proc_params, do_visualization=False)
-
-                        ########################################################################################
-
-                        print(str(ev), file=outfile)
-                        outfile.flush()
-
-                        # time.sleep(7)
-
-                    process_event_down_counter = np.inf
-                    before_trg_frames_circ_buffer.extend(frame_buffer)
-                    frame_buffer.clear()
-                    event_start_gtu = -1
-
-                elif process_event_down_counter > 0:
-                    if len(gtu_pdm_data.l1trg_events) == 0: # TODO this might require increase size of the circular buffer
-                        process_event_down_counter -= 1
-                else:
-                    raise Exception("Unexpected value of process_event_down_counter")
-
+def str2bool_for_argparse(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    if v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == "__main__":
     # execute only if run as a script
-    main(sys.argv)
+    main(sys.argv[1:])
