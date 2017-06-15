@@ -3,10 +3,15 @@ import processing_config
 
 try:
     trigger_event_string_column_order = processing_config.trigger_event_string_column_order
-except NameError:
+except AttributeError:
     trigger_event_string_column_order = \
         ["source_file_acquisition", "source_file_trigger",
         "global_gtu", "packet_id", "gtu_in_packet", "num_gtu"]
+
+try:
+    trigger_event_str_prop_separator = processing_config.trigger_event_str_prop_separator
+except AttributeError:
+    trigger_event_str_prop_separator = "\n"
 
 
 class TriggerEventAnalysisRecord(object):
@@ -80,7 +85,7 @@ class TriggerEventAnalysisRecord(object):
     # dynamic
     # hough_transform_x_y__max_peak_line_rot  = -1 # peak determined only from the maximal point of the hough space
 
-    hough_transform_x_y__max_peak_coords = -1 # peak determined only from the maximal point of the hough space
+    hough_transform_x_y__max_peak_line_coords = -1 # peak determined only from the maximal point of the hough space
 
     #dynamic
     # hough_transform_x_y__max_peak_line_coord_0_x = -1 # peak determined only from the maximal point of the hough space
@@ -177,7 +182,7 @@ class TriggerEventAnalysisRecord(object):
                 'num_triggered_pixels': lambda o: len(o.triggered_pixels),
                 'num_triggered_pixel_groups': lambda o: len(o.triggered_pixel_groups),
                 'max_triggered_pixel_group_size': lambda o: max([len(g) for g in o.triggered_pixel_groups]) if len(o.triggered_pixel_groups)>0 else -1,
-                'avg_trigger_group_size:': lambda o: sum([len(g) for g in o.triggered_pixel_groups])/len(triggered_pixel_groups),
+                'avg_trigger_group_size': lambda o: sum([len(g) for g in o.triggered_pixel_groups])/len(o.triggered_pixel_groups) if len(o.triggered_pixel_groups)>0 else -1,
                 'triggered_pixels_x_y_hough_transform__max_peak_line_rot': lambda o: o.triggered_pixels_x_y_hough_transform__max_peak_phi + np.pi/2,
                 'triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_x': lambda o: o.triggered_pixels_x_y_hough_transform__max_peak_line_coords[0][1],
                 'triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_y': lambda o: o.triggered_pixels_x_y_hough_transform__max_peak_line_coords[0][0],
@@ -199,23 +204,31 @@ class TriggerEventAnalysisRecord(object):
                 'hough_transform_x_y__max_cluster_counts_sum': lambda o: max([c for c in o.hough_transform_x_y__cluster_counts_sums]) if len(o.hough_transform_x_y__cluster_counts_sums)>0 else -1,
                 'hough_transform_x_y__avg_cluster_counts_sum': lambda o: sum([c for c in o.hough_transform_x_y__cluster_counts_sums])/len(o.hough_transform_x_y__cluster_counts_sums),
                 'hough_transform_x_y__max_peak_line_rot': lambda o: o.hough_transform_x_y__max_peak_phi + np.pi/2,
-                'hough_transform_x_y__max_peak_line_coord_0_x': lambda o: o.hough_transform_x_y__max_peak_coords[0][1],
-                'hough_transform_x_y__max_peak_line_coord_0_y': lambda o: o.hough_transform_x_y__max_peak_coords[0][0],
-                'hough_transform_x_y__max_peak_line_coord_1_x': lambda o: o.hough_transform_x_y__max_peak_coords[1][1],
-                'hough_transform_x_y__max_peak_line_coord_1_y': lambda o: o.hough_transform_x_y__max_peak_coords[1][0],
+                'hough_transform_x_y__max_peak_line_coord_0_x': lambda o: o.hough_transform_x_y__max_peak_line_coords[0][1],
+                'hough_transform_x_y__max_peak_line_coord_0_y': lambda o: o.hough_transform_x_y__max_peak_line_coords[0][0],
+                'hough_transform_x_y__max_peak_line_coord_1_x': lambda o: o.hough_transform_x_y__max_peak_line_coords[1][1],
+                'hough_transform_x_y__max_peak_line_coord_1_y': lambda o: o.hough_transform_x_y__max_peak_line_coords[1][0],
                 'hough_transform_x_y__thr_peak_line_rot': lambda o: o.hough_transform_x_y__thr_peak_phi + np.pi/2,
-                'hough_transform_x_y__thr_peak_line_coord_0_x': lambda o: o.hough_transform_x_y__thr_peak_coords[0][1],
-                'hough_transform_x_y__thr_peak_line_coord_0_y': lambda o: o.hough_transform_x_y__thr_peak_coords[0][0],
-                'hough_transform_x_y__thr_peak_line_coord_1_x': lambda o: o.hough_transform_x_y__thr_peak_coords[1][1],
-                'hough_transform_x_y__thr_peak_line_coord_1_y': lambda o: o.hough_transform_x_y__thr_peak_coords[1][0],
+                'hough_transform_x_y__thr_peak_line_coord_0_x': lambda o: o.hough_transform_x_y__thr_peak_line_coords[0][1],
+                'hough_transform_x_y__thr_peak_line_coord_0_y': lambda o: o.hough_transform_x_y__thr_peak_line_coords[0][0],
+                'hough_transform_x_y__thr_peak_line_coord_1_x': lambda o: o.hough_transform_x_y__thr_peak_line_coords[1][1],
+                'hough_transform_x_y__thr_peak_line_coord_1_y': lambda o: o.hough_transform_x_y__thr_peak_line_coords[1][0],
             }
 
             #self.__class__.__dict__[''] =
             setattr(self.__class__, "extra_attr_method_mapping", d)
 
     def __str__(self):
+        return self.to_str()
+
+    def to_str(self, separator=None, columns=None):
         global trigger_event_string_column_order
-        return "\t".join([str(getattr(self, n)) for n in trigger_event_string_column_order])
+        global trigger_event_str_prop_separator
+        if separator is None:
+            separator = trigger_event_str_prop_separator
+        if columns is None:
+            columns = trigger_event_string_column_order
+        return separator.join([str(getattr(self, n)) for n in columns])
 
     def __getattr__(self, item):
         d = self.__class__.__dict__['extra_attr_method_mapping']

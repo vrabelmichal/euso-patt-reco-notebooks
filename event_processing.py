@@ -15,104 +15,7 @@ from event_visualization import *
 from event_reading import *
 from trigger_event_analysis_record import *
 from base_classes import *
-
-def translate_struct(struct, trans_func):
-    """
-    Maps all Tasks in a structured data object to their .output().
-    """
-    if isinstance(struct, dict):
-        r = {}
-        for k, v in struct.items():
-            r[k] = translate_struct(v, trans_func)
-        return r
-    elif isinstance(struct, (list, tuple)):
-        try:
-            s = list(struct)
-        except TypeError:
-            raise Exception('Cannot map %s to list' % str(struct))
-        return [translate_struct(r, trans_func) for r in s]
-
-    return trans_func(struct)
-
-
-def translate_dict_keys(d, trans_func):
-    od = {}
-    for k,v in d.items():
-        od[trans_func(k)] = v
-    return od
-
-
-def get_field_positions(arr, cond_func):
-    o = []
-    it = np.nditer(arr, flags=['multi_index'])
-    while not it.finished:
-        if cond_func(arr[it.multi_index]):
-            o.append(it.multi_index)
-        it.iternext()
-    return o
-
-def find_n_max_values(arr, n):
-    # inefficient !!!
-    if n <= 0:
-        raise Exception("Parameter value n has to be larger than 0")
-    max_value_positions = [None]*n #collections.deque(maxlen=n)
-    it = np.nditer(arr, flags=['multi_index'])
-    i = 0
-    while i < n and not it.finished:
-        max_value_positions[i] = it.multi_index
-        it.iternext()
-        i += 1
-    it.reset()
-    while not it.finished:
-        append_index = False
-        smallest_val_pos = None
-        for i, pos in enumerate(max_value_positions):
-            if arr[it.multi_index] > arr[pos]:
-                append_index = True
-                if smallest_val_pos is None or arr[pos] < arr[max_value_positions[smallest_val_pos]]:
-                    smallest_val_pos = i
-        if append_index:
-            max_value_positions[smallest_val_pos] = it.multi_index
-        it.iternext()
-    return max_value_positions
-
-
-def split_all_filed_values_to_groups(arr):
-    groups = {}
-
-    it = np.nditer(arr, flags=['multi_index'])
-    while not it.finished:
-        if arr[it.multi_index] not in groups:
-            groups[arr[it.multi_index]] = []
-        groups[arr[it.multi_index]].append(it.multi_index)
-        it.iternext()
-
-    return groups
-
-
-def split_values_to_groups(points, arr):
-    groups = {}
-
-    for point in points:
-        if arr[point] not in groups:
-            groups[arr[point]] = []
-        groups[arr[point]].append(point)
-
-    return groups
-
-
-def key_vals2val_keys(in_dict, exclusive=False):
-    out_dict = {}
-    for k,l in in_dict.items():
-        for v in l:
-            if exclusive:
-                out_dict[v] = k
-            else:
-                if v not in out_dict:
-                    out_dict[v] = []
-                out_dict[v].append(v)
-    return out_dict
-
+from utility_funtions import *
 
 def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1):
     max_distance = np.hypot(image.shape[0], image.shape[1])
@@ -267,59 +170,6 @@ def hough_space_index_to_val(indexes, phi_range, rho_range_opts):
     for index in indexes:
         o.append(hough_space_index_to_val_single(index, phi_range, rho_range_opts))
     return o
-
-
-def calc_line_coords(phi, rho, width, height):
-    p = np.zeros((2,2))
-    p[0, 1] = 0
-    if phi != 0:
-        p[0, 0] = rho / np.sin(phi)
-    else:
-        p[0, 0] = -1
-
-    p[1, 1] = height
-    if phi != 0:
-        p[1, 0] = (rho - width * np.cos(phi)) / np.sin(phi)
-    else:
-        p[1, 0] = height + 1
-
-    for pi in range(0, len(p)):
-        if p[pi, 0] < 0:
-            p[pi, 0] = 0  # y
-            p[pi, 1] = rho / np.cos(phi)  # x
-        elif p[pi, 0] > height:
-            p[pi, 0] = height  # y
-            p[pi, 1] = (rho - p[pi, 0] * np.sin(phi)) / np.cos(phi)  # x
-
-    return p
-
-
-def visualize_hough_lines(image, lines, title=None, value_lines_groups=None):
-    fig4, ax4 = plt.subplots(1)
-    cax4 = ax4.imshow(image, aspect='auto', extent=[0, image.shape[1], image.shape[0], 0])
-    if title:
-        ax4.set_title(title) #"Hough input img (phi normalization)"
-    # y0 = (acc_matrix_max_rho - 0 * np.cos(acc_matrix_max_phi)) / np.sin(angle)
-    # y1 = (acc_matrix_max_rho - image.shape[1] * np.cos(angle)) / np.sin(angle)
-
-    lines_colors = None
-    if value_lines_groups is not None:
-        # value_lines_groups_cpy = collections.OrderedDict(value_lines_groups)
-        cmap = plt.get_cmap("tab20c")
-        max_key = max(value_lines_groups.keys(), key=int)
-        lines_colors = translate_struct(key_vals2val_keys(value_lines_groups, exclusive=True), lambda v: cmap(v/max_key))
-
-    print(lines_colors)
-
-    for line in lines:
-        p = calc_line_coords(line[1], line[0], image.shape[1], image.shape[0])
-
-        print("line (y,x) [{},{}] , [{},{}]".format(p[0,0],p[0,1],p[1,0],p[1,1]))
-
-        if lines_colors is  not None and line in lines_colors:
-            ax4.plot((p[:,1]), (p[:,0]), '-', color=lines_colors[line])
-        else:
-            ax4.plot((p[:,1]), (p[:,0]), '-r')
 
 
 def find_pixel_clusters(image, max_gap=3):
@@ -646,8 +496,8 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
 
     if do_visualization:
         # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
-        visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "f(frame_num) = \sum_{frame_num} x", False)
-        visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "f(frame_num) = \sum_{frame_num} y", False)
+        visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "$f(GTU) = \sum_{GTU} x$", False)
+        visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "$f(GTU) = \sum_{GTU} y$", False)
         # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
         # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
 
@@ -809,7 +659,7 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
 
     trigger_event_record.hough_transform_x_y__max_peak_rho = x_y_acc_matrix_max_line[0]
     trigger_event_record.hough_transform_x_y__max_peak_phi = x_y_acc_matrix_max_line[1]
-    trigger_event_record.hough_transform_x_y__max_peak_coords = \
+    trigger_event_record.hough_transform_x_y__max_peak_line_coords = \
         calc_line_coords(x_y_acc_matrix_max_line[1], x_y_acc_matrix_max_line[0],
                          x_y_acc_matrix.shape[1], x_y_acc_matrix.shape[0])
 

@@ -1,4 +1,6 @@
 from base_classes import *
+from tsv_event_storage import *
+
 proc_params = EventProcessingParams()
 
 proc_params.triggered_pixels_group_max_gap = 5

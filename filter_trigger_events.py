@@ -16,6 +16,8 @@ from event_visualization import *
 from event_reading import *
 from base_classes import *
 import processing_config
+from tsv_event_storage import *
+from sqllite_event_storage import *
 
 
 def main(argv):
@@ -23,7 +25,8 @@ def main(argv):
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
-    parser.add_argument('-o', '--outfile', default=None, help="Output file in tab separated format")
+    parser.add_argument('-o', '--outfile', default=None, help="Output specification")
+    parser.add_argument('-f', '--output-type', default="tsv", help="Output type - tsv, stdout, sqlite")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
     parser.add_argument('--gtu-before-trigger', type=int, default=4, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--gtu-after-trigger', type=int, default=4, help="Number of GTU included in track finding data before the trigger")
@@ -50,12 +53,23 @@ def main(argv):
     filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
+    if args.output_type == "tsv" or args.output_type == "csv":
+        output_storage_provider = TsvEventStorageProvider()
+    elif args.output_type == "sqlite":
+        output_storage_provider = SqlLite3EventStorageProvider()
+    else:
+        output_storage_provider = EventStorageProvider()
+
+    output_storage_provider.initialize(args.outfile)
+
     read_and_process_events(ack_l1_reader,
                             args.first_gtu, args.last_gtu, args.gtu_before_trigger, args.gtu_after_trigger,
-                            args.packet_size, filter_options, args.outfile, args)
+                            args.packet_size, filter_options, output_storage_provider, args)
+
+    output_storage_provider.finalize()
 
 
-def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigger, gtu_after_trigger, packet_size, filter_options, outfile_path, context):
+def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigger, gtu_after_trigger, packet_size, filter_options, output_storage_provider, context):
 
     before_trg_frames_circ_buffer = collections.deque(maxlen=gtu_before_trigger+1) # +1 -> the last gtu in the buffer is triggered
     frame_buffer = []
@@ -64,16 +78,10 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
     process_event_down_counter = np.inf
     packet_id = -1
 
-    #TODO
+    #TODO ???? why ????
     event_start_gtu = -1
 
-    if outfile_path is not None:
-        outfile = open(outfile_path,"w")
-    else:
-        outfile = sys.stdout
-
-    print("\t".join(TriggerEventAnalysisRecord.get_string_column_order()), file=outfile)
-    outfile.flush()
+    save_config_info_result = output_storage_provider.save_config_info(processing_config.proc_params)
 
     for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
 
@@ -131,10 +139,10 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
 
                     ########################################################################################
 
-                    print(str(ev), file=outfile)
-                    outfile.flush()
+                    # print(str(ev), file=outfile)
+                    # outfile.flush()
 
-                    # time.sleep(7)
+                    output_storage_provider.save_row(ev, save_config_info_result)
 
                 process_event_down_counter = np.inf
                 before_trg_frames_circ_buffer.extend(frame_buffer)
@@ -146,9 +154,6 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                     process_event_down_counter -= 1
             else:
                 raise Exception("Unexpected value of process_event_down_counter")
-
-    if outfile_path is not None:
-        outfile.close()
 
 
 def str2bool_for_argparse(v):
