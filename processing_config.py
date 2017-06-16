@@ -5,7 +5,7 @@ proc_params = EventProcessingParams()
 
 proc_params.triggered_pixels_group_max_gap = 5
 
-proc_params.triggered_pixels_ht_size = 1
+proc_params.triggered_pixels_ht_line_thickness = 1
 proc_params.triggered_pixels_ht_phi_num_steps = 90  # 2 deg per step
 proc_params.triggered_pixels_ht_rho_step = 2
 
@@ -13,7 +13,7 @@ proc_params.x_y_neighbour_selection_rules = [NeighbourSelectionRules(3, .3, Fals
                                              NeighbourSelectionRules(3, 1, True),
                                              NeighbourSelectionRules(1, .9, True)]
 
-proc_params.x_y_ht_size = .5
+proc_params.x_y_ht_line_thickness = .5
 proc_params.x_y_ht_phi_num_steps = 90  # 2 deg per step
 proc_params.x_y_ht_rho_step = 2
 

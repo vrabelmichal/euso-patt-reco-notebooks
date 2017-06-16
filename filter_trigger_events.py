@@ -17,7 +17,8 @@ from event_reading import *
 from base_classes import *
 import processing_config
 from tsv_event_storage import *
-from sqllite_event_storage import *
+from sqlite_event_storage import *
+from postgresql_event_storage import *
 
 
 def main(argv):
@@ -34,6 +35,7 @@ def main(argv):
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
     parser.add_argument("--visualize", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib plots are shown.")
+    parser.add_argument("--no-overwrite-weak-check", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked before event is processed")
 
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
     parser.add_argument('--last-gtu', type=int, default=sys.maxsize, help="GTU after will be skipped")
@@ -56,7 +58,9 @@ def main(argv):
     if args.output_type == "tsv" or args.output_type == "csv":
         output_storage_provider = TsvEventStorageProvider()
     elif args.output_type == "sqlite":
-        output_storage_provider = SqlLite3EventStorageProvider()
+        output_storage_provider = Sqlite3EventStorageProvider()
+    elif args.output_type == "postgresql":
+        output_storage_provider = PostgreSqlEventStorageProvider()
     else:
         output_storage_provider = EventStorageProvider()
 
@@ -142,7 +146,7 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                     # print(str(ev), file=outfile)
                     # outfile.flush()
 
-                    output_storage_provider.save_row(ev, save_config_info_result)
+                    output_storage_provider.save_event(ev, save_config_info_result)
 
                 process_event_down_counter = np.inf
                 before_trg_frames_circ_buffer.extend(frame_buffer)

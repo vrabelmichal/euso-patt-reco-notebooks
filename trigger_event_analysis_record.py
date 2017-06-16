@@ -34,6 +34,10 @@ class TriggerEventAnalysisRecord(object):
 
     ###########################################
 
+    program_version = 0
+
+    ###########################################
+
     triggered_pixels = None
     # num
     triggered_pixel_groups = None

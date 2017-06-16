@@ -17,11 +17,11 @@ from trigger_event_analysis_record import *
 from base_classes import *
 from utility_funtions import *
 
-def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1):
+def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1):
     max_distance = np.hypot(image.shape[0], image.shape[1])
     num_rho = int(np.ceil(max_distance*2/rho_step))
-    rho_correction_lower = -size + max_distance
-    rho_correction_upper = size  + max_distance
+    rho_correction_lower = -line_thicknes + max_distance
+    rho_correction_upper = line_thicknes + max_distance
     #phi_range = phi_range - np.pi / 2
     acc_matrix = np.zeros((num_rho, len(phi_range)))
     # rho_acc_matrix = np.zeros((num_rho, len(phi_range)))
@@ -71,8 +71,6 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 180), rho_ste
                     # rho and nc matrixes would go hrer
 
 
-
-
     # acc_matrix_max_pos = np.unravel_index(acc_matrix.argmax(), acc_matrix.shape)
     # acc_matrix_max = acc_matrix[acc_matrix_max_pos]
     #
@@ -86,11 +84,11 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 180), rho_ste
     #       .format(acc_matrix_max,
     #               acc_matrix_max_pos[0], acc_matrix_max_rho_range[0], #acc_matrix_max_rho_range[1],
     #               acc_matrix_max_pos[1], np.rad2deg(acc_matrix_max_phi) ))
-
-    #  ({} = {}*{} - ({} = -{} + {}) + {}/2)
-    #        rho_step,rho_index, rho_correction_lower, size, max_distance, size,
-
-
+    #
+    #  # ({} = {}*{} - ({} = -{} + {}) + {}/2)
+    #  #       rho_step,rho_index, rho_correction_lower, size, max_distance, size,
+    #
+    #
     # # fig2, (ax1, ax1b, ax2) = plt.subplots(3)
     # fig2, ax1 = plt.subplots(1)
     #
@@ -131,8 +129,6 @@ def gray_hough_line(image, size=2, phi_range=np.linspace(0, np.pi, 180), rho_ste
     #     print("line (y,x) [{},{}] , [{},{}]".format(p[0,0],p[0,1],p[1,0],p[1,1]))
     #
     #     ax4.plot((p[:,1]), (p[:,0]), '-g')
-
-
 
     return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
 
@@ -431,7 +427,10 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     frames = trigger_event_record.gtu_data
     exp_tree = trigger_event_record.exp_tree
 
-    # print(len(frames))
+    #############################################################
+    # Code version
+    trigger_event_record.program_version = 1
+    #############################################################
 
     event_frames = []
 
@@ -561,7 +560,7 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     integrated_triggered_pixel_sum_l1 = np.add.reduce(triggered_pixel_sum_l1_frames)
 
     trigg_acc_matrix, trigg_max_distance, trigg_rho_range_opts, trigg_phi_range = \
-        gray_hough_line(integrated_triggered_pixel_sum_l1, proc_params.triggered_pixels_ht_size,
+        gray_hough_line(integrated_triggered_pixel_sum_l1, proc_params.triggered_pixels_ht_line_thickness,
                         np.linspace(0,np.pi, proc_params.triggered_pixels_ht_phi_num_steps),
                         proc_params.triggered_pixels_ht_rho_step)
 
@@ -642,7 +641,7 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     #hint: use np.argmax(cond), np.where(cond), np,select  np.argwhere
 
     x_y_acc_matrix, x_y_max_distance, x_y_rho_range_opts, x_y_phi_range = \
-        gray_hough_line(max_values_arr_trigg, proc_params.x_y_ht_size,
+        gray_hough_line(max_values_arr_trigg, proc_params.x_y_ht_line_thickness,
                         np.linspace(0,np.pi,proc_params.x_y_ht_phi_num_steps),
                         proc_params.x_y_ht_rho_step)
 
