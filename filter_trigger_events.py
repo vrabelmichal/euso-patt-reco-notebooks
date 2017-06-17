@@ -11,7 +11,8 @@ from enum import Enum
 
 import time
 
-from event_processing import *
+import event_processing
+from trigger_event_analysis_record import *
 from event_visualization import *
 from event_reading import *
 from base_classes import *
@@ -68,12 +69,14 @@ def main(argv):
 
     read_and_process_events(ack_l1_reader,
                             args.first_gtu, args.last_gtu, args.gtu_before_trigger, args.gtu_after_trigger,
-                            args.packet_size, filter_options, output_storage_provider, args)
+                            args.packet_size, filter_options, output_storage_provider, args.no_overwrite_weak_check,
+                            args)
 
     output_storage_provider.finalize()
 
 
-def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigger, gtu_after_trigger, packet_size, filter_options, output_storage_provider, context):
+def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigger, gtu_after_trigger, packet_size,
+                            filter_options, output_storage_provider, no_overwrite_weak_check, context):
 
     before_trg_frames_circ_buffer = collections.deque(maxlen=gtu_before_trigger+1) # +1 -> the last gtu in the buffer is triggered
     frame_buffer = []
@@ -82,7 +85,6 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
     process_event_down_counter = np.inf
     packet_id = -1
 
-    #TODO ???? why ????
     event_start_gtu = -1
 
     save_config_info_result = output_storage_provider.save_config_info(processing_config.proc_params)
@@ -138,15 +140,17 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                     ev.gtu_in_packet = event_start_gtu % packet_size
                     ev.gtu_data = frame_buffer
 
-                    process_event(trigger_event_record=ev,
-                                  proc_params=processing_config.proc_params, do_visualization=context.visualize)
+                    if not no_overwrite_weak_check \
+                            or not output_storage_provider.check_event_exists_weak(ev, event_processing.program_version) :
+                        event_processing.process_event(trigger_event_record=ev,
+                                      proc_params=processing_config.proc_params, do_visualization=context.visualize)
 
                     ########################################################################################
 
                     # print(str(ev), file=outfile)
                     # outfile.flush()
 
-                    output_storage_provider.save_event(ev, save_config_info_result)
+                        output_storage_provider.save_event(ev, save_config_info_result)
 
                 process_event_down_counter = np.inf
                 before_trg_frames_circ_buffer.extend(frame_buffer)
