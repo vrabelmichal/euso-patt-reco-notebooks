@@ -27,7 +27,7 @@ def main(argv):
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', help="L1 trigger root file in \"Kenji\" format")
-    parser.add_argument('-o', '--outfile', default=None, help="Output specification")
+    parser.add_argument('-o', '--out', default=None, help="Output specification")
     parser.add_argument('-f', '--output-type', default="tsv", help="Output type - tsv, stdout, sqlite")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
     parser.add_argument('--gtu-before-trigger', type=int, default=4, help="Number of GTU included in track finding data before the trigger")
@@ -65,7 +65,7 @@ def main(argv):
     else:
         output_storage_provider = EventStorageProvider()
 
-    output_storage_provider.initialize(args.outfile)
+    output_storage_provider.initialize(args.out)
 
     read_and_process_events(ack_l1_reader,
                             args.first_gtu, args.last_gtu, args.gtu_before_trigger, args.gtu_after_trigger,
