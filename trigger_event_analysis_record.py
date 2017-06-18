@@ -176,9 +176,31 @@ class TriggerEventAnalysisRecord(object):
     hough_transform_y_gtu__thr_peak_line_coord_1_x = -1  # peak is average rho and phi of points over a threshold relative to the maximum peak value
     hough_transform_y_gtu__thr_peak_line_coord_1_y = -1  # peak is average rho and phi of points over a threshold relative to the maximum peak value
 
-    def __init__(self, triggered_pixels=[], triggered_pixel_groups=[], ):
-        self.triggered_pixel_groups = triggered_pixel_groups
-        self.triggered_pixels = triggered_pixels
+    def __init__(self):
+
+        self.triggered_pixels = []
+        self.triggered_pixel_groups = []
+        self.triggered_pixels_x_y_hough_transform = []
+        self.triggers_x_y_neighbourhood = []
+        self.triggers_x_y_neighbourhood_dimensions = []
+        self.hough_transform_x_y = []
+        self.hough_transform_x_y__clusters_above_thr = []
+        self.hough_transform_x_y__cluster_dimensions = []
+        self.hough_transform_x_y__cluster_counts_sums = []
+        self.hough_transform_x_y__thr_peak_line_coords = []
+        self.triggers_x_gtu_neighbourhood = []
+        self.triggers_x_gtu_neighbourhood_size = []
+        self.triggers_x_gtu_neighbourhood_dimensions = []
+        self.hough_transform_x_gtu = []
+        self.hough_transform_x_gtu__clusters_above_thr = []
+        self.hough_transform_x_gtu__num_clusters_above_thr = []
+        self.triggers_x_gtu_neighbourhood = []
+        self.triggers_x_gtu_neighbourhood_size = []
+        self.triggers_x_gtu_neighbourhood_dimensions = []
+        self.hough_transform_y_gtu_ = []
+        self.hough_transform_y_gtu__clusters_above_thr = []
+        self.hough_transform_y_gtu__num_clusters_above_thr = []
+
         if not self.__class__.extra_attr_method_mapping:
             #'extra_attr_method_mapping' not in self.__class__.__dict__ or
             d = {
