@@ -41,7 +41,7 @@ def main(argv):
         for trigger_analysis_record in trigger_analysis_records:
             if postgresql_storage.check_event_exists_weak(trigger_analysis_record, event_processing.program_version):
                 postgresql_storage.save_event(trigger_analysis_record)
-                pgrint("Trigger analysis record saved ({} ; {})".format(trigger_analysis_record.source_file_acquisition,
+                print("Trigger analysis record saved ({} ; {})".format(trigger_analysis_record.source_file_acquisition,
                                                                        trigger_analysis_record.source_file_trigger))
 
         sqlite_storage.finalize()
