@@ -21,7 +21,12 @@ from utility_funtions import *
 program_version = 1.0
 
 
-def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params=EventProcessingParams(), pixels_mask = None, do_visualization=True):
+def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params=EventProcessingParams(),
+                  pixels_mask = None,
+                  do_visualization=True, save_fig_pathname_format=None,
+                  watermark_text=None):
+    do_save_fig = save_fig_pathname_format is not None
+
     frames = trigger_event_record.gtu_data
     exp_tree = trigger_event_record.exp_tree
 
@@ -29,7 +34,13 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     # Code version
     global program_version
     trigger_event_record.program_version = program_version
+    #
     #############################################################
+
+    if save_fig_pathname_format:
+        save_fig_pathname_format.format(name='{name}', program_version=program_version)
+
+    #
 
     event_frames = []
 
@@ -92,10 +103,17 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     frame_num_x = np.hstack(frame_num_x)
 
 
-    if do_visualization:
+    if do_visualization or do_save_fig:
         # visualize_frame(np.add.reduce(triggered_pixel_sum_l1_frames), exp_tree, all_event_triggers, "summed sum_l1", False)
-        visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", "$f(GTU) = \sum_{GTU} x$", False)
-        visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", "$f(GTU) = \sum_{GTU} y$", False)
+        # TODO check names
+        visualize_frame_num_relation(frame_num_y, event_triggers_by_frame, "pix_row", r"Integrated rows vs. GTU ($\max_{x} y$)", False,
+                                     ylabel="y [pixel]", zlabel="max number of counts in the column",
+                                     save_fig_pathname=prepare_pathname(save_fig_pathname_format, "y_gtu__max_integrated_over_x.png"),
+                                     watermark=watermark_text)
+        visualize_frame_num_relation(frame_num_x, event_triggers_by_frame, "pix_col", r"Integrated columns vs. GTU ($\max_{y} x$)", False,
+                                     ylabel="x [pixel]", zlabel="max number of counts in the row",
+                                     save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_gtu__max_integrated_over_y.png"),
+                                     watermark=watermark_text)
         # visualize_frame(np.maximum.reduce(triggered_pixel_thr_l1_frames), exp_tree, all_event_triggers, "maximum thr_l1", False)
         # visualize_frame(np.maximum.reduce(triggered_pixel_persist_l1_frames), exp_tree, all_event_triggers, "maximum persist_l1", False)
 
@@ -119,8 +137,11 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     max_values_arr = np.maximum.reduce(event_frames)
     sum_values_arr = np.add.reduce(event_frames)
 
-    if do_visualization:
-        visualize_frame(max_values_arr, exp_tree, all_event_triggers, "max_values_arr", False)
+    if do_visualization or do_save_fig:
+        visualize_frame(max_values_arr, exp_tree, all_event_triggers,
+                        "Integrated frames within the window of {} GTU".format(len(frames)), False,
+                         save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y__max_integrated_over_gtu.png"),
+                         watermark=watermark_text)
         # visualize_frame(sum_values_arr, exp_tree, all_event_triggers, "sum_values_arr", False)
 
     #################################
@@ -131,18 +152,27 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     #   Parameters:
     #   triggered_pixels_group_max_gap  - row and column-vise distance (distance diagonally is sqrt(N^2 + N^2))
 
+    integrated_triggered_pixel_sum_l1 = np.add.reduce(triggered_pixel_sum_l1_frames)
 
     groups_of_trigger_groups = select_trigger_groups(triggered_pixels_coords, proc_params.triggered_pixels_group_max_gap)
+    trigger_group_arrs = []
+
     for triggers_group in groups_of_trigger_groups:
         trigg_im = np.zeros_like(max_values_arr)
         for trigg_point in triggers_group:
-            trigg_im[trigg_point] = max_values_arr[trigg_point]
+            trigg_im[trigg_point] = integrated_triggered_pixel_sum_l1[trigg_point]
+        trigger_group_arrs.append(trigg_im)
 
-        if do_visualization:
-            fig, ax = plt.subplots(1)
-            ax.imshow(trigg_im)
-            ax.set_title("Trigger group: {}".format(str(triggers_group)))
-            # gray_hough_line(trigg_im, 1)
+    if do_visualization or do_save_fig:
+        visualize_multiple_frames(trigger_group_arrs, exp_tree, None,
+                                  ["Triggered pixels group of {} integrated over {} GTU".format(len(triggers_group),len(frames)) for triggers_group in groups_of_trigger_groups],
+                                  False, zlabels="Value of L1 trigger's sum 3x3 integrated over the {} GTU window".format(len(frames)),
+                                  save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y_groups_sum3x3_integrated.png"),
+                                  watermark=watermark_text)
+        # fig, ax = plt.subplots(1)
+        # ax.imshow(trigg_im)
+        # ax.set_title()
+        # gray_hough_line(trigg_im, 1)
 
     ######
 
@@ -156,7 +186,6 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     #   triggered_pixels_ht_phi_num_steps
     #   triggered_pixels_ht_rho_step
 
-    integrated_triggered_pixel_sum_l1 = np.add.reduce(triggered_pixel_sum_l1_frames)
 
     trigg_acc_matrix, trigg_max_distance, trigg_rho_range_opts, trigg_phi_range = \
         gray_hough_line(integrated_triggered_pixel_sum_l1, proc_params.triggered_pixels_ht_line_thickness,
@@ -177,19 +206,25 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
                          integrated_triggered_pixel_sum_l1.shape[1], integrated_triggered_pixel_sum_l1.shape[0])
     #####
 
-    if do_visualization:
+    if do_visualization or do_save_fig:
 
         trigg_max_line = hough_space_index_to_val_single(trigg_acc_matrix_max_pos, trigg_phi_range, trigg_rho_range_opts)
         # max_lines = hough_space_max2val(max_lines_pos, phi_range, rho_range_opts)
         # print("max_lines", max_lines)
         #
         # value_points_groups = split_values_to_groups(max_lines_pos, x_y_acc_matrix)
-        value_points_groups = split_values_to_groups([trigg_acc_matrix_max_pos], trigg_acc_matrix)
+        value_points_groups = split_values_to_groups([trigg_acc_matrix_max_pos], trigg_acc_matrix) #split_all_filed_values_to_groups(trigg_acc_matrix) #
         value_lines_groups = {}
         for k,l in value_points_groups.items():
             value_lines_groups[k] = [hough_space_index_to_val_single(v, trigg_phi_range, trigg_rho_range_opts) for v in l]
 
-        visualize_hough_lines(integrated_triggered_pixel_sum_l1, [trigg_max_line], "Lines selected from integrated_triggered_pixel_sum_l1", value_lines_groups)
+        # TODO multiple lines !!! important
+
+        visualize_hough_lines(integrated_triggered_pixel_sum_l1, [trigg_max_line],
+                              "Lines selected from integrated image of triggerd pixels within the window", value_lines_groups, exp_tree,
+                              zlabel="Max value of L1 trigger's sum 3x3 within the window",
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y_triggered_pixels_sum3x3_integrated.png"),
+                              watermark=watermark_text)
 
     #####
 
@@ -293,10 +328,15 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     trigger_event_record.hough_transform_x_y__cluster_dimensions = [find_minimal_dimensions(cluster) for _, cluster in perc_max_peaks_arr_clusters.items()]
     trigger_event_record.hough_transform_x_y__cluster_counts_sums = [np.sum(cluster*perc_max_peaks_arr) for _, cluster in perc_max_peaks_arr_clusters.items()]
 
-    if do_visualization:
-        fig_max_peaks, ax_max_peaks = plt.subplots(1)
-        ax_max_peaks.imshow(perc_max_peaks_arr)
-        ax_max_peaks.set_title("{}% of maximum peak".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100))
+    if do_visualization or do_save_fig:
+        # fig_max_peaks, ax_max_peaks = plt.subplots(1)
+        # ax_max_peaks.imshow(perc_max_peaks_arr)
+        # ax_max_peaks.set_title("{}% of maximum peak".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100))
+
+        visualize_hough_space(perc_max_peaks_arr, x_y_phi_range, x_y_rho_range_opts,
+                              "{}% of maximum peak in Hough space of integrated XY".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100),
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y_hough_transform__peaks_threshold_{}.png".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100)),
+                              watermark=watermark_text)
 
         perc_max_lines = hough_space_index_to_val(perc_max_peaks_pos, x_y_phi_range, x_y_rho_range_opts)
         # max_lines = hough_space_max2val(max_lines_pos, phi_range, rho_range_opts)
@@ -309,8 +349,10 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
             value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
 
         visualize_hough_lines(max_values_arr_trigg, perc_max_lines,
-                              "Lines selected from max_values_arr ({}% of maximum peak)".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100),
-                              value_lines_groups)
+                              "Lines selected from integrated XY frames ({}% of maximum peak)".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100),
+                              value_lines_groups, exp_tree, all_event_triggers,
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y_hough_transform__lines_peak_threshold_{}.png".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100)),
+                              watermark=watermark_text)
 
     ##
 
@@ -319,17 +361,22 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
     #   x_y_ht_global_peak_threshold_frac_of_max
 
     perc_global_peaks_arr = filter_func(x_y_acc_matrix, acc_matrix_max * proc_params.x_y_ht_global_peak_threshold_frac_of_max)
-    perc_global_peaks_pos = get_field_positions(perc_max_peaks_arr, lambda v: v > 0) # np.where ?
+    perc_global_peaks_pos = get_field_positions(perc_global_peaks_arr, lambda v: v > 0) # np.where ?
 
     trigger_event_record.hough_transform_x_y__thr_peak_rho = avg_rho = np.sum([hough_space_rho_index_to_val(p[0], x_y_rho_range_opts) for p in perc_global_peaks_pos]) / len(perc_global_peaks_pos)
     trigger_event_record.hough_transform_x_y__thr_peak_phi = avg_phi = np.sum([x_y_phi_range[p[1]] for p in perc_global_peaks_pos]) / len(perc_global_peaks_pos)
 
     trigger_event_record.hough_transform_x_y__thr_peak_line_coords = calc_line_coords(avg_phi, avg_rho, max_values_arr.shape[1], max_values_arr.shape[0])
 
-    if do_visualization:
-        fig_global_peaks, ax_global_peaks = plt.subplots(1)
-        ax_global_peaks.imshow(perc_global_peaks_arr)
-        ax_global_peaks.set_title("{}% of maximum peak".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100))
+    if do_visualization or do_save_fig:
+        # fig_global_peaks, ax_global_peaks = plt.subplots(1)
+        # ax_global_peaks.imshow(perc_global_peaks_arr)
+        # ax_global_peaks.set_title("{}% of maximum peak".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100))
+
+        visualize_hough_space(perc_global_peaks_arr, x_y_phi_range, x_y_rho_range_opts,
+                              "{}% of maximum peak in Hough space of integrated XY".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max *100),
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y_hough_transform__peaks_threshold_{}.png".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100)),
+                              watermark=watermark_text)
 
         perc_global_lines = hough_space_index_to_val(perc_global_peaks_pos, x_y_phi_range, x_y_rho_range_opts)
         # global_lines = hough_space_global2val(global_lines_pos, phi_range, rho_range_opts)
@@ -342,8 +389,10 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
             value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
 
         visualize_hough_lines(max_values_arr_trigg, perc_global_lines,
-                              "Lines selected from max_values_arr ({}% of maximum peak)".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100),
-                              value_lines_groups)
+                              "Lines selected from integrated XY frames ({}% of maximum peak)".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100),
+                              value_lines_groups, exp_tree, all_event_triggers,
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y_hough_transform__lines_peak_threshold_{}.png".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100)),
+                              watermark=watermark_text)
 
 
     # rho_acc_matrix visulaization would go here
@@ -474,26 +523,6 @@ def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)
     #     ax4.plot((p[:,1]), (p[:,0]), '-g')
 
     return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
-
-
-def visualize_hough_space(acc_matrix, phi_range, rho_range_opts):
-
-    #  ({} = {}*{} - ({} = -{} + {}) + {}/2)
-    #        rho_step,rho_index, rho_correction_lower, size, max_distance, size,
-
-
-    # fig2, (ax1, ax1b, ax2) = plt.subplots(3)
-    fig2, ax1 = plt.subplots(1)
-
-    cax1 = ax1.imshow(acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), rho_range_opts[0], rho_range_opts[1]], aspect='auto')
-    # ax1b.imshow(rho_acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
-    # ax2.imshow(nc_acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
-
-    # fig3, ax3 = plt.subplots(1)
-    # cax3 = ax3.imshow(acc_matrix, aspect='auto')
-    # fig3.colorbar(cax3)
-
-    return fig2, ax1, cax1
 
 
 def hough_space_rho_index_to_val(index, rho_range_opts):
