@@ -35,16 +35,16 @@ def main(argv):
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
-    parser.add_argument("--save-plots-base-dir", default=None, help="If this option is set, matplotlib plots are saved to this directory in format defined by --plots-pathname-format option.")
-    parser.add_argument('--plot-name-format',
+    parser.add_argument("--save-figures-base-dir", default=None, help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
+    parser.add_argument('--figure-name-format',
                         default="{program_version}"
                                 "/{triggered_pixels_group_max_gap}_{triggered_pixels_group_max_gap}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
                                 "_{x_y_ht_line_thickness}_{x_y_ht_phi_num_steps}_{x_y_ht_rho_step}_{x_y_ht_peak_threshold_frac_of_max}_{x_y_ht_peak_gap}"
                                 "_{x_y_ht_global_peak_threshold_frac_of_max}"
                                 "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}"
                                 "/{gtu_global}_{packet_id}_{gtu_in_packet}/{name}.png",
-                        help="Format of a saved matplotib plot pathname relative to base directory.")
-    parser.add_argument("--visualize", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib plots are shown.")
+                        help="Format of a saved matplotib figure pathname relative to base directory.")
+    parser.add_argument("--visualize", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
     parser.add_argument("--no-overwrite-weak-check", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite-strong-check", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
     parser.add_argument("--update", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked AFTER event is processed."
@@ -76,14 +76,12 @@ def main(argv):
     else:
         output_storage_provider = EventStorageProvider()
 
-    output_storage_provider.initialize()
-
     read_and_process_events(ack_l1_reader,
                             args.first_gtu, args.last_gtu, args.gtu_before_trigger, args.gtu_after_trigger,
                             args.packet_size, filter_options, output_storage_provider,
                             args,
                             args.no_overwrite_weak_check, args.no_overwrite_strong_check, args.update,
-                            args.save_plots_base_dir, args.plot_name_format)
+                            args.save_figures_base_dir, args.figure_name_format)
 
     output_storage_provider.finalize()
 
@@ -92,7 +90,7 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                             filter_options, output_storage_provider,
                             context,
                             no_overwrite_weak_check=True, no_overwrite_strong_check=False, update=True,
-                            plot_img_base_dir=None, plot_img_name_format=None,
+                            figure_img_base_dir=None, figure_img_name_format=None,
                             log_file=sys.stdout):
 
     before_trg_frames_circ_buffer = collections.deque(maxlen=gtu_before_trigger+1) # +1 -> the last gtu in the buffer is triggered
@@ -175,27 +173,30 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                             event_start_msg,
                             event_files_msg
                         )
+                        save_fig_pathname_format = None
 
-                        proc_params_dict = processing_config.proc_params.get_dict()
-                        # "{program_version}"
-                        # "/{triggered_pixels_group_max_gap}_{triggered_pixels_group_max_gap}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
-                        # "_{x_y_ht_line_thickness}_{x_y_ht_phi_num_steps}_{x_y_ht_rho_step}_{x_y_ht_peak_threshold_frac_of_max}_{x_y_ht_peak_gap}"
-                        # "_{x_y_ht_global_peak_threshold_frac_of_max}"
-                        # "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/{gtu_global}_{packet_id}_{gtu_in_packet}/{name}.png"
+                        if figure_img_base_dir and figure_img_name_format:
+                            proc_params_dict = processing_config.proc_params.get_dict_of_str()
+                            # "{program_version}"
+                            # "/{triggered_pixels_group_max_gap}_{triggered_pixels_group_max_gap}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
+                            # "_{x_y_ht_line_thickness}_{x_y_ht_phi_num_steps}_{x_y_ht_rho_step}_{x_y_ht_peak_threshold_frac_of_max}_{x_y_ht_peak_gap}"
+                            # "_{x_y_ht_global_peak_threshold_frac_of_max}"
+                            # "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/{gtu_global}_{packet_id}_{gtu_in_packet}/{name}.png"
 
-                        save_fig_pathname_format = os.path.join(plot_img_base_dir, plot_img_name_format.format(
-                            program_version="{program_version}",
-                            acquisition_file_basename=acquisition_file_basename,
-                            kenji_l1trigger_file_basename=kenji_l1trigger_file_basename,
-                            gtu_global=event_start_gtu,
-                            packet_id=packet_id,
-                            gtu_in_packet=gtu_in_packet,
-                            packet_size=packet_size,
-                            num_gtu=len(frame_buffer),
-                            last_gtu=gtu_pdm_data.gtu,
-                            last_gtu_in_packet=gtu_in_packet,
-                            **proc_params_dict
-                        ))
+                            save_fig_pathname_format = os.path.join(figure_img_base_dir, figure_img_name_format.format(
+                                program_version="{program_version}",
+                                name='{name}',
+                                acquisition_file_basename=acquisition_file_basename,
+                                kenji_l1trigger_file_basename=kenji_l1trigger_file_basename,
+                                gtu_global=event_start_gtu,
+                                packet_id=packet_id,
+                                gtu_in_packet=gtu_in_packet,
+                                packet_size=packet_size,
+                                num_gtu=len(frame_buffer),
+                                last_gtu=gtu_pdm_data.gtu,
+                                last_gtu_in_packet=gtu_in_packet,
+                                **proc_params_dict
+                            ))
 
                         event_processing.process_event(trigger_event_record=ev,
                                       proc_params=processing_config.proc_params,
@@ -208,7 +209,7 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
 
                     ########################################################################################
 
-                        if no_overwrite_strong_check and not output_storage_provider.check_event_exists_strong(ev):
+                        if not no_overwrite_strong_check or not output_storage_provider.check_event_exists_strong(ev):
                             save_result = output_storage_provider.save_event(ev, save_config_info_result, update)
                             if not save_result:
                                 log_file.write(" ; FAILED")
@@ -222,7 +223,7 @@ def read_and_process_events(ack_l1_reader, first_gtu, last_gtu, gtu_before_trigg
                     else:
                         log_file.write(" ; EVENT ALREADY EXISTS (WEAK CHECK)")
 
-                    log_file.write(" ; DONE")
+                    log_file.write(" ; EVENT FINISHED\n")
                     log_file.flush()
 
                 process_event_down_counter = np.inf

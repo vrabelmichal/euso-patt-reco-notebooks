@@ -249,14 +249,17 @@ class TriggerEventAnalysisRecord(object):
     def __str__(self):
         return self.to_str()
 
-    def to_str(self, separator=None, columns=None):
+    def to_str(self, separator=None, columns=None, print_column_name=False, column_name_separator=" = "):
         global trigger_event_string_column_order
         global trigger_event_str_prop_separator
         if separator is None:
             separator = trigger_event_str_prop_separator
         if columns is None:
             columns = trigger_event_string_column_order
-        return separator.join([str(getattr(self, n)) for n in columns])
+        if not print_column_name:
+            return separator.join([str(getattr(self, n)) for n in columns])
+        else:
+            return separator.join([str(n)+column_name_separator+str(getattr(self, n)) for n in columns])
 
     def __getattr__(self, item):
         d = self.__class__.__dict__['extra_attr_method_mapping']
