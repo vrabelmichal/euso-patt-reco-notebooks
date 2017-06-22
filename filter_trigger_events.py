@@ -20,6 +20,7 @@ import processing_config
 from tsv_event_storage import *
 from sqlite_event_storage import *
 from postgresql_event_storage import *
+import web_config
 
 
 def main(argv):
@@ -38,12 +39,13 @@ def main(argv):
     parser.add_argument("--save-figures-base-dir", default=None, help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
                         default="{program_version}"
-                                "/{triggered_pixels_group_max_gap}_{triggered_pixels_group_max_gap}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
+                                "/{triggered_pixels_group_max_gap}_{triggered_pixels_ht_line_thickness}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
                                 "_{x_y_ht_line_thickness}_{x_y_ht_phi_num_steps}_{x_y_ht_rho_step}_{x_y_ht_peak_threshold_frac_of_max}_{x_y_ht_peak_gap}"
                                 "_{x_y_ht_global_peak_threshold_frac_of_max}"
                                 "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}"
                                 "/{gtu_global}_{packet_id}_{gtu_in_packet}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
+    parser.add_argument("--generate-web-figures", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
     parser.add_argument("--visualize", type=str2bool_for_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
     parser.add_argument("--no-overwrite-weak-check", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite-strong-check", type=str2bool_for_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
@@ -75,6 +77,10 @@ def main(argv):
         output_storage_provider = PostgreSqlEventStorageProvider(args.out)
     else:
         output_storage_provider = EventStorageProvider()
+
+    if args.generate_web_figures:
+        args.save_figures_base_dir = web_config.base_image_storage_directory
+        args.figure_name_format = web_config.figure_name_format
 
     read_and_process_events(ack_l1_reader,
                             args.first_gtu, args.last_gtu, args.gtu_before_trigger, args.gtu_after_trigger,

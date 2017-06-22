@@ -167,7 +167,7 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
         visualize_multiple_frames(trigger_group_arrs, exp_tree, None,
                                   ["Integrated triggered pixels group of {}".format(len(triggers_group)) for triggers_group in groups_of_trigger_groups],
                                   False, zlabels="Integreated value of L1 trigger's sum 3x3",
-                                  save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y_groups_sum3x3_integrated"),
+                                  save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y__groups"), # triggered_pixels_x_y__sum3x3_integrated__groups
                                   watermark=watermark_text)
         # fig, ax = plt.subplots(1)
         # ax.imshow(trigg_im)
@@ -223,7 +223,7 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
         visualize_hough_lines(integrated_triggered_pixel_sum_l1, [trigg_max_line],
                               "Lines selected from integrated image of triggerd pixels within the window", value_lines_groups, exp_tree,
                               zlabel="Max value of L1 trigger's sum 3x3 within the window",
-                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y_triggered_pixels_sum3x3_integrated"),
+                              save_fig_pathname=prepare_pathname(save_fig_pathname_format, "triggered_pixels_x_y_hough_transform__lines"), # triggered_pixels_x_y__sum3x3_integrated__hough_transform__lines
                               watermark=watermark_text)
 
     #####
@@ -346,7 +346,8 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
         value_points_groups = split_all_filed_values_to_groups(perc_max_peaks_arr)
         value_lines_groups = {}
         for k,l in value_points_groups.items():
-            value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
+            if k != 0: # TODO check if this works
+                value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l]
 
         visualize_hough_lines(max_values_arr_trigg, perc_max_lines,
                               "Lines selected from integrated XY frames ({}% of maximum peak)".format(proc_params.x_y_ht_peak_threshold_frac_of_max*100),
@@ -386,7 +387,8 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
         value_points_groups = split_all_filed_values_to_groups(perc_global_peaks_arr)
         value_lines_groups = {}
         for k,l in value_points_groups.items():
-            value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l] # unnecessary to calculate for zeros
+            if k != 0:
+                value_lines_groups[k] = [hough_space_index_to_val_single(v, x_y_phi_range, x_y_rho_range_opts) for v in l] # unnecessary to calculate for zeros
 
         visualize_hough_lines(max_values_arr_trigg, perc_global_lines,
                               "Lines selected from integrated XY frames ({}% of maximum peak)".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100),
