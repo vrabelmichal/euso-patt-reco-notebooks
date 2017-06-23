@@ -22,6 +22,9 @@ proc_params.x_y_ht_peak_gap = 3
 # proc_params.x_y_ht_global_peak_threshold_frac_of_max = .95
 proc_params.x_y_ht_global_peak_threshold_frac_of_max = .98
 
+proc_params.gtu_before_trigger = 4
+proc_params.gtu_after_trigger = 4
+
 trigger_event_string_column_order = \
     ["source_file_acquisition", "source_file_trigger",
     "global_gtu", "packet_id", "gtu_in_packet", "num_gtu",

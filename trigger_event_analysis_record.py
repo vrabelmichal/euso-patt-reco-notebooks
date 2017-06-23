@@ -34,7 +34,7 @@ class TriggerEventAnalysisRecord(object):
 
     ###########################################
 
-    program_version = 0
+    program_version = 0.0
 
     ###########################################
 
