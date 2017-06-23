@@ -21,14 +21,17 @@ import processing_config
 from tsv_event_storage import *
 from sqlite_event_storage import *
 from postgresql_event_storage import *
-import web_config
+
+import configparser
 
 
 def main(argv):
+    # TODO replace default=None
     parser = argparse.ArgumentParser(description='Find patterns inside triggered pixes')
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', default=None, help="ACQUISITION root file in \"Lech\" format")
     parser.add_argument('-k', '--kenji-l1trigger-file', default=None, help="L1 trigger root file in \"Kenji\" format")
+    parser.add_argument('--config', default=os.path.realpath(os.path.join(os.path.dirname(__file__),'config.ini')), help="Configuration file")
     parser.add_argument('-o', '--out', default=None, help="Output specification")
     parser.add_argument('-f', '--output-type', default="stdout", help="Output type - tsv, stdout, sqlite, prostgresql")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
@@ -66,7 +69,8 @@ def main(argv):
     parser.add_argument('--filter-sum-l1-pmt-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one PMT sumL1PMT more than this value.")
 
     args = parser.parse_args(argv)
-
+    config = configparser.ConfigParser()
+    config.read(args.config)
 
     filter_options = EventFilterOptions()
     filter_options.n_persist = args.filter_n_persist_gt
@@ -79,13 +83,23 @@ def main(argv):
     elif args.output_type == "sqlite":
         output_storage_provider = Sqlite3EventStorageProvider(args.out)
     elif args.output_type == "postgresql":
-        output_storage_provider = PostgreSqlEventStorageProvider(args.out)
+        conn_str = args.out
+        if not conn_str:
+            if 'PostgreSqlEventStorageProvider' in config:
+                conn_str = 'dbname={dbname} host={host} user={readwrite_user} password={readwrite_password}'.format(**config['PostgreSqlEventStorageProvider'])
+            else:
+                raise Exception("Missing PostgreSqlEventStorageProvider configuration")
+        output_storage_provider = PostgreSqlEventStorageProvider(conn_str)
     else:
         output_storage_provider = EventStorageProvider()
 
     if args.generate_web_figures:
-        args.save_figures_base_dir = web_config.base_image_storage_directory
-        args.figure_name_format = web_config.figure_name_format
+        if "DatabaseBrowserWeb" not in config.sections():
+            raise Exception("Missing DatabaseBrowserWeb configuration section")
+        args.save_figures_base_dir = \
+            os.path.realpath(config['DatabaseBrowserWeb']['base_figures_storage_directory']\
+                .format(basedir=os.path.dirname(os.path.abspath(__file__))))
+        args.figure_name_format = config['DatabaseBrowserWeb']['figure_name_format']
 
     processing_runs = []
 
@@ -98,8 +112,14 @@ def main(argv):
             raise Exception('run_again is expected to contain conditions')
 
         run_again_storage_provider = output_storage_provider
-        if args.output_type != args.run_again_input_type or args.run_again_spec != args.out:
-            run_again_storage_provider = PostgreSqlEventStorageProvider(args.run_again_spec, True)
+        if args.output_type != args.run_again_input_type:
+            conn_str = args.run_again_spec
+            if conn_str is None:
+                if 'PostgreSqlEventStorageProvider' in config:
+                    conn_str = 'dbname={dbname} host={host} user={readonly_user} password={readonly_password}'.format(**config['PostgreSqlEventStorageProvider'])
+                else:
+                    raise Exception("Missing PostgreSqlEventStorageProvider configuration")
+            run_again_storage_provider = PostgreSqlEventStorageProvider(conn_str, True)
 
         processed_files_configs__gtus = collections.OrderedDict()
         # event_ids__processing_configs = collections.OrderedDict()
@@ -107,7 +127,7 @@ def main(argv):
 
         run_again_events_query = 'SELECT {data_table_pk}, {config_info_table_pk}, {data_table_source_file_acquisition_column}, ' \
                                  '{data_table_source_file_trigger_column}, {data_table_global_gtu_column} ' \
-                                 'FROM {data_table} WHERE '+args.run_again+' OFFSET 0 LIMIT {:d}'.format(args.run_again_limit) # could be unsafe
+                                 'FROM {data_table} '+args.run_again+' OFFSET 0 LIMIT {:d}'.format(args.run_again_limit) # could be unsafe
         trigger_analysis_records, all_cols = run_again_storage_provider.fetch_trigger_analysis_records(run_again_events_query)
 
         for id, config_info_id, timestamp, trigger_analysis_record in trigger_analysis_records:
