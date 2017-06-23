@@ -142,6 +142,10 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
                         "Integrated frames within the window of {} GTU".format(len(frames)), False,
                          save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y__max_integrated_over_gtu"),
                          watermark=watermark_text)
+        visualize_frame(max_values_arr, exp_tree, None,
+                        "Integrated frames within the window of {} GTU".format(len(frames)), False,
+                         save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y__max_integrated_over_gtu__no_triggers"),
+                         watermark=watermark_text)
         # visualize_frame(sum_values_arr, exp_tree, all_event_triggers, "sum_values_arr", False)
 
     #################################
@@ -396,7 +400,6 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
                               save_fig_pathname=prepare_pathname(save_fig_pathname_format, "x_y_hough_transform__lines_peak_threshold_{}".format(proc_params.x_y_ht_global_peak_threshold_frac_of_max*100)),
                               watermark=watermark_text)
 
-
     # rho_acc_matrix visulaization would go here
 
 
@@ -408,6 +411,8 @@ def process_event(trigger_event_record=TriggerEventAnalysisRecord(), proc_params
 
     if do_visualization:
         plt.show()
+
+    if do_visualization or do_save_fig:
         plt.close('all')
 
     return trigger_event_record
