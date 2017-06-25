@@ -3,26 +3,31 @@ import os
 import argparse
 import sys
 import re
-import ROOT
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpl_patches
-from eusotrees.exptree import ExpTree
 import collections
-from enum import Enum
+import configparser
 
-import time
+# Workarunfd to use Matplotlib without DISPLAY
+visualize_option_argv_key = '--visualize'
+use_agg = False
+if visualize_option_argv_key not in sys.argv:
+    use_agg = True
+else:
+    visualize_option_value = sys.argv.index(visualize_option_argv_key)+1
+    if len(sys.argv) > visualize_option_value and sys.argv[visualize_option_value][0] in "0nNfF":
+        use_agg = True
+if use_agg:
+    import matplotlib as mpl
+    mpl.use('Agg')
 
 import event_processing
-from trigger_event_analysis_record import *
-from event_visualization import *
-from event_reading import *
-from base_classes import *
-import processing_config
-from tsv_event_storage import *
-from sqlite_event_storage import *
-from postgresql_event_storage import *
-
-import configparser
+import base_classes
+#import processing_config
+from postgresql_event_storage import PostgreSqlEventStorageProvider
+from sqlite_event_storage import Sqlite3EventStorageProvider
+from utility_funtions import str2bool_argparse
+from event_reading import AckL1EventReader, EventFilterOptions
+from tsv_event_storage import TsvEventStorageProvider
+from trigger_event_analysis_record import TriggerEventAnalysisRecord
 
 
 def main(argv):
@@ -55,7 +60,7 @@ def main(argv):
                                 "/{gtu_global:d}_{packet_id:d}_{gtu_in_packet:d}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
-    parser.add_argument("--visualize", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
+    parser.add_argument(visualize_option_argv_key, type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
     parser.add_argument("--no-overwrite--weak-check", type=str2bool_argparse, default=True, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite--strong-check", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
     parser.add_argument("--update", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked AFTER event is processed."
@@ -78,6 +83,8 @@ def main(argv):
     filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
+    proc_params = base_classes.EventProcessingParams(config['EventProcessingParams'] if 'EventProcessingParams' in config else None)
+
     if args.output_type == "tsv" or args.output_type == "csv":
         output_storage_provider = TsvEventStorageProvider(args.out)
     elif args.output_type == "sqlite":
@@ -91,7 +98,7 @@ def main(argv):
                 raise Exception("Missing PostgreSqlEventStorageProvider configuration")
         output_storage_provider = PostgreSqlEventStorageProvider(conn_str)
     else:
-        output_storage_provider = EventStorageProvider()
+        output_storage_provider = base_classes.EventStorageProvider()
 
     if args.generate_web_figures:
         if "DatabaseBrowserWeb" not in config.sections():
@@ -159,29 +166,27 @@ def main(argv):
             if config_info_id not in processing_config_info_records:
                 raise Exception('Unexpected state config info not fetched from processing config_infor table')
             if source_file_acquisition == args.acquisition_file and args.kenji_l1trigger_file == source_file_trigger \
-                and processing_config_info_records[config_info_id] == processing_config.proc_params:
-                processing_runs.append((source_file_acquisition, source_file_trigger, processing_config.proc_params, sorted(gtus), False)) # todo event_ids is wrong
+                and processing_config_info_records[config_info_id] == proc_params:
+                processing_runs.append((source_file_acquisition, source_file_trigger, proc_params, sorted(gtus), False)) # todo event_ids is wrong
                 acq_trg_params_added_to_processing_runs = True
             else:
                 processing_runs.append((source_file_acquisition, source_file_trigger, processing_config_info_records[config_info_id], sorted(gtus), True)) # discarding config_info_id creates overhead, but gtu_before_triggerer might be changed
 
     if not acq_trg_params_added_to_processing_runs and args.acquisition_file and args.kenji_l1trigger_file:
-        processing_runs.append((args.acquisition_file, args.kenji_l1trigger_file, processing_config.proc_params, None, False))
+        processing_runs.append((args.acquisition_file, args.kenji_l1trigger_file, proc_params, None, False))
 
-    for source_file_acquisition, source_file_trigger, proc_params, gtus, process_only_selected in processing_runs:
-
-
+    for source_file_acquisition, source_file_trigger, run_proc_params, gtus, process_only_selected in processing_runs:
         if args.gtu_before_trigger is not None:
-            proc_params.gtu_before_trigger = args.gtu_before_trigger
+            run_proc_params.gtu_before_trigger = args.gtu_before_trigger
         if args.gtu_after_trigger is not None:
-            proc_params.gtu_after_trigger = args.gtu_after_trigger
+            run_proc_params.gtu_after_trigger = args.gtu_after_trigger
 
         read_and_process_events(source_file_acquisition, source_file_trigger,
                                 args.first_gtu, args.last_gtu, args.packet_size, filter_options,
                                 output_storage_provider, args.visualize,
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
                                 args.save_figures_base_dir, args.figure_name_format, gtus, process_only_selected,
-                                proc_params)
+                                run_proc_params if run_proc_params is not None else proc_params)
 
     output_storage_provider.finalize()
 
@@ -197,9 +202,6 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
     if run_again_gtus is None and run_again_exclusively:
         raise Exception("run_again_gtus is None but run_again_exclusively is True")
-
-    if proc_params is None:
-        proc_params = processing_config.proc_params
 
     figure_img_name_format_nested = re.sub(r'\{(program_version|name)(:[^}]+)?\}', r'{\g<0>}', figure_img_name_format)
 
