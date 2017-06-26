@@ -49,6 +49,7 @@ def main(argv):
     parser.add_argument('--run-again-spec', default=None, help="Specification defining events to be run again")
     parser.add_argument('--run-again-input-type', default="postgresql", help="Input type - postgresql")
     parser.add_argument('--run-again-limit', type=int, default=10000, help="Maximal number of events to be rerun based on --run-again specification")
+    parser.add_argument('--run-again-offset', type=int, default=0, help="Offset of rerun events selection based on --run-again specification")
 
     parser.add_argument("--save-figures-base-dir", default=None, help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
@@ -63,6 +64,7 @@ def main(argv):
     parser.add_argument(visualize_option_argv_key, type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
     parser.add_argument("--no-overwrite--weak-check", type=str2bool_argparse, default=True, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite--strong-check", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
+    parser.add_argument("--dry-run", type=str2bool_argparse, default=False, help="If this option is true, the results are not saved")
     parser.add_argument("--update", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked AFTER event is processed."
                                                                                     "If event is found event other parameters are updated.")
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
@@ -134,7 +136,7 @@ def main(argv):
 
         run_again_events_query = 'SELECT {data_table_pk}, {config_info_table_pk}, {data_table_source_file_acquisition_column}, ' \
                                  '{data_table_source_file_trigger_column}, {data_table_global_gtu_column} ' \
-                                 'FROM {data_table} '+args.run_again+' OFFSET 0 LIMIT {:d}'.format(args.run_again_limit) # could be unsafe
+                                 'FROM {data_table} '+args.run_again+' OFFSET {:d} LIMIT {:d}'.format(args.run_again_offset, args.run_again_limit) # could be unsafe
         trigger_analysis_records, all_cols = run_again_storage_provider.fetch_trigger_analysis_records(run_again_events_query)
 
         for id, config_info_id, timestamp, trigger_analysis_record in trigger_analysis_records:
@@ -197,7 +199,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             no_overwrite__weak_check=True, no_overwrite__strong_check=False, update=True,
                             figure_img_base_dir=None, figure_img_name_format=None,
                             run_again_gtus=None, run_again_exclusively=False,
-                            proc_params=None,
+                            proc_params=None, dry_run=False,
                             log_file=sys.stdout):
 
     if run_again_gtus is None and run_again_exclusively:
@@ -345,13 +347,16 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         ########################################################################################
 
                             if not no_overwrite__strong_check or not output_storage_provider.check_event_exists_strong(ev):
-                                save_result = output_storage_provider.save_event(ev, save_config_info_result, update)
-                                if not save_result:
-                                    log_file.write(" ; FAILED")
-                                elif save_result=='update':
-                                    log_file.write(" ; UPDATED")
+                                if not dry_run:
+                                    save_result = output_storage_provider.save_event(ev, save_config_info_result, update)
+                                    if not save_result:
+                                        log_file.write(" ; FAILED")
+                                    elif save_result=='update':
+                                        log_file.write(" ; UPDATED")
+                                    else:
+                                        log_file.write(" ; SAVED")
                                 else:
-                                    log_file.write(" ; SAVED")
+                                    log_file.write(" ; DRY RUN - NOT SAVED")
                             else:
                                 log_file.write(" ; EVENT ALREADY EXISTS (STRONG CHECK)")
 
