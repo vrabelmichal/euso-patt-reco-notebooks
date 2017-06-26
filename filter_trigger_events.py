@@ -65,6 +65,7 @@ def main(argv):
     parser.add_argument("--no-overwrite--weak-check", type=str2bool_argparse, default=True, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite--strong-check", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
     parser.add_argument("--dry-run", type=str2bool_argparse, default=False, help="If this option is true, the results are not saved")
+    parser.add_argument("--debug", type=str2bool_argparse, default=False, help="If this option is true, various debug information might be printed")
     parser.add_argument("--update", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same files and processing version is chceked AFTER event is processed."
                                                                                     "If event is found event other parameters are updated.")
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
@@ -139,6 +140,10 @@ def main(argv):
                                  'FROM {data_table} '+args.run_again+' OFFSET {:d} LIMIT {:d}'.format(args.run_again_offset, args.run_again_limit) # could be unsafe
         trigger_analysis_records, all_cols = run_again_storage_provider.fetch_trigger_analysis_records(run_again_events_query)
 
+        if args.debug:
+            print("run_again_events_query", run_again_events_query)
+            print("len(trigger_analysis_records)", len(trigger_analysis_records))
+
         for id, config_info_id, timestamp, trigger_analysis_record in trigger_analysis_records:
             key_tuple = (trigger_analysis_record.source_file_acquisition, trigger_analysis_record.source_file_trigger, config_info_id)
             if key_tuple not in processed_files_configs__gtus:
@@ -150,11 +155,14 @@ def main(argv):
             #event_ids__processing_configs[trigger_analysis_record.event_id] = config_info_id # todo translate_struct ?
             processing_config_ids.add(config_info_id)
 
-        processing_config_info_records, processing_config_info_columns  = run_again_storage_provider.fetch_config_info_records(
-            "SELECT * FROM {{config_info_table}} WHERE {{config_info_table_pk}} IN ({})".format(
-                ", ".join([str(cid) for cid in list(processing_config_ids)] )
+        processing_config_info_records = {}
+        processing_config_info_columns = []
+        if processing_config_ids:
+            processing_config_info_records, processing_config_info_columns  = run_again_storage_provider.fetch_config_info_records(
+                "SELECT * FROM {{config_info_table}} WHERE {{config_info_table_pk}} IN ({})".format(
+                    ", ".join([str(cid) for cid in list(processing_config_ids)] )
+                )
             )
-        )
 
         #translate_struct(event_ids__processing_configs, lambda config_info_id: processing_configs[config_info_id])
 
