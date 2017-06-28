@@ -3,7 +3,7 @@ import os
 import argparse
 import postgresql_event_storage
 import sqlite_event_storage
-import event_processing
+import event_processing_v1
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Sqlite3 to PostgreSql')
@@ -12,7 +12,7 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
-    postgresql_storage = postgresql_event_storage.PostgreSqlEventStorageProvider()
+    postgresql_storage = postgresql_event_storage.PostgreSqlEventStorageProviderV1()
     postgresql_storage.initialize(args.output)
 
     for input_file_path in args.input_files:
@@ -39,7 +39,7 @@ def main(argv):
                 print("Inserted config info: "+str(config_info_record))
 
         for trigger_analysis_record in trigger_analysis_records:
-            if postgresql_storage.check_event_exists_weak(trigger_analysis_record, event_processing.program_version):
+            if postgresql_storage.check_event_exists_weak(trigger_analysis_record, event_processing_v1.program_version):
                 postgresql_storage.save_event(trigger_analysis_record)
                 print("Trigger analysis record saved ({} ; {})".format(trigger_analysis_record.source_file_acquisition,
                                                                        trigger_analysis_record.source_file_trigger))

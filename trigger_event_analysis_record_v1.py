@@ -1,4 +1,5 @@
 import numpy as np
+import base_classes
 # import processing_config
 
 trigger_event_string_column_order = \
@@ -63,7 +64,7 @@ trigger_event_string_column_order = \
 trigger_event_str_prop_separator = "\n"
 
 
-class TriggerEventAnalysisRecord(object):
+class TriggerEventAnalysisRecordV1(base_classes.BaseEventAnalysisRecord):
 
     extra_attr_method_mapping = {}
 
@@ -295,36 +296,10 @@ class TriggerEventAnalysisRecord(object):
             #self.__class__.__dict__[''] =
             setattr(self.__class__, "extra_attr_method_mapping", d)
 
-    def __str__(self):
-        return self.to_str()
-
-    def to_str(self, separator=None, columns=None, print_column_name=False, column_name_separator=" = "):
-        global trigger_event_string_column_order
-        global trigger_event_str_prop_separator
-        if separator is None:
-            separator = trigger_event_str_prop_separator
-        if columns is None:
-            columns = trigger_event_string_column_order
-        if not print_column_name:
-            return separator.join([str(getattr(self, n)) for n in columns])
-        else:
-            return separator.join([str(n)+column_name_separator+str(getattr(self, n)) for n in columns])
-
-    def __getattr__(self, item):
-        d = self.__class__.__dict__['extra_attr_method_mapping']
-        if item not in d:
-            raise AttributeError("Attribute \"{}\" is not available".format(item))
-        return d[item](self)
-
-    @classmethod
-    def get_string_column_order(self):
-        global trigger_event_string_column_order
-        return trigger_event_string_column_order
-
 
 if __name__ == "__main__":
     # execute only if run as a script
-    r = TriggerEventAnalysisRecord()
+    r = TriggerEventAnalysisRecordV1()
     r.triggered_pixels_x_y_hough_transform__max_peak_phi = 34
 
     print(r.triggered_pixels_x_y_hough_transform__max_peak_line_rot)

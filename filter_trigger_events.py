@@ -19,15 +19,15 @@ if use_agg:
     import matplotlib as mpl
     mpl.use('Agg')
 
-import event_processing
+import event_processing_v1
 import base_classes
 #import processing_config
-from postgresql_event_storage import PostgreSqlEventStorageProvider
+from postgresql_event_storage import PostgreSqlEventStorageProviderV1
 from sqlite_event_storage import Sqlite3EventStorageProvider
 from utility_funtions import str2bool_argparse
 from event_reading import AckL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
-from trigger_event_analysis_record import TriggerEventAnalysisRecord
+from trigger_event_analysis_record_v1 import TriggerEventAnalysisRecordV1
 
 
 def main(argv):
@@ -76,6 +76,8 @@ def main(argv):
     parser.add_argument('--filter-sum-l1-ec-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one EC sumL1PDM more than this value.")
     parser.add_argument('--filter-sum-l1-pmt-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one PMT sumL1PMT more than this value.")
 
+    parser.add_argument('--algorithm', default='ver1', help="Version of the processing algorithm used")
+
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
     config.read(args.config)
@@ -86,20 +88,30 @@ def main(argv):
     filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
-    proc_params = base_classes.EventProcessingParams(config['EventProcessingParams'] if 'EventProcessingParams' in config else None)
+    event_processing = None
+    tsv_storage_provide_class = None
+    sqlite_storage_provide_class = None
+    postgresql_storage_provide_class = None
+
+    if args.algorithm == 'ver1':
+        event_processing = event_processing_v1.EventProcessingV1()
+        tsv_storage_provide_class = TsvEventStorageProvider
+        sqlite_storage_provide_class = Sqlite3EventStorageProvider
+        postgresql_storage_provide_class = PostgreSqlEventStorageProviderV1
+    else:
+        raise Exception('Unknown algrithm')
+
+    proc_params = event_processing.event_processing_params_class().from_global_config(config)
 
     if args.output_type == "tsv" or args.output_type == "csv":
-        output_storage_provider = TsvEventStorageProvider(args.out)
+        output_storage_provider = tsv_storage_provide_class(args.out)
     elif args.output_type == "sqlite":
-        output_storage_provider = Sqlite3EventStorageProvider(args.out)
+        output_storage_provider = sqlite_storage_provide_class(args.out)
     elif args.output_type == "postgresql":
-        conn_str = args.out
-        if not conn_str:
-            if 'PostgreSqlEventStorageProvider' in config:
-                conn_str = 'dbname={dbname} host={host} user={readwrite_user} password={readwrite_password}'.format(**config['PostgreSqlEventStorageProvider'])
-            else:
-                raise Exception("Missing PostgreSqlEventStorageProvider configuration")
-        output_storage_provider = PostgreSqlEventStorageProvider(conn_str)
+        if not args.out:
+            output_storage_provider = postgresql_storage_provide_class.from_global_config(config)
+        else:
+            output_storage_provider = postgresql_storage_provide_class(args.out)
     else:
         output_storage_provider = base_classes.EventStorageProvider()
 
@@ -123,13 +135,10 @@ def main(argv):
 
         run_again_storage_provider = output_storage_provider
         if args.output_type != args.run_again_input_type:
-            conn_str = args.run_again_spec
-            if conn_str is None:
-                if 'PostgreSqlEventStorageProvider' in config:
-                    conn_str = 'dbname={dbname} host={host} user={readonly_user} password={readonly_password}'.format(**config['PostgreSqlEventStorageProvider'])
-                else:
-                    raise Exception("Missing PostgreSqlEventStorageProvider configuration")
-            run_again_storage_provider = PostgreSqlEventStorageProvider(conn_str, True)
+            if not args.run_again_spec:
+                run_again_storage_provider = postgresql_storage_provide_class.from_global_config(config, True)
+            else:
+                run_again_storage_provider = postgresql_storage_provide_class(args.run_again_spec, True)
 
         processed_files_configs__gtus = collections.OrderedDict()
         # event_ids__processing_configs = collections.OrderedDict()
@@ -156,7 +165,7 @@ def main(argv):
             processing_config_ids.add(config_info_id)
 
         processing_config_info_records = {}
-        processing_config_info_columns = []
+        #processing_config_info_columns = []
         if processing_config_ids:
             processing_config_info_records, processing_config_info_columns  = run_again_storage_provider.fetch_config_info_records(
                 "SELECT * FROM {{config_info_table}} WHERE {{config_info_table_pk}} IN ({})".format(
@@ -193,7 +202,8 @@ def main(argv):
 
         read_and_process_events(source_file_acquisition, source_file_trigger,
                                 args.first_gtu, args.last_gtu, args.packet_size, filter_options,
-                                output_storage_provider, args.visualize,
+                                output_storage_provider, event_processing,
+                                args.visualize,
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
                                 args.save_figures_base_dir, args.figure_name_format, gtus, process_only_selected,
                                 run_proc_params if run_proc_params is not None else proc_params)
@@ -202,7 +212,7 @@ def main(argv):
 
 
 def read_and_process_events(source_file_acquisition, source_file_trigger, first_gtu, last_gtu, packet_size,
-                            filter_options, output_storage_provider,
+                            filter_options, output_storage_provider, event_processing,
                             do_visualization=True,
                             no_overwrite__weak_check=True, no_overwrite__strong_check=False, update=True,
                             figure_img_base_dir=None, figure_img_name_format=None,
@@ -271,7 +281,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                         ########################################################################################
 
-                        ev = TriggerEventAnalysisRecord()
+                        ev = output_storage_provider.event_processing_analysis_record_class()
                         ev.source_file_acquisition = source_file_acquisition
                         ev.source_file_trigger = source_file_trigger
                         ev.exp_tree = ack_l1_reader.exp_tree
@@ -344,10 +354,10 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                 ))
 
                             event_processing.process_event(trigger_event_record=ev,
-                                          proc_params=proc_params,
-                                          do_visualization=do_visualization,
-                                          save_fig_pathname_format=save_fig_pathname_format,
-                                          watermark_text=event_watermark)
+                                                              proc_params=proc_params,
+                                                              do_visualization=do_visualization,
+                                                              save_fig_pathname_format=save_fig_pathname_format,
+                                                              watermark_text=event_watermark)
 
                             log_file.write(" ; SAVING")
                             log_file.flush()
