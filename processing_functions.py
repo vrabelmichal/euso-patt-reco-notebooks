@@ -30,7 +30,8 @@ def parse_x_y_neighbour_selection_rules_str(conf_attr_str):
             return [NeighbourSelectionRules.from_str(s.strip()) for s in conf_attr_str.split(';')]
     return None
 
-def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1):
+
+def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1, fix_negative_r=False):
     max_distance = np.hypot(image.shape[0], image.shape[1])
     num_rho = int(np.ceil(max_distance*2/rho_step))
     rho_correction_lower = -line_thicknes + max_distance
@@ -77,73 +78,42 @@ def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)
 
                 for rho_index in range(rho_index_lower,rho_index_upper):
                     acc_matrix[rho_index, phi_index] += image[i,j] * phi_corr
-                    # if acc_matrix[rho_index, phi_index] > max_acc_matrix_val:
-                    #     max_acc_matrix_val = acc_matrix[rho_index, phi_index]
-                    #     print("max_acc_matrix_val=",max_acc_matrix_val,"rho=",rho,"phi=",phi)
-                    # rho += rho_step
-                    # rho and nc matrixes would go hrer
+
+    if not fix_negative_r:
+        return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
+    else:
+        zero_rho_index = int((0 + max_distance) // rho_step)
+        zero_phi_index = len(phi_range) // 2
+
+        acc_matrix_positive_r = acc_matrix[0:zero_rho_index+1]
+        acc_matrix_negative_r_right = np.flip(acc_matrix[zero_rho_index+1:,zero_phi_index+1:])
+        acc_matrix_negative_r_left = np.flip(acc_matrix[:zero_rho_index+1,:zero_phi_index+1])
+
+        # z[0:3,1:4] = r[:3,:3]
+
+        print(acc_matrix.shape, acc_matrix_positive_r.shape, acc_matrix_negative_r_right.shape, acc_matrix_negative_r_left.shape)
+
+        max_height = max([acc_matrix_positive_r.shape[0], acc_matrix_negative_r_right.shape[0], acc_matrix_negative_r_left.shape[0]])
+        if acc_matrix_positive_r.shape[0] < max_height:
+            new_acc_matrix_positive_r = np.zeros((max_height, acc_matrix_positive_r.shape[1]))
+            new_acc_matrix_positive_r[: -acc_matrix_positive_r.shape[0],:] = acc_matrix_positive_r
+            acc_matrix_positive_r = new_acc_matrix_positive_r
+        else:
+            new_acc_matrix_negative_r_right = np.zeros((max_height, acc_matrix_negative_r_right.shape[1]))
+            new_acc_matrix_negative_r_right[: -acc_matrix_negative_r_right.shape[0], :] = acc_matrix_negative_r_right
+            new_acc_matrix_negative_r_left = np.zeros((max_height, acc_matrix_negative_r_left.shape[1]))
+            new_acc_matrix_negative_r_left[: -acc_matrix_negative_r_left.shape[0], :] = acc_matrix_negative_r_left
+            acc_matrix_negative_r_right = new_acc_matrix_negative_r_right
+            acc_matrix_negative_r_left = new_acc_matrix_negative_r_left
 
 
-    # acc_matrix_max_pos = np.unravel_index(acc_matrix.argmax(), acc_matrix.shape)
-    # acc_matrix_max = acc_matrix[acc_matrix_max_pos]
-    #
-    # acc_matrix_max_rho_base = rho_step*acc_matrix_max_pos[0]
-    # # acc_matrix_max_rho_range = (acc_matrix_max_rho_base - rho_correction_lower, acc_matrix_max_rho_base - rho_correction_upper)
-    # acc_matrix_max_rho_range = [acc_matrix_max_rho_base - max_distance]
-    # acc_matrix_max_phi = phi_range[acc_matrix_max_pos[1]]
-    #
-    #
-    # print("acc_matrix: max={}, max_row={} ({}) , max_col={} ({})"
-    #       .format(acc_matrix_max,
-    #               acc_matrix_max_pos[0], acc_matrix_max_rho_range[0], #acc_matrix_max_rho_range[1],
-    #               acc_matrix_max_pos[1], np.rad2deg(acc_matrix_max_phi) ))
-    #
-    #  # ({} = {}*{} - ({} = -{} + {}) + {}/2)
-    #  #       rho_step,rho_index, rho_correction_lower, size, max_distance, size,
-    #
-    #
-    # # fig2, (ax1, ax1b, ax2) = plt.subplots(3)
-    # fig2, ax1 = plt.subplots(1)
-    #
-    # ax1.imshow(acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
-    # # ax1b.imshow(rho_acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
-    # # ax2.imshow(nc_acc_matrix, extent=[np.rad2deg(phi_range[0]),np.rad2deg(phi_range[-1]), -max_distance, max_distance], aspect='auto')
-    #
-    # # fig3, ax3 = plt.subplots(1)
-    # # cax3 = ax3.imshow(acc_matrix, aspect='auto')
-    # # fig3.colorbar(cax3)
-    #
-    # fig4, ax4 = plt.subplots(1)
-    # cax4 = ax4.imshow(image, aspect='auto', extent=[0, image.shape[1], image.shape[0], 0])
-    # ax4.set_title("Hough input img (phi normalization)")
-    # # y0 = (acc_matrix_max_rho - 0 * np.cos(acc_matrix_max_phi)) / np.sin(angle)
-    # # y1 = (acc_matrix_max_rho - image.shape[1] * np.cos(angle)) / np.sin(angle)
-    #
-    # for acc_matrix_max_rho in acc_matrix_max_rho_range:
-    #     print(acc_matrix_max_rho)
-    #
-    #     p = np.zeros((2,2))
-    #
-    #     p[0,1] = x0 = 0
-    #     p[0,0] = y0 = acc_matrix_max_rho / np.sin(acc_matrix_max_phi)
-    #
-    #     p[1,1] = x1 = image.shape[0]
-    #     p[1,0] = y1 = (acc_matrix_max_rho - image.shape[1] * np.cos(acc_matrix_max_phi)) / np.sin(acc_matrix_max_phi)
-    #
-    #     for i in range(0,len(p)):
-    #         if p[i,0] < 0:
-    #             p[i,0] = 0  # y
-    #             p[i,1] = acc_matrix_max_rho/np.cos(acc_matrix_max_phi) # x
-    #         elif p[i,0] > image.shape[0]:
-    #             p[i,0] = image.shape[0] # y
-    #             p[i,1] = (acc_matrix_max_rho - p[i,0]*np.sin(acc_matrix_max_phi))/np.cos(acc_matrix_max_phi) # x
-    #
-    #
-    #     print("line (y,x) [{},{}] , [{},{}]".format(p[0,0],p[0,1],p[1,0],p[1,1]))
-    #
-    #     ax4.plot((p[:,1]), (p[:,0]), '-g')
+        acc_matrix_fixed = np.hstack([acc_matrix_negative_r_right, acc_matrix_positive_r, acc_matrix_negative_r_left])
 
-    return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(1)
+        ax.imshow(acc_matrix_fixed)
+
 
 
 def hough_space_rho_index_to_val(index, rho_range_opts):
@@ -200,8 +170,7 @@ def find_pixel_clusters(image, max_gap=3):
 
     return clusters
 
-
-def find_minimal_dimensions(cluster_im):
+def find_minimal_rectangle(cluster_im):
     first_row = -1
     first_col = -1
     last_row = -1
@@ -217,7 +186,12 @@ def find_minimal_dimensions(cluster_im):
                 last_col = j
 
     assert first_row >= 0 and last_row >=0 and first_col >= 0 and last_col >= 0
+    return (first_row, last_row), (first_col, last_col)
 
+def find_minimal_dimensions(cluster_im):
+    p1, p2 = find_minimal_rectangle(cluster_im)
+    first_row, last_row = p1
+    first_col, last_col = p2
     return (last_row-first_row, last_col-first_col)
 
 
@@ -375,7 +349,7 @@ def select_trigger_groups(trigger_points, max_gap=3):
         visited_points[trigger_point] = False
 
     for trigger_point in trigger_points:
-        for c_trigger_point in trigger_points:
+        for c_trigger_point in trigger_points: # very inefficient
             if c_trigger_point != trigger_point and \
                     abs(trigger_point[0] - c_trigger_point[0]) <= max_gap and \
                     abs(trigger_point[1] - c_trigger_point[1]) <= max_gap:

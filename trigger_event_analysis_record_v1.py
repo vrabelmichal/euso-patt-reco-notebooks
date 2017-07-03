@@ -2,66 +2,6 @@ import numpy as np
 import base_classes
 # import processing_config
 
-trigger_event_string_column_order = \
-    ["source_file_acquisition", "source_file_trigger",
-     "global_gtu", "packet_id", "gtu_in_packet", "num_gtu",
-     "num_triggered_pixels", "num_triggered_pixel_groups", "max_triggered_pixel_group_size",
-     "triggered_pixels_x_y_hough_transform__max_peak_line_rot",
-     "triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_x",
-     "triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_y",
-     "triggered_pixels_x_y_hough_transform__max_peak_line_coord_1_x",
-     "triggered_pixels_x_y_hough_transform__max_peak_line_coord_1_y",
-     "triggers_x_y_neighbourhood_size",
-     "triggers_x_y_neighbourhood_area",  # todo wrong
-     "triggers_x_y_neighbourhood_width",  # todo wrong
-     "triggers_x_y_neighbourhood_height",  # todo wrong
-     "hough_transform_x_y__num_clusters_above_thr",
-     "hough_transform_x_y__max_cluster_size",
-     "hough_transform_x_y__avg_cluster_size",
-     "hough_transform_x_y__max_cluster_height",
-     "hough_transform_x_y__avg_cluster_height",
-     "hough_transform_x_y__max_cluster_width",
-     "hough_transform_x_y__avg_cluster_width",
-     "hough_transform_x_y__max_cluster_area",
-     "hough_transform_x_y__avg_cluster_area",
-     "hough_transform_x_y__max_cluster_counts_sum",
-     "hough_transform_x_y__avg_cluster_counts_sum",
-     "hough_transform_x_y__max_peak_line_rot",
-     "hough_transform_x_y__max_peak_line_coord_0_x",
-     "hough_transform_x_y__max_peak_line_coord_0_y",
-     "hough_transform_x_y__max_peak_line_coord_1_x",
-     "hough_transform_x_y__max_peak_line_coord_1_y",
-     # "triggers_x_gtu_neighbourhood_size",
-     # "triggers_x_gtu_neighbourhood_dimensions",
-     # "hough_transform_x_gtu__num_clusters_above_thr",
-     # "hough_transform_x_gtu__max_cluster_size",
-     # "hough_transform_x_gtu__avg_cluster_size",
-     # "hough_transform_x_gtu__max_cluster_dimensions",
-     # "hough_transform_x_gtu__avg_cluster_dimensions",
-     # "hough_transform_x_gtu__max_cluster_counts_sum",
-     # "hough_transform_x_gtu__avg_cluster_counts_sum",
-     # "hough_transform_x_gtu__max_peak_line_rot",
-     # "hough_transform_x_gtu__max_peak_line_coord_0_x",
-     # "hough_transform_x_gtu__max_peak_line_coord_0_y",
-     # "hough_transform_x_gtu__max_peak_line_coord_1_x",
-     # "hough_transform_x_gtu__max_peak_line_coord_1_y",
-     # "triggers_y_gtu_neighbourhood_size",
-     # "triggers_y_gtu_neighbourhood_dimensions",
-     # "hough_transform_y_gtu__num_clusters_above_thr",
-     # "hough_transform_y_gtu__max_cluster_size",
-     # "hough_transform_y_gtu__avg_cluster_size",
-     # "hough_transform_y_gtu__max_cluster_dimensions",
-     # "hough_transform_y_gtu__avg_cluster_dimensions",
-     # "hough_transform_y_gtu__max_cluster_counts_sum",
-     # "hough_transform_y_gtu__avg_cluster_counts_sum",
-     # "hough_transform_y_gtu__max_peak_line_rot",
-     # "hough_transform_y_gtu__max_peak_line_coord_0_x",
-     # "hough_transform_y_gtu__max_speak_line_coord_0_y",
-     # "hough_transform_y_gtu__max_peak_line_coord_1_x",
-     # "hough_transform_y_gtu__max_peak_line_coord_1_y"
-     ]
-
-trigger_event_str_prop_separator = "\n"
 
 
 class TriggerEventAnalysisRecordV1(base_classes.BaseEventAnalysisRecord):
@@ -85,6 +25,41 @@ class TriggerEventAnalysisRecordV1(base_classes.BaseEventAnalysisRecord):
     ###########################################
 
     program_version = 0.0
+
+    ###########################################
+
+    default_str_column_order = \
+        ["source_file_acquisition", "source_file_trigger",
+         "global_gtu", "packet_id", "gtu_in_packet", "num_gtu",
+         "num_triggered_pixels", "num_triggered_pixel_groups", "max_triggered_pixel_group_size",
+         "triggered_pixels_x_y_hough_transform__max_peak_line_rot",
+         "triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_x",
+         "triggered_pixels_x_y_hough_transform__max_peak_line_coord_0_y",
+         "triggered_pixels_x_y_hough_transform__max_peak_line_coord_1_x",
+         "triggered_pixels_x_y_hough_transform__max_peak_line_coord_1_y",
+         "triggers_x_y_neighbourhood_size",
+         "triggers_x_y_neighbourhood_area",  # todo wrong
+         "triggers_x_y_neighbourhood_width",  # todo wrong
+         "triggers_x_y_neighbourhood_height",  # todo wrong
+         "hough_transform_x_y__num_clusters_above_thr",
+         "hough_transform_x_y__max_cluster_size",
+         "hough_transform_x_y__avg_cluster_size",
+         "hough_transform_x_y__max_cluster_height",
+         "hough_transform_x_y__avg_cluster_height",
+         "hough_transform_x_y__max_cluster_width",
+         "hough_transform_x_y__avg_cluster_width",
+         "hough_transform_x_y__max_cluster_area",
+         "hough_transform_x_y__avg_cluster_area",
+         "hough_transform_x_y__max_cluster_counts_sum",
+         "hough_transform_x_y__avg_cluster_counts_sum",
+         "hough_transform_x_y__max_peak_line_rot",
+         "hough_transform_x_y__max_peak_line_coord_0_x",
+         "hough_transform_x_y__max_peak_line_coord_0_y",
+         "hough_transform_x_y__max_peak_line_coord_1_x",
+         "hough_transform_x_y__max_peak_line_coord_1_y"
+         ]
+    default_str_prop_separator = "\n"
+
 
     ###########################################
 

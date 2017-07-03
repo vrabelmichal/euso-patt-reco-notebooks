@@ -20,6 +20,7 @@ if use_agg:
     mpl.use('Agg')
 
 import event_processing_v1
+import event_processing_v2
 import base_classes
 #import processing_config
 from postgresql_event_storage import PostgreSqlEventStorageProviderV1
@@ -98,6 +99,11 @@ def main(argv):
         tsv_storage_provide_class = TsvEventStorageProvider
         sqlite_storage_provide_class = Sqlite3EventStorageProvider
         postgresql_storage_provide_class = PostgreSqlEventStorageProviderV1
+    if args.algorithm == 'ver2':
+        event_processing = event_processing_v2.EventProcessingV2()
+        tsv_storage_provide_class = None
+        sqlite_storage_provide_class = None
+        postgresql_storage_provide_class = None # TODO
     else:
         raise Exception('Unknown algrithm')
 
@@ -250,6 +256,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                 frame_buffer.clear()
                 process_event_down_counter = np.inf
                 event_start_gtu = -1
+                frames_integrated = np.zeros((48,48))
 
             if np.isinf(process_event_down_counter):
                 before_trg_frames_circ_buffer.append(gtu_pdm_data)
