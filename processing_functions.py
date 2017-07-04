@@ -2,6 +2,7 @@ import numpy as np
 import itertools
 import utility_funtions as utl
 # import collections
+import event_visualization as vis
 
 class NeighbourSelectionRules:
     max_gap = 3
@@ -31,7 +32,15 @@ def parse_x_y_neighbour_selection_rules_str(conf_attr_str):
     return None
 
 
-def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180), rho_step=1, fix_negative_r=False):
+def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)[:-1], rho_step=1, fix_negative_r=False, flip_image=False):
+    image = None
+
+    if flip_image:
+        image = np.flipud(input_image)
+    else:
+        image = input_image
+
+
     max_distance = np.hypot(image.shape[0], image.shape[1])
     num_rho = int(np.ceil(max_distance*2/rho_step))
     rho_correction_lower = -line_thicknes + max_distance
@@ -65,8 +74,10 @@ def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)
                 # if rho < 0:
                 #     print("rho =",rho, "phi =", phi, "phi_index =", phi_index, "i =", i, "j=", j)
 
-                rho_index_lower = int((rho+rho_correction_lower) // rho_step)
-                rho_index_upper = int((rho+rho_correction_upper) // rho_step)
+                # rho_index_lower = int((rho+rho_correction_lower) // rho_step)
+                # rho_index_upper = int((rho+rho_correction_upper) // rho_step)
+                rho_index_lower = int(np.round((rho+rho_correction_lower) / rho_step))
+                rho_index_upper = int(np.round((rho+rho_correction_upper) / rho_step))
 
                 if rho_index_lower < 0:
                     # print("rho_index_lower < 0 : rho_index_lower=", rho_index_lower)
@@ -82,42 +93,75 @@ def gray_hough_line(image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)
     if not fix_negative_r:
         return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
     else:
+        if len(phi_range) < 2:
+            raise Exception('Insufficient number of phi steps')
+
         zero_rho_index = int((0 + max_distance) // rho_step)
         zero_phi_index = len(phi_range) // 2
 
-        acc_matrix_positive_r = acc_matrix[0:zero_rho_index+1]
-        acc_matrix_negative_r_right = np.flip(acc_matrix[zero_rho_index+1:,zero_phi_index+1:])
-        acc_matrix_negative_r_left = np.flip(acc_matrix[:zero_rho_index+1,:zero_phi_index+1])
+        acc_matrix_positive_r = acc_matrix[zero_rho_index+1:,:]
+        # acc_matrix_negative_r_right = np.flipud(acc_matrix[zero_rho_index+1:,zero_phi_index:])
+        # acc_matrix_negative_r_left = np.flipud(acc_matrix[zero_rho_index+1:,:zero_phi_index])
+        acc_matrix_negative_r_flipped = np.flipud(acc_matrix[0:zero_rho_index])
+        # acc_matrix_negative_r_right = np.flipud(acc_matrix[zero_rho_index+1:,:])
+        # acc_matrix_negative_r_left = np.flipud(acc_matrix[zero_rho_index+1:,:])
 
         # z[0:3,1:4] = r[:3,:3]
 
-        print(acc_matrix.shape, acc_matrix_positive_r.shape, acc_matrix_negative_r_right.shape, acc_matrix_negative_r_left.shape)
+        # print(acc_matrix.shape, acc_matrix_positive_r.shape, acc_matrix_negative_r_flipped.shape, acc_matrix_negative_r_flipped.shape)
 
-        max_height = max([acc_matrix_positive_r.shape[0], acc_matrix_negative_r_right.shape[0], acc_matrix_negative_r_left.shape[0]])
+        # vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part BEFORE CORRECTION")
+
+        max_height = max([acc_matrix_positive_r.shape[0], acc_matrix_negative_r_flipped.shape[0], acc_matrix_negative_r_flipped.shape[0]])
         if acc_matrix_positive_r.shape[0] < max_height:
             new_acc_matrix_positive_r = np.zeros((max_height, acc_matrix_positive_r.shape[1]))
-            new_acc_matrix_positive_r[: -acc_matrix_positive_r.shape[0],:] = acc_matrix_positive_r
+            new_acc_matrix_positive_r[0:acc_matrix_positive_r.shape[0],:] = acc_matrix_positive_r
+            # old = acc_matrix_positive_r
             acc_matrix_positive_r = new_acc_matrix_positive_r
-        else:
-            new_acc_matrix_negative_r_right = np.zeros((max_height, acc_matrix_negative_r_right.shape[1]))
-            new_acc_matrix_negative_r_right[: -acc_matrix_negative_r_right.shape[0], :] = acc_matrix_negative_r_right
-            new_acc_matrix_negative_r_left = np.zeros((max_height, acc_matrix_negative_r_left.shape[1]))
-            new_acc_matrix_negative_r_left[: -acc_matrix_negative_r_left.shape[0], :] = acc_matrix_negative_r_left
-            acc_matrix_negative_r_right = new_acc_matrix_negative_r_right
-            acc_matrix_negative_r_left = new_acc_matrix_negative_r_left
+            # import matplotlib.pyplot as plt
+            # fig,ax = plt.subplots(1)
+            # ax.imshow(old)
+            # fig,ax = plt.subplots(1)
+            # ax.imshow(acc_matrix_positive_r)
+        elif acc_matrix_negative_r_flipped.shape[1] < max_height:
+            new_acc_matrix_negative_r = np.zeros((max_height, acc_matrix_negative_r_flipped.shape[1]))
+            new_acc_matrix_negative_r[0:acc_matrix_negative_r_flipped.shape[0], :] = acc_matrix_negative_r_flipped
+            acc_matrix_negative_r_flipped = new_acc_matrix_negative_r
 
+        vis.visualize_hough_space(acc_matrix, phi_range, (-max_distance, max_distance, rho_step), r"Hough space with negative and positive $\rho$")
 
-        acc_matrix_fixed = np.hstack([acc_matrix_negative_r_right, acc_matrix_positive_r, acc_matrix_negative_r_left])
+        # vis.visualize_hough_space(np.flipud(acc_matrix_negative_r_flipped),phi_range, (-max_distance, 0, rho_step), r"Hough space with negative $\rho$ part")
 
-        import matplotlib.pyplot as plt
+        # vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part")
 
-        fig, ax = plt.subplots(1)
-        ax.imshow(acc_matrix_fixed)
+        print(acc_matrix_positive_r[:,-1:].shape, acc_matrix_positive_r[:,:1].shape)
 
+        add_to_right = True in (acc_matrix_positive_r[:,-1:]>0)
+        add_to_left = True in (acc_matrix_positive_r[:,:1]>0)     # should be mutually exclusive to previous
+        l = []
+        new_phi_range = phi_range
+        if add_to_left:
+            # l.append(acc_matrix_negative_r_flipped[:,:-1])
+            # new_phi_range = np.hstack(((phi_range[:-1]-phi_range[-1]),phi_range))
+            l.append(acc_matrix_negative_r_flipped)
+            new_phi_range = np.hstack((phi_range-(2*phi_range[-1]-phi_range[-2]),phi_range))
+        l.append(acc_matrix_positive_r)
+        if add_to_right:
+            # l.append(acc_matrix_negative_r_flipped[:,1:]) # phi range should not contain pi and this might be unnecessary
+            # new_phi_range = np.hstack((phi_range,(phi_range[1:]+phi_range[-1])))
+            l.append(acc_matrix_negative_r_flipped)
+            new_phi_range = np.hstack((phi_range,phi_range+(2*phi_range[-1]-phi_range[-2]))) # considering pi_range[0] == 0
+
+        acc_matrix_fixed = np.hstack(l)
+
+        #print(acc_matrix_fixed.shape[1] == len(new_phi_range))
+        assert acc_matrix_fixed.shape[1] == len(new_phi_range)
+
+        return acc_matrix_fixed, max_distance, (0, max_distance, rho_step), new_phi_range
 
 
 def hough_space_rho_index_to_val(index, rho_range_opts):
-    return rho_range_opts[0] + rho_range_opts[2] * index + rho_range_opts[2] # TODO justification for  `+ rho_range_opts[2]`
+    return rho_range_opts[0] + rho_range_opts[2] * index + rho_range_opts[2] // 2 # TODO justification for  `+ rho_range_opts[2]`
 
 
 def hough_space_index_to_val_single(index, phi_range, rho_range_opts):
