@@ -32,7 +32,7 @@ def parse_x_y_neighbour_selection_rules_str(conf_attr_str):
     return None
 
 
-def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)[:-1], rho_step=1, fix_negative_r=False, flip_image=False):
+def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi, 180)[:-1], rho_step=1, fix_negative_r=False, flip_image=False, correct_phi=True):
     image = None
 
     if flip_image:
@@ -58,11 +58,12 @@ def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi
     for phi_index, phi in enumerate(phi_range):
         # print("hough > phi = {} ({})".format(np.rad2deg(phi), phi_index))
 
-        phi_norm_pi_over_2 = (phi - np.floor(phi/(np.pi/2))*np.pi/2)
-        if phi_norm_pi_over_2 <= np.pi/4:
-            phi_corr = image.shape[1] / np.sqrt(image.shape[1] ** 2 + (image.shape[1] * np.tan( phi_norm_pi_over_2 )) ** 2)
-        else:
-            phi_corr = image.shape[0] / np.sqrt(image.shape[0] ** 2 + (image.shape[0] * np.tan( np.pi/2 - phi_norm_pi_over_2 )) ** 2) #np.sqrt(image.shape[0] ** 2 + (image.shape[0] / np.tan( phi_norm_pi_over_2 - np.pi/4 )) ** 2) / image.shape[1]
+        if correct_phi:
+            phi_norm_pi_over_2 = (phi - np.floor(phi/(np.pi/2))*np.pi/2)
+            if phi_norm_pi_over_2 <= np.pi/4:
+                phi_corr = image.shape[1] / np.sqrt(image.shape[1] ** 2 + (image.shape[1] * np.tan( phi_norm_pi_over_2 )) ** 2)
+            else:
+                phi_corr = image.shape[0] / np.sqrt(image.shape[0] ** 2 + (image.shape[0] * np.tan( np.pi/2 - phi_norm_pi_over_2 )) ** 2) #np.sqrt(image.shape[0] ** 2 + (image.shape[0] / np.tan( phi_norm_pi_over_2 - np.pi/4 )) ** 2) / image.shape[1]
 
         # normalization vis would go here
 
@@ -91,8 +92,10 @@ def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi
                     acc_matrix[rho_index, phi_index] += image[i,j] * phi_corr
 
     if not fix_negative_r:
-        return acc_matrix, max_distance, (-max_distance, max_distance, rho_step), phi_range
+        return acc_matrix, max_distance, (-max_distance, max_distance, rho_step, line_thicknes), phi_range
     else:
+        # this is not sufficient to eliminate peak splitting due limited phi range
+
         if len(phi_range) < 2:
             raise Exception('Insufficient number of phi steps')
 
@@ -123,45 +126,61 @@ def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi
             # ax.imshow(old)
             # fig,ax = plt.subplots(1)
             # ax.imshow(acc_matrix_positive_r)
-        elif acc_matrix_negative_r_flipped.shape[1] < max_height:
+        elif acc_matrix_negative_r_flipped.shape[0] < max_height:
             new_acc_matrix_negative_r = np.zeros((max_height, acc_matrix_negative_r_flipped.shape[1]))
             new_acc_matrix_negative_r[0:acc_matrix_negative_r_flipped.shape[0], :] = acc_matrix_negative_r_flipped
             acc_matrix_negative_r_flipped = new_acc_matrix_negative_r
 
         vis.visualize_hough_space(acc_matrix, phi_range, (-max_distance, max_distance, rho_step), r"Hough space with negative and positive $\rho$")
 
-        # vis.visualize_hough_space(np.flipud(acc_matrix_negative_r_flipped),phi_range, (-max_distance, 0, rho_step), r"Hough space with negative $\rho$ part")
+        vis.visualize_hough_space(np.flipud(acc_matrix_negative_r_flipped),phi_range, (-max_distance, 0, rho_step), r"Hough space with negative $\rho$ part")
 
-        # vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part")
+        vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part")
 
         print(acc_matrix_positive_r[:,-1:].shape, acc_matrix_positive_r[:,:1].shape)
 
-        add_to_right = True in (acc_matrix_positive_r[:,-1:]>0)
-        add_to_left = True in (acc_matrix_positive_r[:,:1]>0)     # should be mutually exclusive to previous
+        count_nonzero_right = np.count_nonzero(acc_matrix_positive_r[:,-1:]>0)
+        count_nonzero_left = np.count_nonzero(acc_matrix_positive_r[:,:1]>0)
+
         l = []
         new_phi_range = phi_range
-        if add_to_left:
+        if count_nonzero_left>=count_nonzero_right: # todo test phi_range +1
             # l.append(acc_matrix_negative_r_flipped[:,:-1])
             # new_phi_range = np.hstack(((phi_range[:-1]-phi_range[-1]),phi_range))
             l.append(acc_matrix_negative_r_flipped)
-            new_phi_range = np.hstack((phi_range-(2*phi_range[-1]-phi_range[-2]),phi_range))
+            # new_phi_range = np.hstack((new_phi_range-(2*new_phi_range[-1]-new_phi_range[-2]),new_phi_range)) # problem if not starting form 0
+            # new_phi_range = np.hstack((new_phi_range-(2*new_phi_range[-1]-new_phi_range[-2])+new_phi_range[0],new_phi_range)) # problem if not starting form 0
+            new_phi_range = np.hstack((new_phi_range-3*new_phi_range[-1]+2*new_phi_range[-2]+new_phi_range[0],new_phi_range)) # problem if not starting form 0
         l.append(acc_matrix_positive_r)
-        if add_to_right:
+        if count_nonzero_left<count_nonzero_right: # TODO range needs to be corrected and solution need to be validated
             # l.append(acc_matrix_negative_r_flipped[:,1:]) # phi range should not contain pi and this might be unnecessary
             # new_phi_range = np.hstack((phi_range,(phi_range[1:]+phi_range[-1])))
             l.append(acc_matrix_negative_r_flipped)
-            new_phi_range = np.hstack((phi_range,phi_range+(2*phi_range[-1]-phi_range[-2]))) # considering pi_range[0] == 0
+            # new_phi_range = np.hstack((new_phi_range,new_phi_range+(2*new_phi_range[-1]-new_phi_range[-2]))) # considering pi_range[0] == 0
+            new_phi_range = np.hstack((new_phi_range,new_phi_range+(new_phi_range[-1]-2*new_phi_range[-2]))) # considering pi_range[0] == 0 # this might be closer to the correct solution
 
         acc_matrix_fixed = np.hstack(l)
 
         #print(acc_matrix_fixed.shape[1] == len(new_phi_range))
         assert acc_matrix_fixed.shape[1] == len(new_phi_range)
 
-        return acc_matrix_fixed, max_distance, (0, max_distance, rho_step), new_phi_range
+        return acc_matrix_fixed, max_distance, (0, max_distance, rho_step, line_thicknes), new_phi_range
+
+
+def simplify_hough_space_line(rho, phi):
+    if rho < 0:
+        phi += np.pi
+        rho *= -1
+    elif rho == 0:
+        phi = phi % np.pi
+
+    phi = phi % (2*np.pi)
+
+    return rho, phi
 
 
 def hough_space_rho_index_to_val(index, rho_range_opts):
-    return rho_range_opts[0] + rho_range_opts[2] * index + rho_range_opts[2] // 2 # TODO justification for  `+ rho_range_opts[2]`
+    return rho_range_opts[0] + rho_range_opts[2] * index + rho_range_opts[3] # // 2 # TODO justification for  `+ rho_range_opts[2]`
 
 
 def hough_space_index_to_val_single(index, phi_range, rho_range_opts):
@@ -175,7 +194,84 @@ def hough_space_index_to_val(indexes, phi_range, rho_range_opts):
     return o
 
 
+def calc_line_coords(phi, rho, width, height):
+    p = np.zeros((2,2))
+    p[0, 1] = 0
+
+    sin_phi_is_zero = ((phi % np.pi) == 0)
+    cos_phi_is_zero = not sin_phi_is_zero and ((phi % (np.pi/2)) == 0)
+
+    if not sin_phi_is_zero:
+        p[0, 0] = rho / np.sin(phi)
+    else:
+        p[0, 0] = -1
+
+    p[1, 1] = width
+    if not sin_phi_is_zero:
+        p[1, 0] = (rho - width * np.cos(phi)) / np.sin(phi)
+    else:
+        p[1, 0] = height + 1
+
+    for pi in range(0, len(p)):
+        if p[pi, 0] < 0:
+            p[pi, 0] = 0  # y
+            if not cos_phi_is_zero:
+                p[pi, 1] = rho / np.cos(phi)  # x
+            else:
+                p[pi, 1] = width + 1
+        elif p[pi, 0] > height:
+            p[pi, 0] = height  # y
+            if not cos_phi_is_zero:
+                p[pi, 1] = (rho - p[pi, 0] * np.sin(phi)) / np.cos(phi)  # x
+            else:
+                p[pi, 1] = width + 1
+
+    return p
+
+
 def find_pixel_clusters(image, max_gap=3):
+    clusters = {}
+
+    visited_neighbourhood = np.zeros_like(image, dtype=np.bool)
+
+    for cluster_seed_i in range(image.shape[0]):
+        for cluster_seed_j in range(image.shape[1]):
+            if image[cluster_seed_i, cluster_seed_j] == 0:
+                continue;
+
+            if visited_neighbourhood[cluster_seed_i,cluster_seed_j]:
+                continue
+
+            cluster_matrix = np.zeros_like(image, dtype=np.bool)
+            clusters[(cluster_seed_i,cluster_seed_j)] = cluster_matrix
+            # similar to select_neighbours
+
+            seed_points = [(cluster_seed_i, cluster_seed_j)]
+
+            while seed_points:
+                seed_i, seed_j = seed_points.pop()
+                i_start = max(seed_i - max_gap, 0)
+                i_end = min(seed_i + max_gap, image.shape[0])
+                j_start = max(seed_j - max_gap, 0)
+                j_end = min(seed_j + max_gap, image.shape[1])
+
+                for i in range(i_start, i_end):
+                    for j in range(j_start, j_end):
+                        # if i == seed_i and j == seed_j:
+                        #     continue
+                        if not visited_neighbourhood[i,j]:
+                            # todo add option to select only neighbours of initial seeds
+                            if image[i, j] != 0:
+                                seed_points.append((i,j))
+                            cluster_matrix[i,j] = True
+                            visited_neighbourhood[i,j] = True
+
+    return clusters
+
+def find_pixel_clusters_in_hough_space(image, max_gap=3, rho_range_opts=None):
+    raise Exception('Not implemented')
+
+    # considers pi width of image
     clusters = {}
 
     visited_neighbourhood = np.zeros_like(image, dtype=np.bool)

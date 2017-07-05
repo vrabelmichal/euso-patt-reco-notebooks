@@ -89,13 +89,21 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     # rot
     # coord_0_x ...
 
-    triggered_pixels_x_y_hough_transform__peak_thr1_rho = -1
-    triggered_pixels_x_y_hough_transform__peak_thr1_phi = -1
-    triggered_pixels_x_y_hough_transform__peak_thr1_line_coords = None
+    triggered_pixels_x_y_hough_transform__peak_thr1_avg_rho = -1
+    triggered_pixels_x_y_hough_transform__peak_thr1_avg_phi = -1
+    triggered_pixels_x_y_hough_transform__peak_thr1_avg_line_coords = None
 
-    triggered_pixels_x_y_hough_transform__peak_thr2_rho = -1
-    triggered_pixels_x_y_hough_transform__peak_thr2_phi = -1
-    triggered_pixels_x_y_hough_transform__peak_thr2_line_coords = None
+    triggered_pixels_x_y_hough_transform__peak_thr2_avg_rho = -1
+    triggered_pixels_x_y_hough_transform__peak_thr2_avg_phi = -1
+    triggered_pixels_x_y_hough_transform__peak_thr2_avg_line_coords = None
+
+    triggered_pixels_x_y_hough_transform__peak_thr1_max_clu_rho = -1
+    triggered_pixels_x_y_hough_transform__peak_thr1_max_clu_phi = -1
+    triggered_pixels_x_y_hough_transform__peak_thr1_max_clu_line_coords = None
+
+    triggered_pixels_x_y_hough_transform__peak_thr2_max_clu_rho = -1
+    triggered_pixels_x_y_hough_transform__peak_thr2_max_clu_phi = -1
+    triggered_pixels_x_y_hough_transform__peak_thr2_max_clu_line_coords = None
 
 
     x_y_hough_transform = None
@@ -118,27 +126,38 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     # dynamic
     # x_y_hough_transform__max_peak_line_rot  = -1 # peak determined only from the maximal point of the hough space
 
-    x_y_hough_transform__peak_thr1_rho = -1  
-    x_y_hough_transform__peak_thr1_phi = -1  
-    x_y_hough_transform__peak_thr1_line_coords = None  
+    x_y_hough_transform__peak_thr1_avg_rho = -1
+    x_y_hough_transform__peak_thr1_avg_phi = -1
+    x_y_hough_transform__peak_thr1_avg_line_coords = None
     # rot
-    x_y_hough_transform__peak_thr2_rho = -1  
-    x_y_hough_transform__peak_thr2_phi = -1  
-    x_y_hough_transform__peak_thr2_line_coords = None  
+    x_y_hough_transform__peak_thr2_avg_rho = -1
+    x_y_hough_transform__peak_thr2_avg_phi = -1
+    x_y_hough_transform__peak_thr2_avg_line_coords = None
     # rot
-    x_y_hough_transform__peak_thr3_rho = -1  
-    x_y_hough_transform__peak_thr3_phi = -1  
-    x_y_hough_transform__peak_thr3_line_coords = None  
+    x_y_hough_transform__peak_thr3_avg_rho = -1
+    x_y_hough_transform__peak_thr3_avg_phi = -1
+    x_y_hough_transform__peak_thr3_avg_line_coords = None
     # rot
-    # x_y_hough_transform__peak_thr4_rho = -1
-    # x_y_hough_transform__peak_thr4_phi = -1
-    # x_y_hough_transform__peak_thr4_line_coords = None
+    # x_y_hough_transform__peak_thr4_avg_rho = -1
+    # x_y_hough_transform__peak_thr4_avg_phi = -1
+    # x_y_hough_transform__peak_thr4_avg_line_coords = None
     # # rot
-    # x_y_hough_transform__peak_thr5_rho = -1
-    # x_y_hough_transform__peak_thr5_phi = -1
-    # x_y_hough_transform__peak_thr5_line_coords = None
+    # x_y_hough_transform__peak_thr5_avg_rho = -1
+    # x_y_hough_transform__peak_thr5_avg_phi = -1
+    # x_y_hough_transform__peak_thr5_avg_line_coords = None
     # # rot
 
+    x_y_hough_transform__peak_thr1_max_clu_rho = -1
+    x_y_hough_transform__peak_thr1_max_clu_phi = -1
+    x_y_hough_transform__peak_thr1_max_clu_line_coords = None
+
+    x_y_hough_transform__peak_thr2_max_clu_rho = -1
+    x_y_hough_transform__peak_thr2_max_clu_phi = -1
+    x_y_hough_transform__peak_thr2_max_clu_line_coords = None
+
+    x_y_hough_transform__peak_thr3_max_clu_rho = -1
+    x_y_hough_transform__peak_thr3_max_clu_phi = -1
+    x_y_hough_transform__peak_thr3_max_clu_line_coords = None
 
     ##########################################
 
@@ -184,13 +203,21 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     triggered_pixels_x_gtu_hough_transform__max_peak_phi = -1  # peak determined only from the maximal point of the hough space
     triggered_pixels_x_gtu_hough_transform__max_peak_line_coords = None  # peak determined only from the maximal point of the hough space
 
-    triggered_pixels_x_gtu_hough_transform__peak_thr1_rho = -1
-    triggered_pixels_x_gtu_hough_transform__peak_thr1_phi = -1
-    triggered_pixels_x_gtu_hough_transform__peak_thr1_line_coords = None
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_avg_rho = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_avg_phi = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_avg_line_coords = None
 
-    triggered_pixels_x_gtu_hough_transform__peak_thr2_rho = -1
-    triggered_pixels_x_gtu_hough_transform__peak_thr2_phi = -1
-    triggered_pixels_x_gtu_hough_transform__peak_thr2_line_coords = None
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_avg_rho = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_avg_phi = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_avg_line_coords = None
+
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_max_clu_rho = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_max_clu_phi = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr1_max_clu_line_coords = None
+
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_max_clu_rho = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_max_clu_phi = -1
+    triggered_pixels_x_gtu_hough_transform__peak_thr2_max_clu_line_coords = None
 
 
 
@@ -213,26 +240,37 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     x_gtu_hough_transform__max_peak_phi = -1  # peak determined only from the maximal point of the hough space
     x_gtu_hough_transform__max_peak_line_coords = None  # peak determined only from the maximal point of the hough space
 
-    x_gtu_hough_transform__peak_thr1_rho = -1  
-    x_gtu_hough_transform__peak_thr1_phi = -1  
-    x_gtu_hough_transform__peak_thr1_line_coords = None  
+    x_gtu_hough_transform__peak_thr1_avg_rho = -1
+    x_gtu_hough_transform__peak_thr1_avg_phi = -1
+    x_gtu_hough_transform__peak_thr1_avg_line_coords = None
 
-    x_gtu_hough_transform__peak_thr2_rho = -1  
-    x_gtu_hough_transform__peak_thr2_phi = -1  
-    x_gtu_hough_transform__peak_thr2_line_coords = None  
+    x_gtu_hough_transform__peak_thr2_avg_rho = -1
+    x_gtu_hough_transform__peak_thr2_avg_phi = -1
+    x_gtu_hough_transform__peak_thr2_avg_line_coords = None
 
-    x_gtu_hough_transform__peak_thr3_rho = -1  
-    x_gtu_hough_transform__peak_thr3_phi = -1  
-    x_gtu_hough_transform__peak_thr3_line_coords = None  
+    x_gtu_hough_transform__peak_thr3_avg_rho = -1
+    x_gtu_hough_transform__peak_thr3_avg_phi = -1
+    x_gtu_hough_transform__peak_thr3_avg_line_coords = None
 
-    # x_gtu_hough_transform__peak_thr4_rho = -1
-    # x_gtu_hough_transform__peak_thr4_phi = -1
-    # x_gtu_hough_transform__peak_thr4_line_coords = None
+    # x_gtu_hough_transform__peak_thr4_avg_rho = -1
+    # x_gtu_hough_transform__peak_thr4_avg_phi = -1
+    # x_gtu_hough_transform__peak_thr4_avg_line_coords = None
     #
-    # x_gtu_hough_transform__peak_thr5_rho = -1
-    # x_gtu_hough_transform__peak_thr5_phi = -1
-    # x_gtu_hough_transform__peak_thr5_line_coords = None
+    # x_gtu_hough_transform__peak_thr5_avg_rho = -1
+    # x_gtu_hough_transform__peak_thr5_avg_phi = -1
+    # x_gtu_hough_transform__peak_thr5_avg_line_coords = None
 
+    x_gtu_hough_transform__peak_thr1_max_clu_rho = -1
+    x_gtu_hough_transform__peak_thr1_max_clu_phi = -1
+    x_gtu_hough_transform__peak_thr1_max_clu_line_coords = None
+
+    x_gtu_hough_transform__peak_thr2_max_clu_rho = -1
+    x_gtu_hough_transform__peak_thr2_max_clu_phi = -1
+    x_gtu_hough_transform__peak_thr2_max_clu_line_coords = None
+
+    x_gtu_hough_transform__peak_thr3_max_clu_rho = -1
+    x_gtu_hough_transform__peak_thr3_max_clu_phi = -1
+    x_gtu_hough_transform__peak_thr3_max_clu_line_coords = None
 
     ##########################################
 
@@ -277,13 +315,20 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     triggered_pixels_y_gtu_hough_transform__max_peak_phi = -1  # peak determined only from the maximal point of the hough space
     triggered_pixels_y_gtu_hough_transform__max_peak_line_coords = None  # peak determined only from the maximal point of the hough space
 
-    triggered_pixels_y_gtu_hough_transform__peak_thr1_rho = -1
-    triggered_pixels_y_gtu_hough_transform__peak_thr1_phi = -1
-    triggered_pixels_y_gtu_hough_transform__peak_thr1_line_coords = None
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_avg_rho = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_avg_phi = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_avg_line_coords = None
 
-    triggered_pixels_y_gtu_hough_transform__peak_thr2_rho = -1
-    triggered_pixels_y_gtu_hough_transform__peak_thr2_phi = -1
-    triggered_pixels_y_gtu_hough_transform__peak_thr2_line_coords = None
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_avg_rho = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_avg_phi = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_avg_line_coords = None
+
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_max_clu_rho = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_max_clu_phi = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr1_max_clu_line_coords = None
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_max_clu_rho = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_max_clu_phi = -1
+    triggered_pixels_y_gtu_hough_transform__peak_thr2_max_clu_line_coords = None
 
 
 
@@ -305,27 +350,39 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
     y_gtu_hough_transform__max_peak_phi = -1  # peak determined only from the maximal point of the hough space
     y_gtu_hough_transform__max_peak_line_coords = None  # peak determined only from the maximal point of the hough space
 
-    y_gtu_hough_transform__peak_thr1_rho = -1  
-    y_gtu_hough_transform__peak_thr1_phi = -1  
-    y_gtu_hough_transform__peak_thr1_line_coords = None
+    y_gtu_hough_transform__peak_thr1_avg_rho = -1
+    y_gtu_hough_transform__peak_thr1_avg_phi = -1
+    y_gtu_hough_transform__peak_thr1_avg_line_coords = None
 
-    y_gtu_hough_transform__peak_thr2_rho = -1  
-    y_gtu_hough_transform__peak_thr2_phi = -1  
-    y_gtu_hough_transform__peak_thr2_line_coords = None
+    y_gtu_hough_transform__peak_thr2_avg_rho = -1
+    y_gtu_hough_transform__peak_thr2_avg_phi = -1
+    y_gtu_hough_transform__peak_thr2_avg_line_coords = None
 
-    y_gtu_hough_transform__peak_thr3_rho = -1  
-    y_gtu_hough_transform__peak_thr3_phi = -1  
-    y_gtu_hough_transform__peak_thr3_line_coords = None
+    y_gtu_hough_transform__peak_thr3_avg_rho = -1
+    y_gtu_hough_transform__peak_thr3_avg_phi = -1
+    y_gtu_hough_transform__peak_thr3_avg_line_coords = None
 
-    # y_gtu_hough_transform__peak_thr4_rho = -1
-    # y_gtu_hough_transform__peak_thr4_phi = -1
-    # y_gtu_hough_transform__peak_thr4_line_coords = None
+    y_gtu_hough_transform__peak_thr1_max_clu_rho = -1
+    y_gtu_hough_transform__peak_thr1_max_clu_phi = -1
+    y_gtu_hough_transform__peak_thr1_max_clu_line_coords = None
+
+    y_gtu_hough_transform__peak_thr2_max_clu_rho = -1
+    y_gtu_hough_transform__peak_thr2_max_clu_phi = -1
+    y_gtu_hough_transform__peak_thr2_max_clu_line_coords = None
+
+    y_gtu_hough_transform__peak_thr3_max_clu_rho = -1
+    y_gtu_hough_transform__peak_thr3_max_clu_phi = -1
+    y_gtu_hough_transform__peak_thr3_max_clu_line_coords = None
+
+    # y_gtu_hough_transform__peak_thr4_avg_rho = -1
+    # y_gtu_hough_transform__peak_thr4_avg_phi = -1
+    # y_gtu_hough_transform__peak_thr4_avg_line_coords = None
     # # dynamic
     # # y_gtu_hough_transform__peak_thr4_line_rot  = -1
     #
-    # y_gtu_hough_transform__peak_thr5_rho = -1
-    # y_gtu_hough_transform__peak_thr5_phi = -1
-    # y_gtu_hough_transform__peak_thr5_line_coords = None
+    # y_gtu_hough_transform__peak_thr5_avg_rho = -1
+    # y_gtu_hough_transform__peak_thr5_avg_phi = -1
+    # y_gtu_hough_transform__peak_thr5_avg_line_coords = None
     # # dynamic
     # # y_gtu_hough_transform__peak_thr5_line_rot  = -1
     
@@ -548,11 +605,17 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
                 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__width_of_max_cluster_counts_sum': (Gtrt.INDEX_1_OF_MAX_USING_NDARRAY_SUM_LIST, 'triggered_pixels_{{d}}_hough_transform__clusters_above_thr{n}_dimensions', {'ndarray': 'triggered_pixels_{{d}}_hough_transform__clusters_above_thr{n}'}),
                 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__width_of_max_peak_cluster': (Gtrt.INDEX_1_OF_MAX_USING_NDARRAY_MAX_LIST, 'triggered_pixels_{{d}}_hough_transform__clusters_above_thr{n}_dimensions', {'ndarray': 'triggered_pixels_{{d}}_hough_transform__clusters_above_thr{n}'}),
 
-                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__line_rot': (Gtrt.PLUS_PI_OVER_2, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_phi'),
-                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__line_coord_0_x': (Gtrt.INDEX_0_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__line_coord_0_y': (Gtrt.INDEX_0_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__line_coord_1_x': (Gtrt.INDEX_1_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__line_coord_1_y': (Gtrt.INDEX_1_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__avg_line_rot': (Gtrt.PLUS_PI_OVER_2, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_avg_phi'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__avg_line_coord_0_x': (Gtrt.INDEX_0_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__avg_line_coord_0_y': (Gtrt.INDEX_0_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__avg_line_coord_1_x': (Gtrt.INDEX_1_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__avg_line_coord_1_y': (Gtrt.INDEX_1_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__max_clu_line_rot': (Gtrt.PLUS_PI_OVER_2, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_max_clu_phi'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_0_x': (Gtrt.INDEX_0_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_0_y': (Gtrt.INDEX_0_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_1_x': (Gtrt.INDEX_1_1, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                'triggered_pixels_{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_1_y': (Gtrt.INDEX_1_0, 'triggered_pixels_{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
             }
 
             pix_thr_def = {
@@ -577,11 +640,17 @@ class TriggerEventAnalysisRecordV2(base_classes.BaseEventAnalysisRecord):
                 '{{d}}_hough_transform__peak_thr{n}__width_of_max_cluster_counts_sum': (Gtrt.INDEX_1_OF_MAX_USING_NDARRAY_SUM_LIST, '{{d}}_hough_transform___clusters_above_thr{n}'),
                 '{{d}}_hough_transform__peak_thr{n}__width_of_max_peak_cluster': (Gtrt.INDEX_1_OF_MAX_USING_NDARRAY_MAX_LIST, '{{d}}_hough_transform__clusters_above_thr{n}'),
 
-                '{{d}}_hough_transform__peak_thr{n}__line_rot': (Gtrt.PLUS_PI_OVER_2, '{{d}}_hough_transform__peak_thr{n}_phi'),
-                '{{d}}_hough_transform__peak_thr{n}__line_coord_0_x': (Gtrt.INDEX_0_1, '{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                '{{d}}_hough_transform__peak_thr{n}__line_coord_0_y': (Gtrt.INDEX_0_0, '{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                '{{d}}_hough_transform__peak_thr{n}__line_coord_1_x': (Gtrt.INDEX_1_1, '{{d}}_hough_transform__peak_thr{n}_line_coords'),
-                '{{d}}_hough_transform__peak_thr{n}__line_coord_1_y': (Gtrt.INDEX_1_0, '{{d}}_hough_transform__peak_thr{n}_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__avg_line_rot': (Gtrt.PLUS_PI_OVER_2, '{{d}}_hough_transform__peak_thr{n}_avg_phi'),
+                '{{d}}_hough_transform__peak_thr{n}__avg_line_coord_0_x': (Gtrt.INDEX_0_1, '{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__avg_line_coord_0_y': (Gtrt.INDEX_0_0, '{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__avg_line_coord_1_x': (Gtrt.INDEX_1_1, '{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__avg_line_coord_1_y': (Gtrt.INDEX_1_0, '{{d}}_hough_transform__peak_thr{n}_avg_line_coords'),
+
+                '{{d}}_hough_transform__peak_thr{n}__max_clu_line_rot': (Gtrt.PLUS_PI_OVER_2, '{{d}}_hough_transform__peak_thr{n}_max_clu_phi'),
+                '{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_0_x': (Gtrt.INDEX_0_1, '{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_0_y': (Gtrt.INDEX_0_0, '{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_1_x': (Gtrt.INDEX_1_1, '{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
+                '{{d}}_hough_transform__peak_thr{n}__max_clu_line_coord_1_y': (Gtrt.INDEX_1_0, '{{d}}_hough_transform__peak_thr{n}_max_clu_line_coords'),
             }
 
             def format_n(src, dest, r, varname='n'):

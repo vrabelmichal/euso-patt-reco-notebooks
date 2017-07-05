@@ -284,7 +284,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
             if not np.isinf(process_event_down_counter):
                 if process_event_down_counter == 0 or last_gtu_in_packet+1 == packet_size:
-                    if gtu_pdm_data.gtu >= first_gtu and gtu_pdm_data.gtu <= last_gtu and filter_options.check_pdm_gtu(gtu_pdm_data):
+                    if event_start_gtu >= first_gtu and event_start_gtu <= last_gtu and filter_options.check_pdm_gtu(gtu_pdm_data):
 
                         ########################################################################################
 
