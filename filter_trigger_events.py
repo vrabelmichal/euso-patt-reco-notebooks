@@ -23,12 +23,12 @@ import event_processing_v1
 import event_processing_v2
 import base_classes
 #import processing_config
-from postgresql_event_storage import PostgreSqlEventStorageProviderV1
+from postgresql_event_storage import PostgreSqlEventStorageProvider
 from sqlite_event_storage import Sqlite3EventStorageProvider
 from utility_funtions import str2bool_argparse
 from event_reading import AckL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
-from trigger_event_analysis_record_v1 import TriggerEventAnalysisRecordV1
+from event_analysis_record_v1 import EventAnalysisRecordV1
 
 
 def main(argv):
@@ -90,36 +90,34 @@ def main(argv):
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
     event_processing = None
-    tsv_storage_provide_class = None
-    sqlite_storage_provide_class = None
-    postgresql_storage_provide_class = None
+    tsv_storage_provider_class = None
+    sqlite_storage_provider_class = None
+    postgresql_storage_provider_class = None
 
     if args.algorithm == 'ver1':
         event_processing = event_processing_v1.EventProcessingV1()
-        tsv_storage_provide_class = TsvEventStorageProvider
-        sqlite_storage_provide_class = Sqlite3EventStorageProvider
-        postgresql_storage_provide_class = PostgreSqlEventStorageProviderV1
     if args.algorithm == 'ver2':
         event_processing = event_processing_v2.EventProcessingV2()
-        tsv_storage_provide_class = None
-        sqlite_storage_provide_class = None
-        postgresql_storage_provide_class = None # TODO
     else:
         raise Exception('Unknown algrithm')
 
     proc_params = event_processing.event_processing_params_class().from_global_config(config)
 
     if args.output_type == "tsv" or args.output_type == "csv":
-        output_storage_provider = tsv_storage_provide_class(args.out)
+        output_storage_provider = TsvEventStorageProvider(args.out) # TODO probably not working
     elif args.output_type == "sqlite":
-        output_storage_provider = sqlite_storage_provide_class(args.out)
+        output_storage_provider = Sqlite3EventStorageProvider(args.out) # TODO probably not working
     elif args.output_type == "postgresql":
+        args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
+                     event_processing.column_info, False]
         if not args.out:
-            output_storage_provider = postgresql_storage_provide_class.from_global_config(config)
+            args_list[0] = config
+            output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
         else:
-            output_storage_provider = postgresql_storage_provide_class(args.out)
+            args_list[0] = args.out
+            output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
     else:
-        output_storage_provider = base_classes.EventStorageProvider()
+        output_storage_provider = base_classes.BaseEventStorageProvider()
 
     if args.generate_web_figures:
         if "DatabaseBrowserWeb" not in config.sections():
@@ -141,10 +139,14 @@ def main(argv):
 
         run_again_storage_provider = output_storage_provider
         if args.output_type != args.run_again_input_type:
+            args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
+                         event_processing.column_info, True]
             if not args.run_again_spec:
-                run_again_storage_provider = postgresql_storage_provide_class.from_global_config(config, True)
+                args_list[0] = config
+                run_again_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
             else:
-                run_again_storage_provider = postgresql_storage_provide_class(args.run_again_spec, True)
+                args_list[0] = args.run_again_spec
+                run_again_storage_provider = PostgreSqlEventStorageProvider(*args_list)
 
         processed_files_configs__gtus = collections.OrderedDict()
         # event_ids__processing_configs = collections.OrderedDict()

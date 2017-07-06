@@ -4,6 +4,9 @@ import utility_funtions as utl
 # import collections
 import event_visualization as vis
 
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+
 class NeighbourSelectionRules:
     max_gap = 3
     val_ratio_thr = 1.0
@@ -131,11 +134,11 @@ def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi
             new_acc_matrix_negative_r[0:acc_matrix_negative_r_flipped.shape[0], :] = acc_matrix_negative_r_flipped
             acc_matrix_negative_r_flipped = new_acc_matrix_negative_r
 
-        vis.visualize_hough_space(acc_matrix, phi_range, (-max_distance, max_distance, rho_step), r"Hough space with negative and positive $\rho$")
-
-        vis.visualize_hough_space(np.flipud(acc_matrix_negative_r_flipped),phi_range, (-max_distance, 0, rho_step), r"Hough space with negative $\rho$ part")
-
-        vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part")
+        # vis.visualize_hough_space(acc_matrix, phi_range, (-max_distance, max_distance, rho_step), r"Hough space with negative and positive $\rho$")
+        #
+        # vis.visualize_hough_space(np.flipud(acc_matrix_negative_r_flipped),phi_range, (-max_distance, 0, rho_step), r"Hough space with negative $\rho$ part")
+        #
+        # vis.visualize_hough_space(acc_matrix_positive_r, phi_range, (0, max_distance, rho_step), r"Hough space with positive $\rho$ part")
 
         print(acc_matrix_positive_r[:,-1:].shape, acc_matrix_positive_r[:,:1].shape)
 
@@ -169,13 +172,11 @@ def gray_hough_line(input_image, line_thicknes=2, phi_range=np.linspace(0, np.pi
 
 def simplify_hough_space_line(rho, phi):
     if rho < 0:
-        phi += np.pi
+        phi = phi - np.pi # could be negative
         rho *= -1
     elif rho == 0:
-        phi = phi % np.pi
-
-    phi = phi % (2*np.pi)
-
+        phi = phi % (np.pi if phi >= 0 else -np.pi)
+    phi = phi % (2*np.pi if phi >= 0 else -2*np.pi)
     return rho, phi
 
 
@@ -183,15 +184,18 @@ def hough_space_rho_index_to_val(index, rho_range_opts):
     return rho_range_opts[0] + rho_range_opts[2] * index + rho_range_opts[3] # // 2 # TODO justification for  `+ rho_range_opts[2]`
 
 
-def hough_space_index_to_val_single(index, phi_range, rho_range_opts):
-    return (hough_space_rho_index_to_val(index[0], rho_range_opts), phi_range[index[1]])
+def hough_space_index_to_val_single(index, phi_linspace, rho_range_opts):
+    return (hough_space_rho_index_to_val(index[0], rho_range_opts), phi_linspace[index[1]])
 
 
-def hough_space_index_to_val(indexes, phi_range, rho_range_opts):
+def hough_space_index_to_val(indexes, phi_linspace, rho_range_opts):
     o = []
     for index in indexes:
-        o.append(hough_space_index_to_val_single(index, phi_range, rho_range_opts))
+        o.append(hough_space_index_to_val_single(index, phi_linspace, rho_range_opts))
     return o
+
+def hough_space_index_to_val_simp_phi(indexes, phi_linspace, rho_range_opts):
+    return [simplify_hough_space_line(rho, phi) for rho, phi in hough_space_index_to_val(indexes, phi_linspace, rho_range_opts)]
 
 
 def calc_line_coords(phi, rho, width, height):

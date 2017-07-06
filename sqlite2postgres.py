@@ -12,7 +12,7 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
-    postgresql_storage = postgresql_event_storage.PostgreSqlEventStorageProviderV1()
+    postgresql_storage = postgresql_event_storage.PostgreSqlEventStorageProvider()
     postgresql_storage.initialize(args.output)
 
     for input_file_path in args.input_files:
