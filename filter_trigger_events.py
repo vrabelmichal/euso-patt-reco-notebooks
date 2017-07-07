@@ -112,6 +112,7 @@ def main(argv):
                      event_processing.column_info, False]
         if not args.out:
             args_list[0] = config
+            args_list.append(args.algorithm)
             output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
         else:
             args_list[0] = args.out
@@ -143,6 +144,7 @@ def main(argv):
                          event_processing.column_info, True]
             if not args.run_again_spec:
                 args_list[0] = config
+                args_list.append(args.algorithm)
                 run_again_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
             else:
                 args_list[0] = args.run_again_spec
