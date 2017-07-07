@@ -89,11 +89,6 @@ def main(argv):
     filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
-    event_processing = None
-    tsv_storage_provider_class = None
-    sqlite_storage_provider_class = None
-    postgresql_storage_provider_class = None
-
     if args.algorithm == 'ver1':
         event_processing = event_processing_v1.EventProcessingV1()
     if args.algorithm == 'ver2':
