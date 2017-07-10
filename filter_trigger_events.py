@@ -328,26 +328,27 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             processing_lock = acquire_processing_lock(lockfile_dir, source_file_acquisition, source_file_trigger, proc_params_str, event_start_gtu, True)
                             if not processing_lock:
                                 run_event = False
-                                not_run_reason = 'PROCESSING LOCK NOT ACQUIRED'
+                                not_run_reason = 'LOCK NOT ACQUIRED'
 
-                        if run_again_exclusively:
-                            run_event = event_start_gtu in run_again_gtus
-                            if run_event:
-                                log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
-                            else:
-                                not_run_reason = 'GLB.GTU NOT IN EXCLUSIVE RUN AGAIN LIST'
-                        elif no_overwrite__weak_check:
-                            if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version, save_config_info_result):
-                                # True - event does exist
-                                if run_again_gtus is not None:
-                                    run_event = event_start_gtu in run_again_gtus
-                                    if run_event:
-                                        log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
-                                    else:
-                                        not_run_reason = 'GLB.GTU NOT IN RUN AGAIN LIST'
+                        if run_event:
+                            if run_again_exclusively:
+                                run_event = event_start_gtu in run_again_gtus
+                                if run_event:
+                                    log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
                                 else:
-                                    run_event = False
-                                    not_run_reason = 'EVENT ALREADY EXISTS (WEAK CHECK)'
+                                    not_run_reason = 'GLB.GTU NOT IN EXCLUSIVE RUN AGAIN LIST'
+                            elif no_overwrite__weak_check:
+                                if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version, save_config_info_result):
+                                    # True - event does exist
+                                    if run_again_gtus is not None:
+                                        run_event = event_start_gtu in run_again_gtus
+                                        if run_event:
+                                            log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
+                                        else:
+                                            not_run_reason = 'GLB.GTU NOT IN RUN AGAIN LIST'
+                                    else:
+                                        run_event = False
+                                        not_run_reason = 'EVENT ALREADY EXISTS (WEAK CHECK)'
 
                         if run_event:
 
@@ -412,7 +413,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
 
                         if lockfile_dir is not None and processing_lock:
-                            release_processing_lock(lockfile_dir, processing_lock, True)
+                            release_processing_lock(processing_lock)
 
                         log_file.write(" ; EVENT FINISHED\n")
                         log_file.flush()
@@ -429,44 +430,30 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                     raise Exception("Unexpected value of process_event_down_counter")
 
 
-_lockfiles_dir_locks = {}
-
-
 def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_trigger, proc_params, start_global_gtu, only_check=False):
-    global _lockfiles_dir_locks
-    os.makedirs(lockfiles_dir,exist_ok=True)
-    if only_check:
-        if lockfiles_dir not in _lockfiles_dir_locks:
-            _lockfiles_dir_locks[lockfiles_dir] = filelock.FileLock(os.path.join(lockfiles_dir, 'create_file_lock'))
-        _lockfiles_dir_locks[lockfiles_dir].acquire()
-
     ev_id_str = '\n'.join((str(source_file_acquisition), str(source_file_trigger), str(start_global_gtu), str(proc_params)))
     ev_id_str_encoded = ev_id_str.encode()
     ev_id_str_hash = hashlib.md5(ev_id_str_encoded).hexdigest()
     ev_id_str_hash_file_pathname = os.path.join(lockfiles_dir, ev_id_str_hash)
-    file_exists = os.path.exists(ev_id_str_hash_file_pathname)
-    if only_check and file_exists:
-        return None
     event_id_lockfile = filelock.FileLock(ev_id_str_hash_file_pathname)
-    event_id_lockfile.acquire()
+    acquire_timeout = None
+    if only_check:
+        acquire_timeout = 0.5
+    try:
+        event_id_lockfile.acquire(timeout=acquire_timeout)
+    except filelock.Timeout:
+        return None
+
     if hasattr(event_id_lockfile,'_lock_file_fd') and event_id_lockfile._lock_file_fd:
         os.write(event_id_lockfile._lock_file_fd, ev_id_str_encoded)
-    if only_check:
-        _lockfiles_dir_locks[lockfiles_dir].release()
+    # if only_check:
+    #     _lockfiles_dir_locks[lockfiles_dir].release()
     return event_id_lockfile
 
 
-def release_processing_lock(lockfiles_dir, acquired_lockfile, only_check_mode=False):
-    global _lockfiles_dir_locks
+def release_processing_lock(acquired_lockfile):
     lock_file_path = acquired_lockfile.lock_file
-    if only_check_mode:
-        if lockfiles_dir not in _lockfiles_dir_locks:
-            os.makedirs(lockfiles_dir,exist_ok=True)
-            _lockfiles_dir_locks[lockfiles_dir] = filelock.FileLock(os.path.join(lockfiles_dir, 'create_file_lock'))
-        with _lockfiles_dir_locks[lockfiles_dir]:
-            acquired_lockfile.release()
-    else:
-        acquired_lockfile.release()
+    acquired_lockfile.release()
     if os.path.exists(lock_file_path):
         os.unlink(lock_file_path)
 
