@@ -5,6 +5,8 @@ import sys
 import re
 import collections
 import configparser
+import filelock
+import hashlib
 
 # Workarunfd to use Matplotlib without DISPLAY
 visualize_option_argv_key = '--visualize'
@@ -28,7 +30,7 @@ from sqlite_event_storage import Sqlite3EventStorageProvider
 from utility_funtions import str2bool_argparse
 from event_reading import AckL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
-from event_analysis_record_v1 import EventAnalysisRecordV1
+
 
 
 def main(argv):
@@ -46,13 +48,13 @@ def main(argv):
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
 
-    parser.add_argument('--run-again', default=None, help="Selector defining events to be run again")
-    parser.add_argument('--run-again-spec', default=None, help="Specification defining events to be run again")
+    parser.add_argument('--run-again', default='', help="Selector defining events to be run again")
+    parser.add_argument('--run-again-spec', default='', help="Specification defining events to be run again")
     parser.add_argument('--run-again-input-type', default="postgresql", help="Input type - postgresql")
     parser.add_argument('--run-again-limit', type=int, default=10000, help="Maximal number of events to be rerun based on --run-again specification")
     parser.add_argument('--run-again-offset', type=int, default=0, help="Offset of rerun events selection based on --run-again specification")
 
-    parser.add_argument("--save-figures-base-dir", default=None, help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
+    parser.add_argument("--save-figures-base-dir", default='', help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
                         default="{program_version:.2f}"
                                 "/{triggered_pixels_group_max_gap:d}_{triggered_pixels_ht_line_thickness:.2f}_{triggered_pixels_ht_phi_num_steps:d}_{x_y_neighbour_selection_rules}"
@@ -78,6 +80,8 @@ def main(argv):
     parser.add_argument('--filter-sum-l1-pmt-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one PMT sumL1PMT more than this value.")
 
     parser.add_argument('--algorithm', default='ver1', help="Version of the processing algorithm used")
+
+    parser.add_argument('--lockfile-dir', default='/tmp/trigger-events-processing', help="Version of the processing algorithm used")
 
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
@@ -116,12 +120,19 @@ def main(argv):
         output_storage_provider = base_classes.BaseEventStorageProvider()
 
     if args.generate_web_figures:
-        if "DatabaseBrowserWeb" not in config.sections():
+        if "DatabaseBrowserWeb" not in config:
             raise Exception("Missing DatabaseBrowserWeb configuration section")
+
+        figure_name_format_key = '{}_figure_name_format'.format(args.algorithm)
+        for opt in ['base_figures_storage_directory', figure_name_format_key]:
+            if opt not in config["DatabaseBrowserWeb"]:
+                raise Exception('Missing config option "{}"'.format(opt))
+
         args.save_figures_base_dir = \
             os.path.realpath(config['DatabaseBrowserWeb']['base_figures_storage_directory']\
                 .format(basedir=os.path.dirname(os.path.abspath(__file__))))
-        args.figure_name_format = config['DatabaseBrowserWeb']['figure_name_format']
+
+        args.figure_name_format = config['DatabaseBrowserWeb'][figure_name_format_key]
 
     processing_runs = []
 
@@ -211,7 +222,8 @@ def main(argv):
                                 args.visualize,
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
                                 args.save_figures_base_dir, args.figure_name_format, gtus, process_only_selected,
-                                run_proc_params if run_proc_params is not None else proc_params)
+                                run_proc_params if run_proc_params is not None else proc_params,
+                                False, sys.stdout, args.lockfile_dir)
 
     output_storage_provider.finalize()
 
@@ -223,7 +235,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             figure_img_base_dir=None, figure_img_name_format=None,
                             run_again_gtus=None, run_again_exclusively=False,
                             proc_params=None, dry_run=False,
-                            log_file=sys.stdout):
+                            log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing"):
 
     if run_again_gtus is None and run_again_exclusively:
         raise Exception("run_again_gtus is None but run_again_exclusively is True")
@@ -243,6 +255,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
     event_start_gtu = -1
 
     save_config_info_result = output_storage_provider.save_config_info(proc_params)
+    proc_params_str = str(proc_params)
 
     with AckL1EventReader(source_file_acquisition, source_file_trigger) as ack_l1_reader:
 
@@ -255,7 +268,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                 frame_buffer.clear()
                 process_event_down_counter = np.inf
                 event_start_gtu = -1
-                frames_integrated = np.zeros((48,48))
+                #frames_integrated = np.zeros((48,48))
 
             if np.isinf(process_event_down_counter):
                 before_trg_frames_circ_buffer.append(gtu_pdm_data)
@@ -307,6 +320,15 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                                                                  event_files_msg))
                         run_event = True
                         not_run_reason = ''
+
+                        processing_lock = None
+
+                        if lockfile_dir is not None:
+                            processing_lock = acquire_processing_lock(lockfile_dir, source_file_acquisition, source_file_trigger, proc_params_str, event_start_gtu, True)
+                            if not processing_lock:
+                                run_event = False
+                                not_run_reason = 'PROCESSING LOCK NOT ACQUIRED'
+
                         if run_again_exclusively:
                             run_event = event_start_gtu in run_again_gtus
                             if run_event:
@@ -314,7 +336,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             else:
                                 not_run_reason = 'GLB.GTU NOT IN EXCLUSIVE RUN AGAIN LIST'
                         elif no_overwrite__weak_check:
-                            if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version):
+                            if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version, save_config_info_result):
                                 # True - event does exist
                                 if run_again_gtus is not None:
                                     run_event = event_start_gtu in run_again_gtus
@@ -387,6 +409,10 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         else:
                             log_file.write(' ; '+not_run_reason)
 
+
+                        if lockfile_dir is not None:
+                            release_processing_lock(lockfile_dir, processing_lock, True)
+
                         log_file.write(" ; EVENT FINISHED\n")
                         log_file.flush()
 
@@ -400,6 +426,48 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         process_event_down_counter -= 1
                 else:
                     raise Exception("Unexpected value of process_event_down_counter")
+
+
+_lockfiles_dir_locks = {}
+
+
+def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_trigger, proc_params, start_global_gtu, only_check=False):
+    global _lockfiles_dir_locks
+    os.makedirs(lockfiles_dir,exist_ok=True)
+    if only_check:
+        if lockfiles_dir not in _lockfiles_dir_locks:
+            _lockfiles_dir_locks[lockfiles_dir] = filelock.FileLock(os.path.join(lockfiles_dir, 'create_file_lock'))
+        _lockfiles_dir_locks[lockfiles_dir].acquire()
+
+    ev_id_str = '\n'.join((str(source_file_acquisition), str(source_file_trigger), str(start_global_gtu), str(proc_params)))
+    ev_id_str_encoded = ev_id_str.encode()
+    ev_id_str_hash = hashlib.md5(ev_id_str_encoded).hexdigest()
+    ev_id_str_hash_file_pathname = os.path.join(lockfiles_dir, ev_id_str_hash)
+    file_exists = os.path.exists(ev_id_str_hash_file_pathname)
+    if only_check and file_exists:
+        return None
+    event_id_lockfile = filelock.FileLock(ev_id_str_hash_file_pathname)
+    event_id_lockfile.acquire()
+    if hasattr(event_id_lockfile,'_lock_file_fd') and event_id_lockfile._lock_file_fd:
+        os.write(event_id_lockfile._lock_file_fd, ev_id_str_encoded)
+    if only_check:
+        _lockfiles_dir_locks[lockfiles_dir].release()
+    return event_id_lockfile
+
+
+def release_processing_lock(lockfiles_dir, acquired_lockfile, only_check_mode=False):
+    global _lockfiles_dir_locks
+    lock_file_path = acquired_lockfile.lock_file
+    if only_check_mode:
+        if lockfiles_dir not in _lockfiles_dir_locks:
+            os.makedirs(lockfiles_dir,exist_ok=True)
+            _lockfiles_dir_locks[lockfiles_dir] = filelock.FileLock(os.path.join(lockfiles_dir, 'create_file_lock'))
+        with _lockfiles_dir_locks[lockfiles_dir]:
+            acquired_lockfile.release()
+    else:
+        acquired_lockfile.release()
+    if os.path.exists(lock_file_path):
+        os.unlink(lock_file_path)
 
 
 if __name__ == "__main__":
