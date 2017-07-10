@@ -411,7 +411,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             log_file.write(' ; '+not_run_reason)
 
 
-                        if lockfile_dir is not None:
+                        if lockfile_dir is not None and processing_lock:
                             release_processing_lock(lockfile_dir, processing_lock, True)
 
                         log_file.write(" ; EVENT FINISHED\n")
