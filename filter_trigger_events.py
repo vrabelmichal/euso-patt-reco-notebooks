@@ -109,13 +109,14 @@ def main(argv):
     elif args.output_type == "postgresql":
         args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
                      event_processing.column_info, False]
-        if not args.out:
-            args_list[0] = config
-            args_list.append(args.algorithm)
-            output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
-        else:
-            args_list[0] = args.out
-            output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
+        if args.out:
+            print('WARNING: pareter output specification for postgresql not supported. Using configuration file "{}"'.format(args.config))
+            # args_list[0] = args.out
+            # output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
+        # else:
+        args_list[0] = config
+        args_list.append(args.algorithm)
+        output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
     else:
         output_storage_provider = base_classes.BaseEventStorageProvider()
 
