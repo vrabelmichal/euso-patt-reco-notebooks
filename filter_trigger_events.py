@@ -431,6 +431,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
 
 def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_trigger, proc_params, start_global_gtu, only_check=False):
+    os.makedirs(lockfiles_dir, exist_ok=True)
     ev_id_str = '\n'.join((str(source_file_acquisition), str(source_file_trigger), str(start_global_gtu), str(proc_params)))
     ev_id_str_encoded = ev_id_str.encode()
     ev_id_str_hash = hashlib.md5(ev_id_str_encoded).hexdigest()
