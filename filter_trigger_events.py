@@ -302,8 +302,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         ########################################################################################
 
                         ev = output_storage_provider.event_processing_analysis_record_class()
-                        ev.source_file_acquisition = source_file_acquisition
-                        ev.source_file_trigger = source_file_trigger
+                        ev.source_file_acquisition_full = source_file_acquisition
+                        ev.source_file_trigger_full = source_file_trigger
                         ev.exp_tree = ack_l1_reader.exp_tree
                         ev.global_gtu = event_start_gtu
                         ev.packet_id = packet_id
@@ -363,11 +363,6 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                             if figure_img_base_dir and figure_img_name_format:
                                 proc_params_dict = proc_params.get_dict_of_str()
-                                # "{program_version}"
-                                # "/{triggered_pixels_group_max_gap}_{triggered_pixels_group_max_gap}_{triggered_pixels_ht_phi_num_steps}_{x_y_neighbour_selection_rules}"
-                                # "_{x_y_ht_line_thickness}_{x_y_ht_phi_num_steps}_{x_y_ht_rho_step}_{x_y_ht_peak_threshold_frac_of_max}_{x_y_ht_peak_gap}"
-                                # "_{x_y_ht_global_peak_threshold_frac_of_max}"
-                                # "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/{gtu_global}_{packet_id}_{gtu_in_packet}/{name}.png"
 
                                 save_fig_pathname_format = os.path.join(figure_img_base_dir, figure_img_name_format_nested.format(
                                     name='{name}',
@@ -439,7 +434,7 @@ def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_
     event_id_lockfile = filelock.FileLock(ev_id_str_hash_file_pathname)
     acquire_timeout = None
     if only_check:
-        acquire_timeout = 0.5
+        acquire_timeout = 0.05
     try:
         event_id_lockfile.acquire(timeout=acquire_timeout)
     except filelock.Timeout:
