@@ -451,7 +451,10 @@ def release_processing_lock(acquired_lockfile):
     lock_file_path = acquired_lockfile.lock_file
     acquired_lockfile.release()
     if os.path.exists(lock_file_path):
-        os.unlink(lock_file_path)
+        try:
+            os.unlink(lock_file_path)
+        except FileNotFoundError:
+            pass
 
 
 if __name__ == "__main__":
