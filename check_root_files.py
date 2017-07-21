@@ -7,7 +7,7 @@ def main(argv):
         success = True
         root_file_pathname = root_file_pathname.strip()
         try:
-            f, t_texp, t_tevent = AckL1EventReader.open_acquisition(root_file_pathname)
+            f, t_texp, t_tevent = AcqL1EventReader.open_acquisition(root_file_pathname)
             success = bool(f and t_texp and t_tevent)
         except Exception:
             success = False

@@ -28,18 +28,17 @@ import base_classes
 from postgresql_event_storage import PostgreSqlEventStorageProvider
 from sqlite_event_storage import Sqlite3EventStorageProvider
 from utility_funtions import str2bool_argparse
-from event_reading import AckL1EventReader, EventFilterOptions
+from event_reading import AcqL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
-
+from npy_l1_event_reader import NpyL1EventReader
 
 
 def main(argv):
     # TODO replace default=None
     parser = argparse.ArgumentParser(description='Find patterns inside triggered pixes')
     # parser.add_argument('files', nargs='+', help='List of files to convert')
-    parser.add_argument('-a', '--acquisition-file', default=None, help="ACQUISITION root file in \"Lech\" format")
-    parser.add_argument('-k', '--kenji-l1trigger-file', default=None, help="L1 trigger root file in \"Kenji\" format")
-    parser.add_argument('--config', default=os.path.realpath(os.path.join(os.path.dirname(__file__),'config.ini')), help="Configuration file")
+    parser.add_argument('-a', '--acquisition-file', default=None, help="ACQUISITION root file in \"Lech\" format (.root), or numpy ndarray (.npy created by simu2npy and npyconv) if --event-reader option is \"npy\".")
+    parser.add_argument('-r', '--event-reader', default='acq', help="Event reader. Available event readers acq (default, processes acquisitions in \"Lech\" format), npy (processes acquisitions in npy format).")
     parser.add_argument('-o', '--out', default=None, help="Output specification")
     parser.add_argument('-f', '--output-type', default="stdout", help="Output type - tsv, stdout, sqlite, prostgresql")
     parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
@@ -47,6 +46,7 @@ def main(argv):
     parser.add_argument('--gtu-after-trigger', type=int, default=None, help="Number of GTU included in track finding data before the trigger")
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--packet-size', type=int, default=128, help="Number of GTU in packet")
+    parser.add_argument('--config', default=os.path.realpath(os.path.join(os.path.dirname(__file__),'config.ini')), help="Configuration file")
 
     parser.add_argument('--run-again', default='', help="Selector defining events to be run again")
     parser.add_argument('--run-again-spec', default='', help="Specification defining events to be run again")
@@ -93,12 +93,19 @@ def main(argv):
     filter_options.sum_l1_ec_one = args.filter_sum_l1_ec_one_gt
     filter_options.sum_l1_pmt_one = args.filter_sum_l1_pmt_one_gt
 
+    if args.event_reader == 'acq':
+        event_reader = AcqL1EventReader
+    elif args.event_reader == 'npy':
+        event_reader = NpyL1EventReader
+    else:
+        raise Exception('Unknown event reader')
+
     if args.algorithm == 'ver1':
         event_processing = event_processing_v1.EventProcessingV1()
-    if args.algorithm == 'ver2':
+    elif args.algorithm == 'ver2':
         event_processing = event_processing_v2.EventProcessingV2()
     else:
-        raise Exception('Unknown algrithm')
+        raise Exception('Unknown algorithm')
 
     proc_params = event_processing.event_processing_params_class().from_global_config(config)
 
@@ -219,7 +226,7 @@ def main(argv):
 
         read_and_process_events(source_file_acquisition, source_file_trigger,
                                 args.first_gtu, args.last_gtu, args.packet_size, filter_options,
-                                output_storage_provider, event_processing,
+                                event_reader, output_storage_provider, event_processing,
                                 args.visualize,
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
                                 args.save_figures_base_dir, args.figure_name_format, gtus, process_only_selected,
@@ -230,7 +237,8 @@ def main(argv):
 
 
 def read_and_process_events(source_file_acquisition, source_file_trigger, first_gtu, last_gtu, packet_size,
-                            filter_options, output_storage_provider, event_processing,
+                            filter_options,
+                            event_reader, output_storage_provider, event_processing,
                             do_visualization=True,
                             no_overwrite__weak_check=True, no_overwrite__strong_check=False, update=True,
                             figure_img_base_dir=None, figure_img_name_format=None,
@@ -258,7 +266,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
     save_config_info_result = output_storage_provider.save_config_info(proc_params)
     proc_params_str = str(proc_params)
 
-    with AckL1EventReader(source_file_acquisition, source_file_trigger) as ack_l1_reader:
+    with event_reader(source_file_acquisition, source_file_trigger) as ack_l1_reader:
 
         for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
 
