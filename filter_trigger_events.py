@@ -38,6 +38,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Find patterns inside triggered pixes')
     # parser.add_argument('files', nargs='+', help='List of files to convert')
     parser.add_argument('-a', '--acquisition-file', default=None, help="ACQUISITION root file in \"Lech\" format (.root), or numpy ndarray (.npy created by simu2npy and npyconv) if --event-reader option is \"npy\".")
+    parser.add_argument('-k', '--kenji-l1trigger-file', default=None, help="L1 trigger root file in \"Kenji\" format")
     parser.add_argument('-r', '--event-reader', default='acq', help="Event reader. Available event readers acq (default, processes acquisitions in \"Lech\" format), npy (processes acquisitions in npy format).")
     parser.add_argument('-o', '--out', default=None, help="Output specification")
     parser.add_argument('-f', '--output-type', default="stdout", help="Output type - tsv, stdout, sqlite, prostgresql")
@@ -79,7 +80,7 @@ def main(argv):
     parser.add_argument('--filter-sum-l1-ec-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one EC sumL1PDM more than this value.")
     parser.add_argument('--filter-sum-l1-pmt-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one PMT sumL1PMT more than this value.")
 
-    parser.add_argument('--algorithm', default='ver1', help="Version of the processing algorithm used")
+    parser.add_argument('--algorithm', default='ver2', help="Version of the processing algorithm used")
 
     parser.add_argument('--lockfile-dir', default='/tmp/trigger-events-processing', help="Version of the processing algorithm used")
 
@@ -238,7 +239,7 @@ def main(argv):
 
 def read_and_process_events(source_file_acquisition, source_file_trigger, first_gtu, last_gtu, packet_size,
                             filter_options,
-                            event_reader, output_storage_provider, event_processing,
+                            event_reader_cls, output_storage_provider, event_processing,
                             do_visualization=True,
                             no_overwrite__weak_check=True, no_overwrite__strong_check=False, update=True,
                             figure_img_base_dir=None, figure_img_name_format=None,
@@ -266,9 +267,9 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
     save_config_info_result = output_storage_provider.save_config_info(proc_params)
     proc_params_str = str(proc_params)
 
-    with event_reader(source_file_acquisition, source_file_trigger) as ack_l1_reader:
+    with event_reader_cls(source_file_acquisition, source_file_trigger) as event_reader:
 
-        for gtu_pdm_data in ack_l1_reader.iter_gtu_pdm_data():
+        for gtu_pdm_data in event_reader.iter_gtu_pdm_data():
 
             last_gtu_in_packet = gtu_pdm_data.gtu % packet_size
             if last_gtu_in_packet == 0:
@@ -312,7 +313,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         ev = output_storage_provider.event_processing_analysis_record_class()
                         ev.source_file_acquisition_full = source_file_acquisition
                         ev.source_file_trigger_full = source_file_trigger
-                        ev.exp_tree = ack_l1_reader.exp_tree
+                        ev.exp_tree = event_reader.exp_tree
                         ev.global_gtu = event_start_gtu
                         ev.packet_id = packet_id
                         ev.gtu_in_packet = event_start_gtu % packet_size
