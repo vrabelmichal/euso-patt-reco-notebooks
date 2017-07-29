@@ -169,8 +169,8 @@ def main(argv):
         # event_ids__processing_configs = collections.OrderedDict()
         processing_config_ids = set()
 
-        run_again_events_query = 'SELECT {data_table_pk}, {config_info_table_pk}, {data_table_source_file_acquisition_column}, ' \
-                                 '{data_table_source_file_trigger_column}, {data_table_global_gtu_column} ' \
+        run_again_events_query = 'SELECT {data_table_pk}, {config_info_table_pk}, {data_table_source_file_acquisition_full_column}, ' \
+                                 '{data_table_source_file_trigger_full_column}, {data_table_global_gtu_column} ' \
                                  'FROM {data_table} '+args.run_again+' OFFSET {:d} LIMIT {:d}'.format(args.run_again_offset, args.run_again_limit) # could be unsafe
         trigger_analysis_records, all_cols = run_again_storage_provider.fetch_trigger_analysis_records(run_again_events_query)
 
