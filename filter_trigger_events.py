@@ -179,7 +179,7 @@ def main(argv):
             print("len(trigger_analysis_records)", len(trigger_analysis_records))
 
         for id, config_info_id, timestamp, trigger_analysis_record in trigger_analysis_records:
-            key_tuple = (trigger_analysis_record.source_file_acquisition, trigger_analysis_record.source_file_trigger, config_info_id)
+            key_tuple = (trigger_analysis_record.source_file_acquisition_full, trigger_analysis_record.source_file_trigger_full, config_info_id)
             if key_tuple not in processed_files_configs__gtus:
                 processed_files_configs__gtus[key_tuple] = []
             processed_files_configs__gtus[key_tuple].append(
