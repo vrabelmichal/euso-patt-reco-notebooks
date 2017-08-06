@@ -117,7 +117,7 @@ def main(argv):
     parser.add_argument('-d','--dbname',default='eusospb_data')
     parser.add_argument('-U','--user',default='eusospb')
     parser.add_argument('--password')
-    parser.add_argument('-s',''--host',default='localhost')
+    parser.add_argument('-s','--host',default='localhost')
     parser.add_argument('--odir', default='.')
 
     args = parser.parse_args(argv)
