@@ -59,10 +59,11 @@ def draw_distributions(query_format, con, num_columns_at_once=100, num_at_once=3
         for i in range(0,1+num_entries//num_at_once):
             offset = num_at_once*i
             limit = num_at_once
-            if offset > max_rows:
-                break
-            if offset + limit > max_rows:
-                limit = max_rows - offset
+            if max_rows is not None:
+                if offset > max_rows:
+                    break
+                if offset + limit > max_rows:
+                    limit = max_rows - offset
             q = query_format.format(columns=", ".join(columns), offset=offset, limit=limit, order='ORDER BY event_id')
             print(q)
             cur.execute(q)
@@ -120,28 +121,31 @@ def main(argv):
     parser.add_argument('--password')
     parser.add_argument('-s','--host',default='localhost')
     parser.add_argument('--odir', default='.')
+    parser.add_argument('--max-rows', type=int, default=-1)
 
     args = parser.parse_args(argv)
 
     if not args.password:
         args.password = getpass.getpass()
 
+    max_rows = args.max_rows if args.max_rows is not None and args.max_rows >= 0 else None
+
     con = pg.connect(dbname=args.dbname, user=args.user, password=args.password, host=args.host)
     cur = con.cursor()
 
     flight_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE meta=1 OR meta IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2017%' "\
                 "{order} OFFSET {offset} LIMIT {limit}"
-    draw_distributions(flight_events_query, con, max_rows=1000,
+    draw_distributions(flight_events_query, con, max_rows=max_rows,
                        save_img_format=os.path.join(args.odir, "flight_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
     utah_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE meta=2 OR meta IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2016%' "\
                 "{order} OFFSET {offset} LIMIT {limit}"
-    draw_distributions(flight_events_query, con, max_rows=1000,
+    draw_distributions(flight_events_query, con, max_rows=max_rows,
                        save_img_format=os.path.join(args.odir, "utah_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
     flight_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE meta=3 OR meta IS NULL AND source_file_acquisition LIKE 'ev_%' "\
                 "{order} OFFSET {offset} LIMIT {limit}"
-    draw_distributions(flight_events_query, con,
+    draw_distributions(flight_events_query, con, max_rows=max_rows,
                        save_img_format=os.path.join(args.odir, "simu_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
 
