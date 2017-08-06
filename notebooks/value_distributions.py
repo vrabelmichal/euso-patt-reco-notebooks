@@ -114,10 +114,10 @@ def draw_distributions(query_format, con, num_columns_at_once=100, num_at_once=3
 def main(argv):
 
     parser = argparse.ArgumentParser(description='Draw histograms of parameter values')
-    parser.add_argument('--dbname',default='eusospb_data')
-    parser.add_argument('--user',default='eusospb')
+    parser.add_argument('-d','--dbname',default='eusospb_data')
+    parser.add_argument('-U','--user',default='eusospb')
     parser.add_argument('--password')
-    parser.add_argument('--host',default='localhost')
+    parser.add_argument('-h','--host',default='localhost')
     parser.add_argument('--odir', default='.')
 
     args = parser.parse_args(argv)
