@@ -75,6 +75,9 @@ def main(argv):
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
     parser.add_argument('--last-gtu', type=int, default=sys.maxsize, help="GTU after will be skipped")
 
+    parser.add_argument('--save-source-data-type-num', type=str2bool_argparse, default=False, help="If true, number in --data-type-num parameter is saved in the output.")  # TODO implement
+    parser.add_argument('--source-data-type-num', type=int, default=-1, help="Number indicating type of processed data in the output / database (default: -1)")
+
     parser.add_argument('--filter-n-persist-gt', type=int, default=-1, help="Accept only events with at least one GTU with nPersist more than this value.")
     parser.add_argument('--filter-sum-l1-pdm-gt', type=int, default=-1, help="Accept only events with at least one GTU with sumL1PDM more than this value.")
     parser.add_argument('--filter-sum-l1-ec-one-gt', type=int, default=-1, help="Accept only events with at least one GTU with at leas one EC sumL1PDM more than this value.")
