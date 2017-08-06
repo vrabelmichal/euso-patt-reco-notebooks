@@ -13,6 +13,7 @@ import psycopg2 as pg
 #import pandas.io.sql as psql
 import matplotlib as mpl
 #mpl.rcParams['figure.dpi'] = 150
+mpl.use("Agg")
 
 import matplotlib.pyplot as plt
 from tqdm import tqdm
