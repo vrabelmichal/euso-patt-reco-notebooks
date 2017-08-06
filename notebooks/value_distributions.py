@@ -98,7 +98,7 @@ def draw_distributions(query_format, con, num_columns_at_once=100, num_at_once=3
             dir_pathname = os.path.dirname(save_img_pathname)
             if dir_pathname and dir_pathname != '.':
                 os.makedirs(dir_pathname, exist_ok=True)
-            print("Saving figure to {}")
+            print("Saving figure to {}".format(save_img_pathname))
             fig.savefig(save_img_pathname)
             plt.close('all')
         else:
