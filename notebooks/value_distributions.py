@@ -27,10 +27,13 @@ def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=10
 
     cur = con.cursor()
 
+    print('Count...')
     cur.execute(query_format.format(columns='COUNT(*)', offset=0, limit=1, order=''))
     num_entries = cur.fetchone()[0]
+    print('  = {}'.format(num_entries))
 
     if drawn_columns is None:
+        print('Columns query...')
         cur.execute(query_format.format(columns="*", offset=0, limit=1, order=''))
         all_columns = list(map(lambda x: x[0], cur.description))
         if columns_offset is None:
@@ -39,6 +42,8 @@ def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=10
         all_columns = drawn_columns
         if columns_offset is None:
             columns_offset = 0
+
+    print('All columns:\n{}'.format(','.join(all_columns)))
 
     first_col = columns_offset
     last_col = first_col + num_columns_at_once
@@ -85,7 +90,7 @@ def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=10
 
         col_i = 0
         for col_i, col in enumerate(columns):
-            print("hist {}: {}".format(col_i, col))
+            print("hist {}: {} (cols: {}-{})".format(col_i, col, first_col, last_col))
             hist_vals = [float(k) for k,v in vals[col].items() if k is not None and v is not None]
             hist_weights = [float(v) for k,v in vals[col].items() if k is not None and v is not None]
             if hist_vals:
@@ -96,18 +101,19 @@ def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=10
                                           # bins=100
                                           bins=100
                 )
-            else:
-                print("  No values to fill histogram")
+                print("H")
+                do_log_scale = True
+                for k in vals[col].keys():
+                    if k is not None and k < 0:
+                        do_log_scale = False
+                        break
+                if do_log_scale:
+                    axs_flattened[col_i].set_yscale('log')
+                axs_flattened[col_i].set_title(col)
 
-            print("H")
-            do_log_scale = True
-            for k in vals[col].keys():
-                if k < 0:
-                    do_log_scale = False
-                    break
-            if do_log_scale:
-                axs_flattened[col_i].set_yscale('log')
-            axs_flattened[col_i].set_title(col)
+            else:
+                print("  No values to fill histogram of {}".format(col))
+
             print("LT")
 
             col_i += 1
@@ -153,21 +159,21 @@ def main(argv):
     cur = con.cursor()
 
     if 'flight' in args.which_query:
-        print('Flight events:')
+        print('Flight events...')
         flight_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=1 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2017%' "\
                     "{order} OFFSET {offset} LIMIT {limit}"
         draw_distributions(flight_events_query, con, max_rows=max_rows,
                            save_img_format=os.path.join(args.odir, "flight_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
     if 'utah' in args.which_query:
-        print('Utah events:')
+        print('Utah events...')
         utah_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=2 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2016%' "\
                     "{order} OFFSET {offset} LIMIT {limit}"
         draw_distributions(utah_events_query, con, max_rows=max_rows,
                            save_img_format=os.path.join(args.odir, "utah_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
     if 'simu' in args.which_query:
-        print('Simu events:')
+        print('Simu events...')
         simu_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=3 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'ev_%' "\
                     "{order} OFFSET {offset} LIMIT {limit}"
         draw_distributions(simu_events_query, con, max_rows=max_rows,
