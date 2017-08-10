@@ -16,9 +16,8 @@ import matplotlib as mpl
 mpl.use("Agg")
 
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
-# import tool.acqconv
+from utility_funtions import str2bool_argparse
 
 
 def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=100000, max_rows=1000000,
@@ -146,9 +145,26 @@ def main(argv):
     parser.add_argument('-s','--host',default='localhost')
     parser.add_argument('--odir', default='.')
     parser.add_argument('--max-rows', type=int, default=-1)
-    parser.add_argument('which_query', nargs='+')
+    parser.add_argument('--custom-query', default='')
+    parser.add_argument('--print-queries', type=str2bool_argparse, default='Only print queries')
+    parser.add_argument('which_query', nargs='*', help='Avaliable values: flight, utah, simu, custom')
 
     args = parser.parse_args(argv)
+
+    flight_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=1 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2017%' "\
+                "{order} OFFSET {offset} LIMIT {limit}"
+    utah_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=2 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2016%' "\
+                "{order} OFFSET {offset} LIMIT {limit}"
+    simu_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=3 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'ev_%' "\
+                "{order} OFFSET {offset} LIMIT {limit}"
+
+    if args.print_queries:
+        print(flight_events_query)
+        print()
+        print(utah_events_query)
+        print()
+        print(simu_events_query)
+        return 0
 
     if not args.password:
         args.password = getpass.getpass()
@@ -158,26 +174,28 @@ def main(argv):
     con = pg.connect(dbname=args.dbname, user=args.user, password=args.password, host=args.host)
     cur = con.cursor()
 
-    if 'flight' in args.which_query:
-        print('Flight events...')
-        flight_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=1 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2017%' "\
-                    "{order} OFFSET {offset} LIMIT {limit}"
-        draw_distributions(flight_events_query, con, max_rows=max_rows,
-                           save_img_format=os.path.join(args.odir, "flight_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+    for query_code in args.which_query:
 
-    if 'utah' in args.which_query:
-        print('Utah events...')
-        utah_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=2 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'allpackets-SPBEUSO-ACQUISITION-2016%' "\
-                    "{order} OFFSET {offset} LIMIT {limit}"
-        draw_distributions(utah_events_query, con, max_rows=max_rows,
-                           save_img_format=os.path.join(args.odir, "utah_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+        if query_code == 'flight':
+            print('Flight events...')
+            draw_distributions(flight_events_query, con, max_rows=max_rows,
+                               save_img_format=os.path.join(args.odir, "flight_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
 
-    if 'simu' in args.which_query:
-        print('Simu events...')
-        simu_events_query = "SELECT {columns} FROM spb_processing_event_ver2 WHERE source_data_type_num=3 OR source_data_type_num IS NULL AND source_file_acquisition LIKE 'ev_%' "\
-                    "{order} OFFSET {offset} LIMIT {limit}"
-        draw_distributions(simu_events_query, con, max_rows=max_rows,
-                           save_img_format=os.path.join(args.odir, "simu_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+        elif query_code == 'utah':
+            print('Utah events...')
+            draw_distributions(utah_events_query, con, max_rows=max_rows,
+                               save_img_format=os.path.join(args.odir, "utah_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+
+        elif query_code == 'simu':
+            print('Simu events...')
+            draw_distributions(simu_events_query, con, max_rows=max_rows,
+                               save_img_format=os.path.join(args.odir, "simu_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+
+        elif query_code == 'custom' and args.custom_query:
+            print('Custom events...')
+            draw_distributions(args.custom_query, con, max_rows=max_rows,
+                               save_img_format=os.path.join(args.odir, "simu_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
+
 
 
 if __name__ == '__main__':
