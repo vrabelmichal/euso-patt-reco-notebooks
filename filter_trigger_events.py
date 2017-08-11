@@ -24,6 +24,7 @@ if use_agg:
 import event_processing_v1
 import event_processing_v2
 import base_classes
+import safe_termination
 #import processing_config
 from postgresql_event_storage import PostgreSqlEventStorageProvider
 from sqlite_event_storage import Sqlite3EventStorageProvider
@@ -237,6 +238,9 @@ def main(argv):
                                 run_proc_params if run_proc_params is not None else proc_params,
                                 False, sys.stdout, args.lockfile_dir)
 
+        if safe_termination.terminate_flag:
+            break
+
     output_storage_provider.finalize()
 
 
@@ -435,6 +439,9 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         process_event_down_counter -= 1
                 else:
                     raise Exception("Unexpected value of process_event_down_counter")
+
+            if safe_termination.terminate_flag:
+                return
 
 
 def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_trigger, proc_params, start_global_gtu, only_check=False):
