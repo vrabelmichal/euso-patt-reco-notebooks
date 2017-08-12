@@ -5,8 +5,6 @@ import sys
 import re
 import collections
 import configparser
-import filelock
-import hashlib
 
 # Workarunfd to use Matplotlib without DISPLAY
 visualize_option_argv_key = '--visualize'
@@ -25,6 +23,7 @@ import event_processing_v1
 import event_processing_v2
 import base_classes
 import safe_termination
+import processing_sync
 #import processing_config
 from postgresql_event_storage import PostgreSqlEventStorageProvider
 from sqlite_event_storage import Sqlite3EventStorageProvider
@@ -341,7 +340,10 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         processing_lock = None
 
                         if lockfile_dir is not None:
-                            processing_lock = acquire_processing_lock(lockfile_dir, source_file_acquisition, source_file_trigger, proc_params_str, event_start_gtu, True)
+                            processing_lock = processing_sync.acquire_lock(lockfile_dir,
+                                    [source_file_acquisition, source_file_trigger, proc_params_str, event_start_gtu,
+                                     output_storage_provider.get_id_str()],
+                                    True)
                             if not processing_lock:
                                 run_event = False
                                 not_run_reason = 'LOCK NOT ACQUIRED'
@@ -424,7 +426,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
 
                         if lockfile_dir is not None and processing_lock:
-                            release_processing_lock(processing_lock)
+                            processing_sync.release_lock(processing_lock)
 
                         log_file.write(" ; EVENT FINISHED\n")
                         log_file.flush()
@@ -442,38 +444,6 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
             if safe_termination.terminate_flag:
                 return
-
-
-def acquire_processing_lock(lockfiles_dir, source_file_acquisition, source_file_trigger, proc_params, start_global_gtu, only_check=False):
-    os.makedirs(lockfiles_dir, exist_ok=True)
-    ev_id_str = '\n'.join((str(source_file_acquisition), str(source_file_trigger), str(start_global_gtu), str(proc_params)))
-    ev_id_str_encoded = ev_id_str.encode()
-    ev_id_str_hash = hashlib.md5(ev_id_str_encoded).hexdigest()
-    ev_id_str_hash_file_pathname = os.path.join(lockfiles_dir, ev_id_str_hash)
-    event_id_lockfile = filelock.FileLock(ev_id_str_hash_file_pathname)
-    acquire_timeout = None
-    if only_check:
-        acquire_timeout = 0.05
-    try:
-        event_id_lockfile.acquire(timeout=acquire_timeout)
-    except filelock.Timeout:
-        return None
-
-    if hasattr(event_id_lockfile,'_lock_file_fd') and event_id_lockfile._lock_file_fd:
-        os.write(event_id_lockfile._lock_file_fd, ev_id_str_encoded)
-    # if only_check:
-    #     _lockfiles_dir_locks[lockfiles_dir].release()
-    return event_id_lockfile
-
-
-def release_processing_lock(acquired_lockfile):
-    lock_file_path = acquired_lockfile.lock_file
-    acquired_lockfile.release()
-    if os.path.exists(lock_file_path):
-        try:
-            os.unlink(lock_file_path)
-        except FileNotFoundError:
-            pass
 
 
 if __name__ == "__main__":
