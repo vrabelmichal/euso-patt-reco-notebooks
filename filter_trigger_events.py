@@ -85,7 +85,7 @@ def main(argv):
 
     parser.add_argument('--algorithm', default='ver2', help="Version of the processing algorithm used")
 
-    parser.add_argument('--lockfile-dir', default='/tmp/trigger-events-processing', help="Version of the processing algorithm used")
+    parser.add_argument('--lockfile-dir', default="/tmp/spb_file_processing_sync", help="Path to the directory where synchronization lockfiles are stored")
 
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
