@@ -61,7 +61,7 @@ def main(argv):
                                 "/{triggered_pixels_group_max_gap:d}_{triggered_pixels_ht_line_thickness:.2f}_{triggered_pixels_ht_phi_num_steps:d}_{x_y_neighbour_selection_rules}"
                                 "_{x_y_ht_line_thickness:.2f}_{x_y_ht_phi_num_steps:d}_{x_y_ht_rho_step:.2f}_{x_y_ht_peak_threshold_frac_of_max:.2f}_{x_y_ht_peak_gap:d}"
                                 "_{x_y_ht_global_peak_threshold_frac_of_max:.2f}"
-                                "/{acquisition_file_basename}/{kenji_l1trigger_file_basename}"
+                                "/{event_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}"
                                 "/{gtu_global:d}_{packet_id:d}_{gtu_in_packet:d}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
@@ -77,6 +77,7 @@ def main(argv):
 
     parser.add_argument('--save-source-data-type-num', type=str2bool_argparse, default=False, help="If true, number in --data-type-num parameter is saved in the output.")  # TODO implement
     parser.add_argument('--source-data-type-num', type=int, default=-1, help="Number indicating type of processed data in the output / database (default: -1)")
+    #parser.add_argument('--additional-img-path-segment', default='', help="Additional arbitrary path segment that might be included in path given _figure_name_format config option (empty by default)")
 
     parser.add_argument('--filter-n-persist-gt', type=int, default=-1, help="Accept only events with at least one GTU with nPersist more than this value.")
     parser.add_argument('--filter-sum-l1-pdm-gt', type=int, default=-1, help="Accept only events with at least one GTU with sumL1PDM more than this value.")
@@ -168,7 +169,7 @@ def main(argv):
                 args_list[0] = args.run_again_spec
                 run_again_storage_provider = PostgreSqlEventStorageProvider(*args_list)
 
-        processed_files_configs__gtus = collections.OrderedDict()
+        processed_files_configs__gtus_ids = collections.OrderedDict()
         # event_ids__processing_configs = collections.OrderedDict()
         processing_config_ids = set()
 
@@ -183,11 +184,11 @@ def main(argv):
 
         for id, config_info_id, timestamp, trigger_analysis_record in trigger_analysis_records:
             key_tuple = (trigger_analysis_record.source_file_acquisition_full, trigger_analysis_record.source_file_trigger_full, config_info_id)
-            if key_tuple not in processed_files_configs__gtus:
-                processed_files_configs__gtus[key_tuple] = []
-            processed_files_configs__gtus[key_tuple].append(
+            if key_tuple not in processed_files_configs__gtus_ids:
+                processed_files_configs__gtus_ids[key_tuple] = []
+            processed_files_configs__gtus_ids[key_tuple].append(
                 # getattr(trigger_analysis_record, run_again_storage_provider.data_table_pk),
-                getattr(trigger_analysis_record, run_again_storage_provider.data_table_global_gtu_column)
+                (getattr(trigger_analysis_record, run_again_storage_provider.data_table_global_gtu_column), id)
             )
             #event_ids__processing_configs[trigger_analysis_record.event_id] = config_info_id # todo translate_struct ?
             processing_config_ids.add(config_info_id)
@@ -207,22 +208,25 @@ def main(argv):
             m = "WARNING only first {:d} events will be rerun".format(args.run_again_limit)
             print(m,file=sys.stderr)
 
-        for k, gtus in processed_files_configs__gtus.items():
+        for k, gtus_ids in processed_files_configs__gtus_ids.items():
             source_file_acquisition, source_file_trigger, config_info_id = k
 
             if config_info_id not in processing_config_info_records:
                 raise Exception('Unexpected state config info not fetched from processing config_infor table')
+
+            sorted_gtus_ids = sorted(gtus_ids, key=lambda v: v[0])
+
             if source_file_acquisition == args.acquisition_file and args.kenji_l1trigger_file == source_file_trigger \
                 and processing_config_info_records[config_info_id] == proc_params:
-                processing_runs.append((source_file_acquisition, source_file_trigger, proc_params, sorted(gtus), False)) # todo event_ids is wrong
+                processing_runs.append((source_file_acquisition, source_file_trigger, proc_params, sorted_gtus_ids, False)) # todo event_ids is wrong
                 acq_trg_params_added_to_processing_runs = True
             else:
-                processing_runs.append((source_file_acquisition, source_file_trigger, processing_config_info_records[config_info_id], sorted(gtus), True)) # discarding config_info_id creates overhead, but gtu_before_triggerer might be changed
+                processing_runs.append((source_file_acquisition, source_file_trigger, processing_config_info_records[config_info_id], sorted_gtus_ids, True)) # discarding config_info_id creates overhead, but gtu_before_triggerer might be changed
 
     if not acq_trg_params_added_to_processing_runs and args.acquisition_file and args.kenji_l1trigger_file:
         processing_runs.append((args.acquisition_file, args.kenji_l1trigger_file, proc_params, None, False))
 
-    for source_file_acquisition, source_file_trigger, run_proc_params, gtus, process_only_selected in processing_runs:
+    for source_file_acquisition, source_file_trigger, run_proc_params, gtus_ids, process_only_selected in processing_runs:
         if args.gtu_before_trigger is not None:
             run_proc_params.gtu_before_trigger = args.gtu_before_trigger
         if args.gtu_after_trigger is not None:
@@ -233,7 +237,7 @@ def main(argv):
                                 event_reader, output_storage_provider, event_processing,
                                 args.visualize,
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
-                                args.save_figures_base_dir, args.figure_name_format, gtus, process_only_selected,
+                                args.save_figures_base_dir, args.figure_name_format, gtus_ids, process_only_selected,
                                 run_proc_params if run_proc_params is not None else proc_params,
                                 False, sys.stdout, args.lockfile_dir)
 
@@ -249,11 +253,11 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             do_visualization=True,
                             no_overwrite__weak_check=True, no_overwrite__strong_check=False, update=True,
                             figure_img_base_dir=None, figure_img_name_format=None,
-                            run_again_gtus=None, run_again_exclusively=False,
+                            run_again_gtus_ids=None, run_again_exclusively=False,
                             proc_params=None, dry_run=False,
                             log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing"):
 
-    if run_again_gtus is None and run_again_exclusively:
+    if run_again_gtus_ids is None and run_again_exclusively:
         raise Exception("run_again_gtus is None but run_again_exclusively is True")
 
     figure_img_name_format_nested = re.sub(r'\{(program_version|name)(:[^}]+)?\}', r'{\g<0>}', figure_img_name_format)
@@ -335,6 +339,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                                                                  gtu_pdm_data.gtu, last_gtu_in_packet,
                                                                                  event_files_msg))
                         run_event = True
+                        run_event_id = None
                         not_run_reason = ''
 
                         processing_lock = None
@@ -350,17 +355,27 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                         if run_event:
                             if run_again_exclusively:
-                                run_event = event_start_gtu in run_again_gtus
+
+                                run_again_entry_index = next((i for i, v in enumerate(run_again_gtus_ids) if v[0] == event_start_gtu), -1)
+                                run_event = run_again_entry_index >= 0
+                                # run_event = event_start_gtu in run_again_gtus
+
                                 if run_event:
+                                    run_event_id = run_again_gtus_ids[run_again_entry_index][1]
                                     log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
                                 else:
                                     not_run_reason = 'GLB.GTU NOT IN EXCLUSIVE RUN AGAIN LIST'
                             elif no_overwrite__weak_check:
                                 if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version, save_config_info_result):
                                     # True - event does exist
-                                    if run_again_gtus is not None:
-                                        run_event = event_start_gtu in run_again_gtus
+                                    if run_again_gtus_ids is not None:
+
+                                        run_again_entry_index = next((i for i, v in enumerate(run_again_gtus_ids) if v[0] == event_start_gtu), -1)
+                                        run_event = run_again_entry_index >= 0
+                                        # run_event = event_start_gtu in run_again_gtus
+
                                         if run_event:
+                                            run_event_id = run_again_gtus_ids[run_again_entry_index][1]
                                             log_file.write(" ; GLB.GTU IN EXCLUSIVE RUN AGAIN LIST")
                                         else:
                                             not_run_reason = 'GLB.GTU NOT IN RUN AGAIN LIST'
@@ -393,6 +408,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                     num_gtu=len(frame_buffer),
                                     last_gtu=gtu_pdm_data.gtu,
                                     last_gtu_in_packet=last_gtu_in_packet,
+                                    event_id='any' if run_event_id is None else run_event_id,
                                     **proc_params_dict
                                 ))
 
