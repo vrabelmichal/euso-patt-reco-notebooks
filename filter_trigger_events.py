@@ -409,6 +409,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                     last_gtu=gtu_pdm_data.gtu,
                                     last_gtu_in_packet=last_gtu_in_packet,
                                     event_id='any' if run_event_id is None else run_event_id,
+                                    config_info_id=save_config_info_result,
                                     **proc_params_dict
                                 ))
 
