@@ -31,7 +31,7 @@ from utility_funtions import str2bool_argparse
 from event_reading import AcqL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
 from npy_l1_event_reader import NpyL1EventReader
-
+import query_functions
 
 def main(argv):
     # TODO replace default=None
@@ -274,7 +274,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
     event_start_gtu = -1
 
-    save_config_info_result = output_storage_provider.save_config_info(proc_params)
+    proc_params_id = output_storage_provider.save_config_info(proc_params) # should also
     proc_params_str = str(proc_params)
 
     with event_reader_cls(source_file_acquisition, source_file_trigger) as event_reader:
@@ -321,6 +321,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         ########################################################################################
 
                         ev = output_storage_provider.event_processing_analysis_record_class()
+                        ev.program_version = event_processing.program_version
                         ev.source_file_acquisition_full = source_file_acquisition
                         ev.source_file_trigger_full = source_file_trigger
                         ev.exp_tree = event_reader.exp_tree
@@ -328,6 +329,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         ev.packet_id = packet_id
                         ev.gtu_in_packet = event_start_gtu % packet_size
                         ev.gtu_data = frame_buffer
+                        ev.config_info = proc_params
 
                         acquisition_file_basename = os.path.basename(source_file_acquisition)
                         kenji_l1trigger_file_basename = os.path.basename(source_file_trigger)
@@ -366,7 +368,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                 else:
                                     not_run_reason = 'GLB.GTU NOT IN EXCLUSIVE RUN AGAIN LIST'
                             elif no_overwrite__weak_check:
-                                if output_storage_provider.check_event_exists_weak(ev, event_processing.program_version, save_config_info_result):
+                                if output_storage_provider.check_event_exists_weak(ev):
                                     # True - event does exist
                                     if run_again_gtus_ids is not None:
 
@@ -384,6 +386,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                         not_run_reason = 'EVENT ALREADY EXISTS (WEAK CHECK)'
 
                         if run_event:
+                            if run_event_id is not None and run_event_id >= 0:
+                                ev.event_id = run_event_id
 
                             log_file.write(" ; PROCESSING")
                             log_file.flush()
@@ -395,29 +399,13 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             save_fig_pathname_format = None
 
                             if figure_img_base_dir and figure_img_name_format:
-                                proc_params_dict = proc_params.get_dict_of_str()
-
-                                save_fig_pathname_format = os.path.join(figure_img_base_dir, figure_img_name_format_nested.format(
-                                    name='{name}',
-                                    acquisition_file_basename=acquisition_file_basename,
-                                    kenji_l1trigger_file_basename=kenji_l1trigger_file_basename,
-                                    gtu_global=event_start_gtu,
-                                    packet_id=packet_id,
-                                    gtu_in_packet=ev.gtu_in_packet,
-                                    packet_size=packet_size,
-                                    num_gtu=len(frame_buffer),
-                                    last_gtu=gtu_pdm_data.gtu,
-                                    last_gtu_in_packet=last_gtu_in_packet,
-                                    event_id='any' if run_event_id is None else run_event_id,
-                                    config_info_id=save_config_info_result,
-                                    **proc_params_dict
-                                ))
+                                save_fig_pathname_format = query_functions.get_figure_pathname(figure_img_base_dir, figure_img_name_format, ev, '{name}')
 
                             event_processing.process_event(trigger_event_record=ev,
-                                                              proc_params=proc_params,
-                                                              do_visualization=do_visualization,
-                                                              save_fig_pathname_format=save_fig_pathname_format,
-                                                              watermark_text=event_watermark)
+                                                           proc_params=proc_params,
+                                                           do_visualization=do_visualization,
+                                                           save_fig_pathname_format=save_fig_pathname_format,
+                                                           watermark_text=event_watermark)
 
                             log_file.write(" ; SAVING")
                             log_file.flush()
@@ -426,7 +414,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                             if not no_overwrite__strong_check or not output_storage_provider.check_event_exists_strong(ev):
                                 if not dry_run:
-                                    save_result = output_storage_provider.save_event(ev, save_config_info_result, update)
+                                    save_result = output_storage_provider.save_event(ev, update)
                                     if not save_result:
                                         log_file.write(" ; FAILED")
                                     elif save_result=='update':
