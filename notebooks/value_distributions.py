@@ -8,6 +8,7 @@ import argparse
 import getpass
 import collections
 import numpy as np
+import numbers
 import psycopg2 as pg
 #import pandas as pd
 #import pandas.io.sql as psql
@@ -77,7 +78,8 @@ def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=10
                 for col_i, col in enumerate(columns):
                     if col_i >= num_figures: # unnecesarry
                         break
-                    vals[col][row[col_i]] += 1
+                    if isinstance(row[col_i], numbers.Number):
+                        vals[col][row[col_i]] += 1
                     #break # debugging
             print('D')
 
@@ -195,7 +197,6 @@ def main(argv):
             print('Custom events...')
             draw_distributions(args.custom_query, con, max_rows=max_rows,
                                save_img_format=os.path.join(args.odir, "simu_event_prop_dist__cols_{first_col_index}_{last_col_index}.png"))
-
 
 
 if __name__ == '__main__':

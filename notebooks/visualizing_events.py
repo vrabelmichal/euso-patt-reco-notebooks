@@ -140,6 +140,8 @@ def visualize_events(con, outdir='.', max_pages=100, custom_query=None, show=Fal
         print("PAGE {}".format(visualized_pages+1))
         print("-"*20)
 
+        plt.close('all')
+
         for i, r in enumerate(all_entries):
             event_id, source_file_acquisition_full, packet_id, gtu_in_packet, num_gtu, xy_peak_w, gtux_peak_w, gtuy_peak_w, sum_n_persist, num_triggered_pixels, edetector_numfee, etruth_etruetheta = r
             #print(i, source_file_acquisition_full, num_triggered_pixels, edetector_numfee, etruth_etruetheta)
