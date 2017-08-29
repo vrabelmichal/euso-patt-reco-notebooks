@@ -757,6 +757,7 @@ def main(argv):
     parser.add_argument('-s','--host',default='localhost')
     parser.add_argument('--out', default='.')
     parser.add_argument('--random-state', type=int, default=42)
+    parser.add_argument('--model-config', type=int, default=0)
     parser.add_argument('-c','--classifier', default='adaboost')
     parser.add_argument('--overwrite', type=str2bool_argparse, default=False, help='Overwrite output model file')
     parser.add_argument('--read', default="", help='Only read exiting model')
@@ -796,8 +797,11 @@ def main(argv):
             metaclassifier_params = {'random_state': args.random_state}
             classifier = sklearn.ensemble.BaggingRegressor(sklearn.tree.DecisionTreeClassifier(**classifier_params), **metaclassifier_params)
         elif args.classifier == 'mlp':
+            if args.model_config == 1:
+                classifier_params['hidden_layer_sizes'] = (300,150)
             classifier = sklearn.neural_network.MLPClassifier(**classifier_params)
         elif args.classifier == 'naive_bayes':
+            classifier_params = {}
             classifier = sklearn.naive_bayes.GaussianNB(**classifier_params)
         elif args.classifier == 'kneighbors':
             classifier = sklearn.neighbors.KNeighborsClassifier(**classifier_params)
