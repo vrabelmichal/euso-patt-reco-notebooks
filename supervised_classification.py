@@ -627,7 +627,7 @@ def get_columns_for_classification():
     return columns_for_classification
 
 
-def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=0, num_triggered_pixels__le=99999, source_data_type_num=3):
+def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=0, num_triggered_pixels__le=99999, source_data_type_num=3, etruth_theta=0.261799):
     select_simu_events_query_format = '''SELECT 
           {columns}
         FROM spb_processing_event_ver2
@@ -637,20 +637,43 @@ def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge, num_frames
         WHERE 
         ''' + '''
          source_data_type_num = {source_data_type_num:d}
-         AND etruth_truetheta > 0.261799
+         AND etruth_truetheta > {etruth_theta:.4f}
          AND num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
          AND num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
          '''.format(num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
                 num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
-                source_data_type_num=source_data_type_num) + '''
+                source_data_type_num=source_data_type_num, etruth_theta=etruth_theta) + '''
         ORDER BY num_triggered_pixels ASC, event_id ASC 
         OFFSET {offset:d} LIMIT {limit:d}
         ;'''
     return select_simu_events_query_format
 
 
-def select_events(cur, query_format, columns, offset=0, limit=100000, check_selected_columns=True):
-    q = query_format.format(columns=','.join(columns), offset=offset, limit=limit)
+def get_select_simu_events_other_bgf_query_format(t1_source_data_type=3, t2_source_data_type=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799):
+    select_simu_events_query_format = '''SELECT 
+    FROM spb_processing_event_ver2 AS t1 
+    JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
+    JOIN simu_event_spb_proc ON (t2.event_id = simu_event_spb_proc.event_id) 
+    JOIN simu_event AS t2_simu_event USING (simu_event_id) 
+    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id) 
+    WHERE 
+         t1.source_data_type_num={t1_source_data_type_num:d} AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
+     AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
+     AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
+    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC 
+    OFFSET {offset:d} LIMIT {limit:d}
+    ;'''
+    return select_simu_events_query_format
+
+
+def select_events(cur, query_format, columns, offset=0, limit=100000, check_selected_columns=True, column_prefix=''):
+
+    if not column_prefix:
+        query_columns = columns
+    else:
+        query_columns = [column_prefix + column_name for column_name in columns]
+
+    q = query_format.format(columns=','.join(query_columns), offset=offset, limit=limit)
 
     print("Executing query: ")
     print(q)
@@ -669,13 +692,18 @@ def select_events(cur, query_format, columns, offset=0, limit=100000, check_sele
 
 
 def select_training_data__visible_showers(cur, columns):
-    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(3, 999, 3, 800, 4), columns, limit=100000)
+    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(3, 999, 3, 800, 3), columns, limit=100000)
     return all_rows
 
 
 def select_training_data__invisible_showers(cur, columns):
     all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(0, 2, 0, 1), columns, limit=100000)
     return all_rows
+
+
+def select_training_data__visible_showers_other_bgf(cur, columns):
+    all_rows, all_columns = select_events(cur, get_select_simu_events_other_bgf_query_format(), columns, limit=100000, column_prefix='t1.')
+    return all_columns
 
 
 def select_training_data__low_energy_in_pmt(cur, columns):
@@ -717,12 +745,8 @@ def select_training_data__led(cur, columns):
     return all_rows
 
 
-
-# def train_adaboost(labeled_data):
-#     pass
-
-def load_train_test(cur, columns, random_state=None):
-    X = np.array(select_training_data__visible_showers(cur, columns), dtype=np.float32)
+def load_train_test(cur, columns, random_state=None, get_class_1_func=select_training_data__visible_showers):
+    X = np.array(get_class_1_func(cur, columns), dtype=np.float32)
     len_class_1 = len(X)
 
     a = np.array(select_training_data__invisible_showers(cur, columns), dtype=np.float32)
@@ -757,6 +781,7 @@ def main(argv):
     parser.add_argument('-s','--host',default='localhost')
     parser.add_argument('--out', default='.')
     parser.add_argument('--random-state', type=int, default=42)
+    parser.add_argument('--get-class1-func', type=int, default=0)
     parser.add_argument('--model-config', type=int, default=0)
     parser.add_argument('-c','--classifier', default='adaboost')
     parser.add_argument('--overwrite', type=str2bool_argparse, default=False, help='Overwrite output model file')
@@ -775,8 +800,15 @@ def main(argv):
 
     columns = get_columns_for_classification()
 
+    if args.get_class1_func == 0:
+        get_class1_func = get_select_simu_events_query_format
+    elif args.get_class1_func == 1:
+        get_class1_func = get_select_simu_events_other_bgf_query_format
+    else:
+        raise Exception('Invalid class1 func')
+
     # http://scikit-learn.org/stable/modules/preprocessing.html#standardization-or-mean-removal-and-variance-scaling
-    X_train, X_test, y_train, y_test = load_train_test(cur, columns, args.random_state)
+    X_train, X_test, y_train, y_test = load_train_test(cur, columns, args.random_state, get_class_1_func=get_class1_func)
 
     if not args.read:
 
@@ -799,6 +831,8 @@ def main(argv):
         elif args.classifier == 'mlp':
             if args.model_config == 1:
                 classifier_params['hidden_layer_sizes'] = (300,150)
+            if args.model_config == 2:
+                classifier_params['hidden_layer_sizes'] = (500, 400, 100)
             classifier = sklearn.neural_network.MLPClassifier(**classifier_params)
         elif args.classifier == 'naive_bayes':
             classifier_params = {}
