@@ -669,7 +669,7 @@ def select_events(cur, query_format, columns, offset=0, limit=100000, check_sele
 
 
 def select_training_data__visible_showers(cur, columns):
-    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(3, 999, 3, 800), columns, limit=100000)
+    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(3, 999, 3, 800, 4), columns, limit=100000)
     return all_rows
 
 
