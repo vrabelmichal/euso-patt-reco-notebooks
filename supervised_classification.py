@@ -649,18 +649,35 @@ def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge=3, num_fram
     return select_simu_events_query_format
 
 
-def get_select_simu_events_other_bgf_query_format(t1_source_data_type=3, t2_source_data_type=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799):
-    select_simu_events_query_format = '''SELECT 
+def get_select_simu_events_other_bgf_query_format(t1_source_data_type_num=3, t2_source_data_type_num=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799):
+
+    s = ''' 
+    WHERE 
+         t1.source_data_type_num={t1_source_data_type_num:d}'''.format(
+        # gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
+        # # num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
+        t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta
+    )
+
+    ''' AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
+     AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
+     AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
+    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC '''
+
+    select_simu_events_query_format = '''SELECT {columns}
     FROM spb_processing_event_ver2 AS t1 
     JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
     JOIN simu_event_spb_proc ON (t2.event_id = simu_event_spb_proc.event_id) 
     JOIN simu_event AS t2_simu_event USING (simu_event_id) 
-    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id) 
+    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id)''' + ''' 
     WHERE 
          t1.source_data_type_num={t1_source_data_type_num:d} AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
      AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
      AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
-    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC 
+    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC '''.format(
+        gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
+        num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
+        t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta) + ''' 
     OFFSET {offset:d} LIMIT {limit:d}
     ;'''
     return select_simu_events_query_format
@@ -703,7 +720,7 @@ def select_training_data__invisible_showers(cur, columns):
 
 def select_training_data__visible_showers_other_bgf(cur, columns):
     all_rows, all_columns = select_events(cur, get_select_simu_events_other_bgf_query_format(), columns, limit=100000, column_prefix='t1.')
-    return all_columns
+    return all_rows
 
 
 def select_training_data__low_energy_in_pmt(cur, columns):
@@ -801,9 +818,9 @@ def main(argv):
     columns = get_columns_for_classification()
 
     if args.get_class1_func == 0:
-        get_class1_func = get_select_simu_events_query_format
+        get_class1_func = select_training_data__visible_showers
     elif args.get_class1_func == 1:
-        get_class1_func = get_select_simu_events_other_bgf_query_format
+        get_class1_func = select_training_data__visible_showers_other_bgf
     else:
         raise Exception('Invalid class1 func')
 
