@@ -24,6 +24,7 @@ import sklearn.naive_bayes
 import sklearn.neural_network
 import sklearn.neighbors
 import sklearn.externals
+import sklearn.preprocessing
 
 from utility_funtions import str2bool_argparse
 
@@ -651,19 +652,6 @@ def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge=3, num_fram
 
 def get_select_simu_events_other_bgf_query_format(t1_source_data_type_num=3, t2_source_data_type_num=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799):
 
-    s = ''' 
-    WHERE 
-         t1.source_data_type_num={t1_source_data_type_num:d}'''.format(
-        # gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
-        # # num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
-        t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta
-    )
-
-    ''' AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
-     AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
-     AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
-    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC '''
-
     select_simu_events_query_format = '''SELECT {columns}
     FROM spb_processing_event_ver2 AS t1 
     JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
@@ -762,16 +750,20 @@ def select_training_data__led(cur, columns):
     return all_rows
 
 
-def load_train_test(cur, columns, random_state=None, get_class_1_func=select_training_data__visible_showers):
+def load_train_test(cur, columns, random_state=None, get_class_1_func=select_training_data__visible_showers, scaler_pathname=None, scaler_pathname_overwrite=False):
+    print('Loading data - visible showers...')
     X = np.array(get_class_1_func(cur, columns), dtype=np.float32)
     len_class_1 = len(X)
 
+    print('Loading data - invisible showers...')
     a = np.array(select_training_data__invisible_showers(cur, columns), dtype=np.float32)
     if len(a) > 0:
         X = np.append(X, a, axis=0)
+    print('Loading data - low energy pmt...')
     a = np.array(select_training_data__low_energy_in_pmt(cur, columns), dtype=np.float32)
     if len(a) > 0:
         X = np.append(X, a, axis=0)
+    print('Loading data - LED...')
     a = np.array(select_training_data__led(cur, columns), dtype=np.float32)
     if len(a) > 0:
         X = np.append(X, a, axis=0)
@@ -779,7 +771,29 @@ def load_train_test(cur, columns, random_state=None, get_class_1_func=select_tra
     y = np.zeros(len(X), dtype=np.int8)
     y[:len_class_1] = 1
 
-    return sklearn.model_selection.train_test_split(X, y, random_state=random_state)
+    scaler = None
+    data_md5 = None
+    if scaler_pathname:
+        if isinstance(scaler_pathname, str):
+            if os.path.isdir(scaler_pathname):
+                print('Calculating hash of data ...')
+                data_md5 = hashlib.md5(a.data.tobytes())
+                scaler_pathname = os.path.join(scaler_pathname, 'scaler_for_{}.joblib.pkl'.format(data_md5.hexdigest()))
+
+        if os.path.exists(scaler_pathname) and not scaler_pathname_overwrite:
+            print("Loading existing scaler...")
+            scaler = sklearn.externals.joblib.load(scaler_pathname)
+
+        if not scaler:
+            print('StandardScaler - fitting and transforming data ...')
+            scaler = sklearn.preprocessing.StandardScaler()
+            X = sklearn.preprocessing.StandardScaler().fit_transform(X)
+        else:
+            print('Scaler - transforming data ...')
+            X = scaler.transform(X)
+
+    X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, random_state=random_state)
+    return  X_train, X_test, y_train, y_test, scaler, scaler_pathname, data_md5
 
 
 # def fit_classifier(cur, classifier, X_train, y_train, random_state=None, outfile_pathname=None):
@@ -802,6 +816,8 @@ def main(argv):
     parser.add_argument('--model-config', type=int, default=0)
     parser.add_argument('-c','--classifier', default='adaboost')
     parser.add_argument('--overwrite', type=str2bool_argparse, default=False, help='Overwrite output model file')
+    parser.add_argument('--apply-scaler', type=str2bool_argparse, default=False, help='If true data are scaled')
+    parser.add_argument('--scaler-file', default='', help='By default the filename is determined from data and out directory is used')
     parser.add_argument('--read', default="", help='Only read exiting model')
 
     # parser.add_argument('--print-queries', type=str2bool_argparse, default='Only print queries')
@@ -825,7 +841,20 @@ def main(argv):
         raise Exception('Invalid class1 func')
 
     # http://scikit-learn.org/stable/modules/preprocessing.html#standardization-or-mean-removal-and-variance-scaling
-    X_train, X_test, y_train, y_test = load_train_test(cur, columns, args.random_state, get_class_1_func=get_class1_func)
+    scaler_pathname = None
+    if args.apply_scaler:
+        if os.path.isdir(args.out):
+            if not args.scaler_file:
+                scaler_pathname = args.out
+            else:
+                scaler_pathname = os.path.join(args.out, scaler_pathname)
+        elif args.scaler_file:
+            scaler_pathname = args.scaler_file
+        else:
+            scaler_pathname = True
+
+    X_train, X_test, y_train, y_test, scaler, scaler_pathname, data_md5 = \
+        load_train_test(cur, columns, args.random_state, get_class_1_func=get_class1_func, scaler_pathname=scaler_pathname, scaler_pathname_overwrite=args.overwrite)
 
     if not args.read:
 
@@ -865,7 +894,7 @@ def main(argv):
             if os.path.isdir(args.out):
                 outfile_pathname = os.path.join(args.out, "{}.{}.joblib.pkl".format(
                     args.classifier,
-                    hashlib.md5((str(metaclassifier_params) + str(classifier_params)).encode()).hexdigest()
+                    hashlib.md5((str(args) + str(metaclassifier_params) + str(classifier_params)).encode()).hexdigest()
                 ))
             else:
                 outfile_pathname = args.out
@@ -873,14 +902,17 @@ def main(argv):
             if os.path.exists(outfile_pathname) and not args.overwrite and not args.read:
                 raise Exception('Model file "{}" already exists'.format(outfile_pathname))
 
+        print("Fitting data using {}".format(classifier.__class__.__name__))
+
         # cross_val_score # k-fold ... http://scikit-learn.org/stable/modules/cross_validation.html#cross-validation
         classifier.fit(X_train, y_train)
 
+
         if outfile_pathname:
+            print("Saving model {} into file {}".format(classifier.__class__.__name__, outfile_pathname))
             sklearn.externals.joblib.dump(classifier, outfile_pathname)
     else:
         classifier = sklearn.externals.joblib.load(args.read)
-
 
     score = classifier.score(X_test, y_test)
 
