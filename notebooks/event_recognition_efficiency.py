@@ -457,7 +457,7 @@ def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_select
 
 def vis_df_comparison(df1, df2, save_fig_dir=None, fig_file_name='{yaxis}_by_{xaxis}_comparison', xaxis='etruth_trueenergy', yaxis='count_packets', df1_label="All packets bgf=0.5 and bgf=1", df2_label="Selected packets bgf=0.5 and bgf=1", yscale='linear'):
     if len(df1) > 0:
-        ax_df1 = df1.plot(x=xaxis, y=xaxis, marker='.', linestyle='-', color='blue', label=df1_label)
+        ax_df1 = df1.plot(x=xaxis, y=yaxis, marker='.', linestyle='-', color='blue', label=df1_label)
         #all_bgf10_simu_events_by_energy.plot(x='etruth_trueenergy',y='count_packets',marker='.',linestyle='-', color='red', ax=ax_all_simu_events_by_energy)
         df2.plot(x=xaxis,y=yaxis,marker='.',linestyle='-', color='green', ax=ax_df1, label=df2_label)
 
@@ -1385,7 +1385,7 @@ def main(argv):
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
     args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
-    args_parser.add_argument('--exit-on-failue',type=str2bool_argparse,default=False,help='If true, exits on failure')
+    args_parser.add_argument('--exit-on-failure',type=str2bool_argparse,default=False,help='If true, exits on failure')
 
     args = args_parser.parse_args(argv)
 
