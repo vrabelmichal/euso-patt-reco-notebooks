@@ -363,19 +363,6 @@ def get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_p
     return simu_entries_within_cond_bgf05_and_bgf1
 
 
-def vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, fig_file_name='simu_entries_within_cond_bgf05_and_bgf1_num_gtu.png'):
-    if len(simu_entries_within_cond_bgf05_and_bgf1) > 0:
-        fig,ax = plt.subplots(1)
-        simu_entries_within_cond_bgf05_and_bgf1['num_gtu'].hist(ax=ax, bins=25)
-        fig.set_size_inches(25,5)
-        ax.set_yscale('log')
-
-        if save_fig_dir is not None:
-            save_figure(fig, save_fig_dir, fig_file_name)
-        else:
-            plt.show()
-
-
 def get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log=None):
     q = ''' SELECT  /* t1.event_id, t1.source_data_type_num, t1.gtu_in_packet, t1.num_gtu, t2.gtu_in_packet AS t2_gtu_in_packet, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full, t1.source_file_trigger */
     t1.event_id AS t1_event_id, t2.event_id AS t2_event_id, t1.source_data_type_num AS t1_source_data_type_num, t2.source_data_type_num AS t2_source_data_type_num, t1.global_gtu AS t1_global_gtu, t2.global_gtu AS t2_global_gtu,
@@ -470,7 +457,7 @@ def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_select
 
 def vis_df_comparison(df1, df2, save_fig_dir=None, fig_file_name='{yaxis}_by_{xaxis}_comparison', xaxis='etruth_trueenergy', yaxis='count_packets', df1_label="All packets bgf=0.5 and bgf=1", df2_label="Selected packets bgf=0.5 and bgf=1", yscale='linear'):
     if len(df1) > 0:
-        ax_df1 = df1.plot(x=xaxis,y=xaxis,marker='.',linestyle='-', color='blue', label=df1_label)
+        ax_df1 = df1.plot(x=xaxis, y=xaxis, marker='.', linestyle='-', color='blue', label=df1_label)
         #all_bgf10_simu_events_by_energy.plot(x='etruth_trueenergy',y='count_packets',marker='.',linestyle='-', color='red', ax=ax_all_simu_events_by_energy)
         df2.plot(x=xaxis,y=yaxis,marker='.',linestyle='-', color='green', ax=ax_df1, label=df2_label)
 
@@ -1339,13 +1326,27 @@ def vis_num_gtu_hist(flight_events_within_cond_cp, save_fig_dir, fig_file_name='
     # for k,v in flight_events_within_cond_cp[2000:].iloc[64].iteritems():
     #     if k in ["event_id"] or k.startswith('ec')
     #     print("{}\t{}".format(k,v))
-    fig,ax = plt.subplots(1)
-    flight_events_within_cond_cp['num_gtu'].hist(ax=ax, bins=30)
-    fig.set_size_inches(25,5)
-    if save_fig_dir is not None:
-        save_figure(fig, save_fig_dir, fig_file_name)
-    else:
-        plt.show()
+    if len(flight_events_within_cond_cp) > 0:
+        fig,ax = plt.subplots(1)
+        flight_events_within_cond_cp['num_gtu'].hist(ax=ax, bins=30)
+        fig.set_size_inches(25,5)
+        if save_fig_dir is not None:
+            save_figure(fig, save_fig_dir, fig_file_name)
+        else:
+            plt.show()
+
+
+# def vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, fig_file_name='simu_entries_within_cond_bgf05_and_bgf1_num_gtu.png'):
+#     if len(simu_entries_within_cond_bgf05_and_bgf1) > 0:
+#         fig,ax = plt.subplots(1)
+#         simu_entries_within_cond_bgf05_and_bgf1['num_gtu'].hist(ax=ax, bins=25)
+#         fig.set_size_inches(25,5)
+#         ax.set_yscale('log')
+#
+#         if save_fig_dir is not None:
+#             save_figure(fig, save_fig_dir, fig_file_name)
+#         else:
+#             plt.show()
 
 
 def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num_gtu_gt=15):
@@ -1384,6 +1385,7 @@ def main(argv):
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
     args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
+    args_parser.add_argument('--exit-on-failue',type=str2bool_argparse,default=False,help='If true, exits on failure')
 
     args = args_parser.parse_args(argv)
 
@@ -1431,10 +1433,10 @@ def main(argv):
 
         vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
 
-        #vis_col_num_gtu_hist(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy__num_gtu')
     except Exception:
         traceback.print_exc()
-
+        if args.exit_on_failure:
+            sys.exit(2)
 
     # -----------------------------------------------------
     # COND SELECTION RULES
@@ -1451,6 +1453,8 @@ def main(argv):
         print("cond_simu_entries_count = {}".format(cond_simu_entries_count))
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
     # -----------------------------------------------------
     print("ALL SIMU EVENTS WITHIN CONDITIONS")
@@ -1469,13 +1473,15 @@ def main(argv):
         print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
         save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
 
-        vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
+        vis_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
 
         multiple_event_id_rows_row_idxs, multiple_event_id_rows_row_event_ids = find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2)
 
         print_len(multiple_event_id_rows_row_idxs, 'multiple_event_id_rows_row_idxs')
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1494,6 +1500,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1553,6 +1561,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1568,6 +1578,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1583,8 +1595,8 @@ def main(argv):
         if all_bgf05_and_bgf1_simu_events__packet_count_by_posz is None:
             raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz is not loaded')
 
-        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear',yscale='linear')
-        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log',yscale='log')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear', yscale='linear')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log', yscale='log')
 
         cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, all_bgf05_and_bgf1_simu_events__packet_count_by_posz, merge_on='egeometry_pos_z')
 
@@ -1606,6 +1618,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
     # -----------------------------------------------------
     print("ALL SIMU EVENTS BY ENERGY AND POSZ")
@@ -1620,6 +1634,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
     # -----------------------------------------------------
     print("SIMU EVENTS WITHIN CONDITIONS BY ENERGY AND POSZ")
@@ -1650,6 +1666,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1698,6 +1716,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
     # -----------------------------------------------------
     print("UTAH EVENTS BY ENERGY WITHIN CONDITIONS")
@@ -1745,6 +1765,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1839,6 +1861,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
     # -----------------------------------------------------
@@ -1857,6 +1881,8 @@ def main(argv):
 
     except Exception:
         traceback.print_exc()
+        if args.exit_on_failure:
+            sys.exit(2)
 
 
 if __name__ == "__main__":
