@@ -7,38 +7,46 @@ if app_base_dir not in sys.path:
     sys.path.append(app_base_dir)
 
 import re
-import collections
+# import collections
 import numpy as np
 import psycopg2 as pg
 import pandas as pd
 import pandas.io.sql as psql
+import getpass
 import matplotlib as mpl
+import argparse
+import glob
+# from tqdm import tqdm
+import traceback
+
+from utility_funtions import str2bool_argparse
+
 
 def __check_agg():
     args_parser = argparse.ArgumentParser(description='')
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
-    args = args_parser.parse_args()
+    args , _ = args_parser.parse_known_args()
 
     if not args.show_plots:
         mpl.use('Agg')
 
-__check_agg()        
+
+__check_agg()
+
 
 mpl.rcParams['figure.dpi'] = 150
 
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-import glob
-import getpass
+
 #import ROOT
 
-import tool.npy_frames_visualization as npy_vis
+# import tool.npy_frames_visualization as npy_vis
 import tool.acqconv
 import data_analysis_utils
-from utility_functions import str2bool_argparse
+
 
 def get_selection_rules():
-       cond_selection_rules = '''
+    cond_selection_rules = '''
         num_gtu BETWEEN 10 AND 40
     AND num_triggered_pixels BETWEEN 10 AND 150
     
@@ -101,10 +109,10 @@ def get_selection_rules():
     #   AND ( abs(gtu_y_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806  OR  abs(gtu_x_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806 )
 
     #   AND
-    #   (   
-    #          (((trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 45 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35) AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45) 
-    #       OR (trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45 AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40) AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45) 
-    #       OR (trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 50)) 
+    #   (
+    #          (((trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 45 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35) AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45)
+    #       OR (trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45 AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40) AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45)
+    #       OR (trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 = 1) OR trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 50))
     #   )
 
     #   AND
@@ -112,7 +120,7 @@ def get_selection_rules():
     #        (((gtu_y_hough__dbscan_num_clusters_above_thr1 = 1 AND gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 45) OR gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40) AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((gtu_x_hough__dbscan_num_clusters_above_thr1 = 1 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 45) OR gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40) AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 35 AND ((x_y_hough__dbscan_num_clusters_above_thr1 = 1 AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 60) OR x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 50))
-    #   ) 
+    #   )
 
     #   AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 < 3 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 < 3  AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 < 4
 
@@ -130,25 +138,25 @@ def get_selection_rules():
     #   AND num_triggered_pixels BETWEEN 10 AND 150
     #   AND (abs(gtu_y_hough__peak_thr2_avg_phi) > 0.174533 OR abs(gtu_x_hough__peak_thr2_avg_phi) > 0.174533)
     #   AND ( abs(gtu_y_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806  OR  abs(gtu_x_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806 )
-    
+
     #  AND
-    #  ( 
-    #        (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40) 
+    #  (
+    #        (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90)
     #  )
-    
-    #   AND 
+
+    #   AND
     #   (
     #        (gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90)
     #   )
-    
+
     #   AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
-    
+
     # '''
 
     # '''
@@ -158,23 +166,23 @@ def get_selection_rules():
     #   AND num_triggered_pixels BETWEEN 10 AND 150
     #   AND (abs(gtu_y_hough__peak_thr2_avg_phi) > 0.174533 OR abs(gtu_x_hough__peak_thr2_avg_phi) > 0.174533)
     #   AND ( abs(gtu_y_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806  OR  abs(gtu_x_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806 )
-    
+
     #  AND
-    #  ( 
-    #        (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40) 
+    #  (
+    #        (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 90 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40)
     #     OR (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 90)
     #  )
-    
+
     #   AND gtu_y_hough__peak_thr1__max_cluster_counts_sum_width < 41 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width < 41
-    
+
     #   AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width < 20 /* THIS SHOULD BE REMOVED */
     #   AND x_y_hough__peak_thr1__max_cluster_counts_sum_width < 25
-    
+
     #   AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
-    
+
     # '''
 
     # '''
@@ -184,20 +192,20 @@ def get_selection_rules():
     #   AND num_triggered_pixels BETWEEN 10 AND 150
     #   AND (abs(gtu_y_hough__peak_thr2_avg_phi) > 0.174533 OR abs(gtu_x_hough__peak_thr2_avg_phi) > 0.174533)
     #   AND ( abs(gtu_y_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806  OR  abs(gtu_x_hough__peak_thr3_avg_phi) NOT BETWEEN 1.48353 AND 1.65806 )
-    
+
     #   AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width < 41 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width < 41
     #   AND trigg_gtu_y_hough__peak_thr2__max_cluster_counts_sum_width < 20 AND trigg_gtu_y_hough__peak_thr2__max_cluster_counts_sum_height < 20
     #   AND trigg_gtu_x_hough__peak_thr2__max_cluster_counts_sum_width < 20 AND trigg_gtu_x_hough__peak_thr2__max_cluster_counts_sum_height < 20
-    
+
     #   AND gtu_y_hough__peak_thr1__max_cluster_counts_sum_width < 41 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width < 41
-    
+
     #   AND trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width < 20
     #   AND x_y_hough__peak_thr1__max_cluster_counts_sum_width < 25
-    
+
     #   AND trigg_gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND trigg_gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND trigg_x_y_hough__dbscan_num_clusters_above_thr1 < 4
     #   AND gtu_y_hough__dbscan_num_clusters_above_thr1 < 4 AND gtu_x_hough__dbscan_num_clusters_above_thr1 < 4
-    
+
     # '''
 
     # '''
@@ -219,7 +227,7 @@ def get_selection_rules():
     #   AND gtu_y_hough__peak_thr1__max_cluster_counts_sum_width < 41 AND gtu_x_hough__peak_thr1__max_cluster_counts_sum_width < 41
     # '''
 
-    # '''  
+    # '''
     #   AND num_gtu BETWEEN 12 AND 40
     #   AND num_triggered_pixels > 10 /* higher restriction than copy1 */
     #   /*AND max_n_persist > 4 */
@@ -240,7 +248,7 @@ def get_selection_rules():
     return cond_selection_rules
 
 
-def get_conn(*kwargs):
+def get_conn(**kwargs):
     con = pg.connect(**kwargs) # "dbname=eusospb_data user=eusospb password= host=localhost"
     cur = con.cursor()
     return con, cur
@@ -261,14 +269,17 @@ def save_csv(df,save_txt_dir,base_file_name, sep='\t'):
     return None
 
 
-def get_spb_processing_event_ver2_columns():
-    cur.execute('SELECT * FROM spb_processing_event_ver2 LIMIT 1')
+def get_spb_processing_event_ver2_columns(cur, queries_log=None):
+    q = 'SELECT * FROM spb_processing_event_ver2 LIMIT 1'
+    if queries_log:
+        queries_log.write(q)
+    cur.execute(q)
     spb_processing_event_ver2_columns = list(map(lambda x: x[0], cur.description))
 
-    return spb_processing_event_ver2_columns    
-    
+    return spb_processing_event_ver2_columns
 
-def get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con):
+
+def get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log=None):
     all_bgf05_and_bgf1_simu_events__packet_count_by_energy_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, sq.etruth_trueenergy AS etruth_trueenergy 
     FROM (
@@ -281,7 +292,8 @@ def get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con):
     GROUP BY etruth_trueenergy, t1.source_file_acquisition_full, t1.packet_id
     ) as sq GROUP BY etruth_trueenergy ORDER BY etruth_trueenergy;
     '''
-
+    if queries_log:
+        queries_log.write(all_bgf05_and_bgf1_simu_events__packet_count_by_energy_query)
     return psql.read_sql( all_bgf05_and_bgf1_simu_events__packet_count_by_energy_query, con)
 
 
@@ -290,8 +302,8 @@ def fig_saving_msg(path):
 
 
 def print_len(l, label, comment=''):
-    print("len({}) = {}{}".format(label, len(l)), '' if not comment else '   // {}'.format(comment))
-    
+    print("len({}) = {}{}".format(label, len(l), '' if not comment else '   // {}'.format(comment)))
+
 
 def save_figure(fig, *path_parts):
     path = ensure_ext(os.path.join(*path_parts), '.png')
@@ -299,22 +311,26 @@ def save_figure(fig, *path_parts):
     fig.savefig(path)
 
 def vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, fig_file_name='all_bgf05_and_bgf1_simu_events__count_packets_by_energy.png'):
-    ax_all_bgf05_and_bgf1_simu_events__packet_count_by_energy = all_bgf05_and_bgf1_simu_events__packet_count_by_energy.plot(x='etruth_trueenergy', y='count_packets')
-    if save_fig_dir is not None:
-        save_figure(ax_all_bgf05_and_bgf1_simu_events__packet_count_by_energy.get_figure(), save_fig_dir, fig_file_name)
-    else:
-        plt.show()
+    if len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy) > 0:
+        ax_all_bgf05_and_bgf1_simu_events__packet_count_by_energy = all_bgf05_and_bgf1_simu_events__packet_count_by_energy.plot(x='etruth_trueenergy', y='count_packets')
+        if save_fig_dir is not None:
+            save_figure(ax_all_bgf05_and_bgf1_simu_events__packet_count_by_energy.get_figure(), save_fig_dir, fig_file_name)
+        else:
+            plt.show()
 
 
-def get_count_simu_entries_within_cond(con, cond_selection_rules):
-    count_simu_entries_within_cond = psql.read_sql('''
+def get_count_simu_entries_within_cond(con, cond_selection_rules, queries_log=None):
+    q = '''
     SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 3 AND {conds} 
-    '''.format(conds=cond_selection_rules), con)
-    return count_simu_entries_within_cond
+    '''.format(conds=cond_selection_rules)
+    if queries_log:
+        queries_log.write(q)
+    count_simu_entries_within_cond = psql.read_sql(q, con)
+    return count_simu_entries_within_cond['count'].iloc[0]
 
 # to_csv(path, sep='\t')
 
-def get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns):
+def get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
     cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
     q = '''
     SELECT t1.event_id, t1.source_data_type_num, t1.gtu_in_packet, t1.num_gtu, t2.gtu_in_packet AS t2_gtu_in_packet, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full, t1.source_file_trigger FROM spb_processing_event_ver2 AS t1 
@@ -323,12 +339,14 @@ def get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_se
     AND {conds} 
     ORDER BY t1.event_id ASC
     '''.format(conds=cond_selection_rules_t1_prefixed)
-    print(q)
+    # print(q)
+    if queries_log:
+        queries_log.write(cond_selection_rules_t1_prefixed)
     simu_entries_within_cond_bgf05_and_bgf1 = psql.read_sql(q, con)
     return simu_entries_within_cond_bgf05_and_bgf1
-    
 
-def get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns):
+
+def get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
     cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
     q = '''
     SELECT t1.event_id, t1.source_data_type_num, t1.gtu_in_packet, t1.num_gtu, t2.gtu_in_packet AS t2_gtu_in_packet, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full, t1.source_file_trigger FROM spb_processing_event_ver2 AS t1 
@@ -338,24 +356,27 @@ def get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_p
     ORDER BY t1.event_id ASC
     '''.format(conds=cond_selection_rules_t1_prefixed)
     #print(q)
+    if queries_log:
+        queries_log.write(q)
     simu_entries_within_cond_bgf05_and_bgf1 = psql.read_sql(q, con)
     #print(len(simu_entries_within_cond_bgf05_and_bgf1))
-    print simu_entries_within_cond_bgf05_and_bgf1
-    
+    return simu_entries_within_cond_bgf05_and_bgf1
 
-def vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, fig_file_name='simu_entries_within_cond_bgf05_and_bgf1_num_gtu.png'): 
-    fig,ax = plt.subplots(1)
-    simu_entries_within_cond_bgf05_and_bgf1['num_gtu'].hist(ax=ax, bins=25)
-    fig.set_size_inches(25,5)
-    ax.set_yscale('log')
-    
-    if save_fig_dir is not None:
-        save_figure(fig, save_fig_dir, fig_file_name)
-    else:
-        plt.show()
-    
 
-def get_simu_entries_within_cond_bgf05_and_bgf1_v2(con):
+def vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, fig_file_name='simu_entries_within_cond_bgf05_and_bgf1_num_gtu.png'):
+    if len(simu_entries_within_cond_bgf05_and_bgf1) > 0:
+        fig,ax = plt.subplots(1)
+        simu_entries_within_cond_bgf05_and_bgf1['num_gtu'].hist(ax=ax, bins=25)
+        fig.set_size_inches(25,5)
+        ax.set_yscale('log')
+
+        if save_fig_dir is not None:
+            save_figure(fig, save_fig_dir, fig_file_name)
+        else:
+            plt.show()
+
+
+def get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log=None):
     q = ''' SELECT  /* t1.event_id, t1.source_data_type_num, t1.gtu_in_packet, t1.num_gtu, t2.gtu_in_packet AS t2_gtu_in_packet, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full, t1.source_file_trigger */
     t1.event_id AS t1_event_id, t2.event_id AS t2_event_id, t1.source_data_type_num AS t1_source_data_type_num, t2.source_data_type_num AS t2_source_data_type_num, t1.global_gtu AS t1_global_gtu, t2.global_gtu AS t2_global_gtu,
     t1.gtu_in_packet AS t1_gtu_in_packet, t2.gtu_in_packet AS t2_gtu_in_packet, t1.num_gtu AS t1_num_gtu, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full AS t1_source_file_acquisition_full, t2.source_file_acquisition_full AS t2_source_file_acquisition_full, 
@@ -373,7 +394,9 @@ def get_simu_entries_within_cond_bgf05_and_bgf1_v2(con):
     JOIN spb_processing_event_ver2 AS t2 USING(source_file_acquisition_full) 
     WHERE t2.source_data_type_num=5  AND ((t1.gtu_in_packet <= t2.gtu_in_packet AND t2.gtu_in_packet - t1.gtu_in_packet < t1.num_gtu - 4) OR (t2.gtu_in_packet < t1.gtu_in_packet AND t1.gtu_in_packet - t2.gtu_in_packet < t2.num_gtu - 4)) /* AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < 5*/ 
     ORDER BY t1.event_id ASC'''.format(conds=cond_selection_rules)
-    print(q)
+    # print(q)
+    if queries_log:
+        queries_log.write(q)
     simu_entries_within_cond_bgf05_and_bgf1_v2 = psql.read_sql(q, con)
     return simu_entries_within_cond_bgf05_and_bgf1_v2
 
@@ -389,28 +412,37 @@ def find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2):
     return row_idxs, list(set(row_event_ids))
 
 
-def get_count_utah_entries_within_cond(con, cond_selection_rules):
-    count_utah_entries_within_cond = psql.read_sql('''
+def get_count_utah_entries_within_cond(con, cond_selection_rules, queries_log=None):
+    q = '''
     SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 2 AND {conds} 
-    '''.format(conds=cond_selection_rules), con)
-    return count_utah_entries_within_cond
+    '''.format(conds=cond_selection_rules)
+    if queries_log:
+        queries_log.write(q)
+    count_utah_entries_within_cond = psql.read_sql(q, con)
+    return count_utah_entries_within_cond['count'].iloc[0]
 
 
-def get_count_flight_entries_within_cond(con, cond_selection_rules):
-    count_flight_entries_within_cond = psql.read_sql('''
+def get_count_flight_entries_within_cond(con, cond_selection_rules, queries_log=None):
+    q = '''
     SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 1 AND x_y_active_pixels_num > 1750 AND {conds} 
-    '''.format(conds=cond_selection_rules), con)
-    return count_flight_entries_within_cond
+    '''.format(conds=cond_selection_rules)
+    if queries_log:
+        queries_log.write(q)
+    count_flight_entries_within_cond = psql.read_sql(q, con)
+    return count_flight_entries_within_cond['count'].iloc[0]
 
 
-def get_count_flight_entries_within_cond_num_ec(con, cond_selection_rules, num_ec=3):
-    get_count_flight_entries_within_cond_num_ec = psql.read_sql('''
+def get_count_flight_entries_within_cond_num_ec(con, cond_selection_rules, num_ec=3, queries_log=None):
+    q = '''
     SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 1 AND {conds} 
-    '''.format(conds=cond_selection_rules.replace('x_y_active_pixels_num > 1750','x_y_active_pixels_num > {}'.format(256*num_ec))), con)
-    return get_count_flight_entries_within_cond_num_ec
+    '''.format(conds=cond_selection_rules.replace('x_y_active_pixels_num > 1750','x_y_active_pixels_num > {}'.format(256*num_ec)))
+    if queries_log:
+        queries_log.write(q)
+    get_count_flight_entries_within_cond_num_ec = psql.read_sql(q, con)
+    return get_count_flight_entries_within_cond_num_ec['count'].iloc[0]
 
 
-def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_selection_rules):
+def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_selection_rules, queries_log=None):
     cond_bgf05_and_bgf1_simu_events_by_energy_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, sq.etruth_trueenergy AS etruth_trueenergy 
     FROM (
@@ -429,23 +461,26 @@ def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_select
     GROUP BY etruth_trueenergy, t1.source_file_acquisition_full, t1.packet_id) AS sq 
     GROUP BY etruth_trueenergy ORDER BY etruth_trueenergy;
     '''.format(cond_selection_rules=cond_selection_rules)
-    print(cond_bgf05_and_bgf1_simu_events_by_energy_query)
+    if queries_log:
+        queries_log.write(cond_bgf05_and_bgf1_simu_events_by_energy_query)
+    # print(cond_bgf05_and_bgf1_simu_events_by_energy_query)
     cond_bgf05_and_bgf1_simu_events_by_energy = psql.read_sql(cond_bgf05_and_bgf1_simu_events_by_energy_query, con)
     return cond_bgf05_and_bgf1_simu_events_by_energy
 
 
 def vis_df_comparison(df1, df2, save_fig_dir=None, fig_file_name='{yaxis}_by_{xaxis}_comparison', xaxis='etruth_trueenergy', yaxis='count_packets', df1_label="All packets bgf=0.5 and bgf=1", df2_label="Selected packets bgf=0.5 and bgf=1", yscale='linear'):
-    ax_df1 = df1.plot(x=xaxis,y=xaxis,marker='.',linestyle='-', color='blue', label=df1_label)
-    #all_bgf10_simu_events_by_energy.plot(x='etruth_trueenergy',y='count_packets',marker='.',linestyle='-', color='red', ax=ax_all_simu_events_by_energy)
-    df2.plot(x=xaxis,y=yaxis,marker='.',linestyle='-', color='green', ax=ax_df1, label=df2_label)
-    
-    ax_df1.set_yscale(yscale) #"log", nonposy='clip')
-    
-    #plt.show()
-    if save_fig_dir is not None:
-        ax_df1.get_figure().save_fig(os.path.join(save_fig_dir, fig_file_name.format(xaxis=xaxis, yaxis=yaxis))
-    else:
-        plt.show()
+    if len(df1) > 0:
+        ax_df1 = df1.plot(x=xaxis,y=xaxis,marker='.',linestyle='-', color='blue', label=df1_label)
+        #all_bgf10_simu_events_by_energy.plot(x='etruth_trueenergy',y='count_packets',marker='.',linestyle='-', color='red', ax=ax_all_simu_events_by_energy)
+        df2.plot(x=xaxis,y=yaxis,marker='.',linestyle='-', color='green', ax=ax_df1, label=df2_label)
+
+        ax_df1.set_yscale(yscale) #"log", nonposy='clip')
+
+        #plt.show()
+        if save_fig_dir is not None:
+            save_figure(ax_df1.get_figure(), save_fig_dir, fig_file_name.format(xaxis=xaxis, yaxis=yaxis))
+        else:
+            plt.show()
 
 
 def merge_cond_all_dataframes(cond_df, all_df, merge_on='etruth_trueenergy', fraction_column='count_fraction', count_column='count_packets'):
@@ -461,7 +496,7 @@ def merge_cond_all_dataframes(cond_df, all_df, merge_on='etruth_trueenergy', fra
         merged_col_all = count_column + '_all'
         merged_nona_df[fraction_column] = merged_nona_df[merged_col_cond] / merged_nona_df[merged_col_all]
     return merged_nona_df
-    
+
 
 def merge_all_cond_bgf05_and_bgf1_simu_events_by_energy(cond_bgf05_and_bgf1_simu_events_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy'):
     cond_all_merged_bgf05_simu_events_by_energy = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on=x_axis_column)
@@ -477,28 +512,29 @@ def calc_yerrs_for_merged_events_by_energy(cond_all_merged_bgf05_simu_events_by_
     #yerrs = list( np.sqrt(n1 * (1 - n1/n2))/n2 )
     #return yerrs
     return calc_error_bars(n1, n2)
-    
 
-def vis_count_fraction(cond_all_merged_bgf05_simu_events_by_energy, xerrs=None, yerrs=None, save_fig_dir=None, fig_file_name='count_fraction_by_energy.png')
-    fig, axs = plt.subplots(2,1)
-    fig.set_size_inches(18.5/1.8, 2*10.5/1.8)
-    for ax_i, ax in enumerate(axs):
-        ax = cond_all_merged_bgf05_simu_events_by_energy.plot(x='etruth_trueenergy', y='count_fraction', xerr=xerrs, yerr=yerrs, marker='.',linestyle='-', ecolor='green', linewidth=1, label='Fraction of all packets', ax=ax)
-        ax.set_ylim([0,1.1])
-        if ax_i == 1:
-            ax.set_xscale('log')
-        ax.grid(True)
 
-    #plt.show()
-    if save_fig_dir is not None:
-        save_figure(fig,save_fig_dir, fig_file_name)
-    else:
-        plt.show()
+def vis_count_fraction(cond_all_merged_bgf05_simu_events_by_energy, xerrs=None, yerrs=None, save_fig_dir=None, fig_file_name='count_fraction_by_energy.png'):
+    if len(cond_all_merged_bgf05_simu_events_by_energy):
+        fig, axs = plt.subplots(2,1)
+        fig.set_size_inches(18.5/1.8, 2*10.5/1.8)
+        for ax_i, ax in enumerate(axs):
+            ax = cond_all_merged_bgf05_simu_events_by_energy.plot(x='etruth_trueenergy', y='count_fraction', xerr=xerrs, yerr=yerrs, marker='.',linestyle='-', ecolor='green', linewidth=1, label='Fraction of all packets', ax=ax)
+            ax.set_ylim([0,1.1])
+            if ax_i == 1:
+                ax.set_xscale('log')
+            ax.grid(True)
+
+        #plt.show()
+        if save_fig_dir is not None:
+            save_figure(fig,save_fig_dir, fig_file_name)
+        else:
+            plt.show()
 
 
 def calc_error_bars(n1, n2):
     frac = n1/n2
-    yerrs = list( np.sqrt( ((1-(frac))/n1) + (1/n2) ) * frac ) 
+    yerrs = list( np.sqrt( ((1-(frac))/n1) + (1/n2) ) * frac )
     return frac, yerrs
 
 
@@ -514,65 +550,70 @@ def fit_points_using_yerrs(x, y, yerrs, norders=8):
     for i in range(1,norders+1):
         z =  np.polyfit(x, y, i, w=w)
         fits_p.append(np.poly1d(z))
-    
+
     return fits_p
 
 
 def save_csv_of_fits(fits_p, *path_parts):
     sep = '\t'
-    csv_path = ensure_ext(os.path.join(*path_parts,".{}sv".format('t' if sep=='\t' else 'c')))
+    csv_path = ensure_ext(os.path.join(*path_parts),".{}sv".format('t' if sep=='\t' else 'c'))
     with open(csv_path,'w') as csv_file:
         for i, fit_p in enumerate(fits_p):
             print("{:d}".format(i+1) + sep + sep.join(["{:.4f}".format(n) for n in fit_p]), file=csv_file)
 
 
-#def fit_points_cond_all_merged_bgf05_simu_events_by_energy(cond_all_merged_bgf05_simu_events_by_energy, 
-def fit_points_cond_all_merged(cond_all_merged, 
+#def fit_points_cond_all_merged_bgf05_simu_events_by_energy(cond_all_merged_bgf05_simu_events_by_energy,
+def fit_points_cond_all_merged(cond_all_merged,
                            x_axis_column='etruth_trueenergy', y_axis_cond_column='count_packets_cond', y_axis_all_column='count_packets_all'):
 
     x = cond_all_merged[x_axis_column]
     #y = # cond_all_merged['count_fraction']
+
+    if len(x) == 0:
+        raise RuntimeError('No x axis column values')
 
     n1 = cond_all_merged[y_axis_cond_column]
     n2 = cond_all_merged[y_axis_all_column]
 
     frac, yerrs = calc_error_bars(n1, n2)
     fits_p = fit_points_using_yerrs(x, frac, yerrs)
-    
+
     return x, frac, yerrs, fits_p
 
 
 def vis_count_fraction_fits(x, y, xerrs=None, yerrs=None, fits_p=[], save_fig_dir=None, fig_file_name='count_fraction_by_energy_fits', xlabel='Energy [MeV]'):
-    
-    xv = np.linspace(np.min(x),np.max(x),100)
 
-    fig, eaxs = plt.subplots(2,1)
-    fig.set_size_inches(18.5/1.8, 2*10.5/1.8)
+    if len(x) > 0 and len(y) > 0:
 
-    colors = ['pink', 'purple', 'red', 'black', 'yellow', 'royalblue', 'cyan', 'blue']
-    line_styles = ['-',':']
-    labels = ['{:d}st order poly'. '{:d}nd order poly', '{:d}rd order poly', '{:d}nd order poly']
+        xv = np.linspace(np.min(x),np.max(x),100)
 
-    for eax_i, eax in enumerate(eaxs):
-        eax.errorbar(x,y,xerr=xerrs, yerr=yerrs,ecolor='g',fmt='.',label="Measurement")
+        fig, eaxs = plt.subplots(2,1)
+        fig.set_size_inches(18.5/1.8, 2*10.5/1.8)
 
-        for j, fit_p in enumerate(fits_p):
-            if not fit_p:
-                continue
-            eax.plot(xv, fit_p(xv), (j//len(colors))%len(line_styles),color=j%len(colors), label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
+        colors = ['pink', 'purple', 'red', 'black', 'yellow', 'royalblue', 'cyan', 'blue']
+        line_styles = ['-',':']
+        labels = ['{:d}st order poly', '{:d}nd order poly', '{:d}rd order poly', '{:d}nd order poly']
 
-        eax.set_ylim([0.3,1.1])
-        eax.grid(True)
-        eax.set_ylabel('Efficiency')
-        eax.set_xlabel(xlabel)
-        if eax_i == 1:
-            eax.set_xscale('log')
-        eax.legend()
-     
-    if save_fig_dir is not None:
-        save_figure(fig, save_fig_dir, fig_file_name)
-    else:
-        plt.show()
+        for eax_i, eax in enumerate(eaxs):
+            eax.errorbar(x,y,xerr=xerrs, yerr=yerrs,ecolor='g',fmt='.',label="Measurement")
+
+            for j, fit_p in enumerate(fits_p):
+                if not fit_p:
+                    continue
+                eax.plot(xv, fit_p(xv), (j//len(colors))%len(line_styles),color=j%len(colors), label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
+
+            eax.set_ylim([0.3,1.1])
+            eax.grid(True)
+            eax.set_ylabel('Efficiency')
+            eax.set_xlabel(xlabel)
+            if eax_i == 1:
+                eax.set_xscale('log')
+            eax.legend()
+
+        if save_fig_dir is not None:
+            save_figure(fig, save_fig_dir, fig_file_name)
+        else:
+            plt.show()
 
 
 def weighted_avg_and_std(values, weights):
@@ -587,6 +628,8 @@ def weighted_avg_and_std(values, weights):
 
 
 def thin_datapoints(x_vals, y_vals, num_steps=50):
+    if len(x_vals) == 0:
+        raise RuntimeError('Empty x_vals')
     max_x_val = x_vals[-1]
     x_val_step = max_x_val/num_steps
     r_i = 0
@@ -597,7 +640,7 @@ def thin_datapoints(x_vals, y_vals, num_steps=50):
     binned_x_errs = []
     binned_x_ranges_low = []
     binned_x_ranges_up = []
-    
+
     while cur_x_val_step <= max_x_val:
         bin_x_vals = []
         bin_y_vals = []
@@ -620,7 +663,7 @@ def thin_datapoints(x_vals, y_vals, num_steps=50):
             binned_x_ranges_up.append(bin_x_vals[-1])
 
         cur_x_val_step += x_val_step
-        
+
     return np.array(binned_x_vals), np.array(binned_y_vals), np.array(binned_x_errs), np.array(binned_x_ranges_low), np.array(binned_x_ranges_up)
 
 
@@ -631,9 +674,9 @@ def calc_thin_datapoints_avg(e_vals_fc, e_fc_low, e_fc_up, e_vals_fa, e_fa_low, 
     return e_avg_vals, (e_avg_low, e_avg_up)
 
 
-def thin_datapoints_from_dataframe(df, x_axis_column='etruth_trueenergy', y_axis_cond_column='count_packets_cond', y_axis_all_column='count_packets_all', num_steps=20):    
+def thin_datapoints_from_dataframe(df, x_axis_column='etruth_trueenergy', y_axis_cond_column='count_packets_cond', y_axis_all_column='count_packets_all', num_steps=20):
     e_vals_fc, y_cond_vals, e_fc_err, e_fc_low, e_fc_up = thin_datapoints(np.array(df[x_axis_column]), np.array(df[y_axis_cond_column]), num_steps)
-    e_vals_fa, y_all_vals, e_fa_err, e_fa_low, e_fa_up = thin_datapoints(np.array(df[x_axis_column]), np.array(df[y_axis_all_column]), num_steps) 
+    e_vals_fa, y_all_vals, e_fa_err, e_fa_low, e_fa_up = thin_datapoints(np.array(df[x_axis_column]), np.array(df[y_axis_all_column]), num_steps)
     # print(np.array(e_vals_fc))
     # print(len(e_vals_fc))
     # print(y_cond_vals)
@@ -649,8 +692,8 @@ def thin_datapoints_from_dataframe(df, x_axis_column='etruth_trueenergy', y_axis
     # print(np.array(e_vals_fc) - np.array(e_vals_fa))
     # In[152]:
     # In[153]:
-    y = y_cond_vals/y_all_vals
-    yerrs = calc_error_bars(y, n1, n2)
+    # y = y_cond_vals/y_all_vals
+    y, yerrs = calc_error_bars(y_cond_vals, y_all_vals)
     e_avg_vals, xerrs  = calc_thin_datapoints_avg(e_vals_fc, e_fc_low, e_fc_up, e_vals_fa, e_fa_low, e_fa_up)  # xerrs = (e_avg_low, e_avg_up)
     return e_avg_vals, y, xerrs, yerrs, (e_vals_fc, y_cond_vals, e_fc_err, e_fc_low, e_fc_up), (e_vals_fa, y_all_vals, e_fa_err, e_fa_low, e_fa_up)
 
@@ -658,19 +701,22 @@ def thin_datapoints_from_dataframe(df, x_axis_column='etruth_trueenergy', y_axis
 def save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, file_name, sep='\t'):
     # TODO pass
     #np.column_stack(x,y,np.array(xerrs)[:0,], )
-    csv_path = ensure_ext(os.path.join(*path_parts,".{}sv".format('t' if sep=='\t' else 'c')))
+    csv_path = ensure_ext(os.path.join(save_csv_dir, file_name),".{}sv".format('t' if sep=='\t' else 'c'))
     with open(csv_path,'w') as csv_file:
         print(sep.join(("x", "y", "avg_x_low", "avg_x_up", "y_err", "cond_x", "cond_y", "cond_x_err", "cond_x_low", "cond_x_high", "all_x", "all_y", "all_x_err", "all_x_low", "all_x_high")), file=csv_file)
         for i in range(len(x)):
             print(sep.join([x, y, xerrs[0], xerrs[1], yerrs, cond_thinned[0], cond_thinned[1], cond_thinned[2], cond_thinned[3], cond_thinned[4], all_thinned[0], all_thinned[1], all_thinned[2], all_thinned[3], all_thinned[4]]), file=csv_file)
 
 
-def vis_thinned_datapoints(cond_all_merged_bgf05_simu_events_by_energy, 
+def vis_thinned_datapoints(cond_all_merged_bgf05_simu_events_by_energy,
                            e_vals_fc, y_cond_vals, e_fc_err, e_fc_low, e_fc_up,
-                           e_vals_fa, y_all_vals, e_fa_err, e_fa_low, e_fa_up, 
-                           save_fig_dir, fig_file_name='comparison_thinned_datapoints.png', 
+                           e_vals_fa, y_all_vals, e_fa_err, e_fa_low, e_fa_up,
+                           save_fig_dir, fig_file_name='comparison_thinned_datapoints.png',
                            x_axis_column='etruth_trueenergy', y_axis_cond_column='count_packets_cond', y_axis_all_column='count_packets_all'):
-    
+
+    if len(cond_all_merged_bgf05_simu_events_by_energy) == 0 or len(e_vals_fa) == 0 or len(e_vals_fc) == 0:
+        return
+
     fig, ax = plt.subplots(1)
     fig.set_size_inches(18.5/1.5, 10.5/1.5)
     ax.plot(cond_all_merged_bgf05_simu_events_by_energy[x_axis_column], cond_all_merged_bgf05_simu_events_by_energy[y_axis_cond_column], color='yellow', #yerr=yerrs, , ecolor='green'
@@ -686,23 +732,23 @@ def vis_thinned_datapoints(cond_all_merged_bgf05_simu_events_by_energy,
     ax.errorbar(e_vals_fc, y_cond_vals, color='black', alpha=0.3, xerr=e_fc_err, # e_fa_err, #yerr=yerrs, , ecolor='green'
             marker='.',linestyle='', linewidth=1, label='Fraction of all packets')
 
-    e_avg_vals, xerrs = calc_thin_datapoints_avg(e_vals_fc, e_fc_low, e_fc_up, e_vals_fa, e_fa_low, e_fa_up) # xerrs = (e_avg_low, e_avg_up) 
+    e_avg_vals, xerrs = calc_thin_datapoints_avg(e_vals_fc, e_fc_low, e_fc_up, e_vals_fa, e_fa_low, e_fa_up) # xerrs = (e_avg_low, e_avg_up)
 
-    ax.errorbar(e_avg_vals, (y_all_vals+y_cond_vals)/2, color='green', alpha=.2, xerr=[e_avg_low, e_avg_up], # e_fa_err, #yerr=yerrs, , ecolor='green'
+    ax.errorbar(e_avg_vals, (y_all_vals+y_cond_vals)/2, color='green', alpha=.2, xerr=xerrs, # e_fa_err, #yerr=yerrs, , ecolor='green', xerr=[e_avg_low, e_avg_up]
             marker='.',linestyle=':', linewidth=1, label='Fraction of all packets')
 
     # ax.set_yscale('log')
     # ax.set_xscale('log')
     #ax.set_ylim([0,1.1])
     ax.grid(True)
-    
+
     if save_fig_dir is not None:
         save_figure(fig, save_fig_dir, fig_file_name)
     else:
         plt.show()
 
 
-def get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz(con):
+def get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, queries_log=None):
     all_bgf05_and_bgf1_simu_events__packet_count_by_posz_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, /*sq.etruth_trueenergy AS etruth_trueenergy,*/ sq.egeometry_pos_z AS egeometry_pos_z 
     FROM (
@@ -715,12 +761,14 @@ def get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz(con):
     GROUP BY egeometry_pos_z, /*etruth_trueenergy,*/ t1.source_file_acquisition_full, t1.packet_id
     ) as sq GROUP BY egeometry_pos_z /*, etruth_trueenergy*/ ORDER BY egeometry_pos_z/*, etruth_trueenergy*/;
     '''
+    if queries_log:
+        queries_log.write(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_query)
     all_bgf05_and_bgf1_simu_events__packet_count_by_posz = psql.read_sql( all_bgf05_and_bgf1_simu_events__packet_count_by_posz_query, con)
     #print("len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz)",len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz))
     return all_bgf05_and_bgf1_simu_events__packet_count_by_posz
 
- 
-def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, cond_selection_rules):
+
+def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, cond_selection_rules, queries_log=None):
     # IMPORTANT
     cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, /*sq.etruth_trueenergy AS etruth_trueenergy,*/ sq.egeometry_pos_z AS egeometry_pos_z 
@@ -741,18 +789,19 @@ def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, cond_selectio
     GROUP BY egeometry_pos_z/*, etruth_trueenergy*/ ORDER BY egeometry_pos_z /*, etruth_trueenergy*/;
     '''.format(cond_selection_rules=cond_selection_rules)
     #print(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_query)
-
+    if queries_log:
+        queries_log.write(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_query)
     cond_bgf05_and_bgf1_simu_events__packet_count_by_posz = psql.read_sql(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_query, con)
     #print("len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz)", len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz))
     return cond_bgf05_and_bgf1_simu_events__packet_count_by_posz
 
- 
+
 def get_cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_merged(cond_bgf05_and_bgf1_simu_events_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy):
     cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_merged = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='egeometry_pos_z')
     return cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_merged
 
 
-def all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con):
+def get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con, queries_log=None):
     # IMPORTANT
     all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, sq.etruth_trueenergy AS etruth_trueenergy, sq.egeometry_pos_z AS egeometry_pos_z 
@@ -766,13 +815,14 @@ def all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con):
     GROUP BY egeometry_pos_z, etruth_trueenergy, t1.source_file_acquisition_full, t1.packet_id
     ) as sq GROUP BY egeometry_pos_z, etruth_trueenergy ORDER BY egeometry_pos_z, etruth_trueenergy;
     '''
-
-    all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = psql.read_sql( all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query, con)
+    if queries_log:
+        queries_log.write(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query)
+    all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = psql.read_sql(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query, con)
     #print("len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)", len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy))
     return all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy
 
 
-def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query(con):
+def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con, cond_selection_rules, queries_log=None):
     cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query = '''
     SELECT COUNT(sq.count_event_id) AS count_packets, sq.etruth_trueenergy AS etruth_trueenergy, sq.egeometry_pos_z AS egeometry_pos_z 
     FROM (
@@ -791,33 +841,34 @@ def get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query(c
     GROUP BY egeometry_pos_z, etruth_trueenergy, t1.source_file_acquisition_full, t1.packet_id) AS sq 
     GROUP BY egeometry_pos_z, etruth_trueenergy ORDER BY egeometry_pos_z, etruth_trueenergy;
     '''.format(cond_selection_rules=cond_selection_rules)
-    print(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query)
-
+    if queries_log:
+        queries_log.write(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query)
+    # print(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query)
     cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = psql.read_sql(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy_query, con)
     #print("len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)", len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy))
     return cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy
-  
 
-def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona, save_fig_dir, fig_file_name='comparison_thinned_datapoints'):
+
+def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona):
     uniq_posz = cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona['egeometry_pos_z'].unique()
 
     uniq_posz_plot_data = [None] * len(uniq_posz)
     #y_posz_vals = [None] * len(uniq_posz)
-    #yerrs_posz_vals = [None] * len(uniq_posz) 
+    #yerrs_posz_vals = [None] * len(uniq_posz)
     #e_avg_vals_posz_vals = [None] * len(uniq_posz)
     #e_avg_low_posz_vals = [None] * len(uniq_posz)
     #e_avg_up_posz_vals = [None] * len(uniq_posz)
     #fits_p_posz_vals = [None] * len(uniq_posz)
 
     for posz_i, posz_val in enumerate(uniq_posz):
-        
+
         single_posz_data = cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona[ cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona['egeometry_pos_z']==posz_val ]
-        
+
         e_avg_vals, y, xerrs, yerrs, cond_thinned, all_thinned = thin_datapoints_from_dataframe(single_posz_data, x_axis_column='etruth_trueenergy', num_steps=100 if len(single_posz_data) < 10 else 10)  # e_avg_low, e_avg_up
         fits_p = fit_points_using_yerrs(e_avg_vals, y, yerrs)
-    
+
         uniq_posz_plot_data[posz_i] = ('EGeometry.Pos.Z={}'.format(posz_val), y, yerrs, e_avg_vals, xerrs, fits_p) # xerrs = e_avg_low, e_avg_up
-        
+
         #y_posz_vals[posz_i] = y
         #yerrs_posz_vals[posz_i] = yerrs
         #e_avg_vals_posz_vals[posz_i] = e_avg_vals
@@ -825,33 +876,36 @@ def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_m
         #e_avg_up_posz_vals[posz_i] = e_avg_up
         #fits_p_posz_vals[posz_i] = fits_p
         #vis_count_fraction_fits(x, frac, yerrs, fits_p, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events_count_fraction_by_posz_merged.png')
-        
+
     return uniq_posz_plot_data #y_posz_vals, yerrs_posz_vals, e_avg_vals_posz_vals, e_avg_low_posz_vals, e_avg_up_posz_vals, fits_p_posz_vals
 
 
 def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
-        uniq_posz_plot_data
+        uniq_posz_plot_data,
         #y_posz_vals, yerrs_posz_vals, e_avg_vals_posz_vals, e_avg_low_posz_vals, e_avg_up_posz_vals, fits_p_posz_vals,
         save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=5, col_width=18.5/1.8, col_height=10.5/1.8, xlabel='Energy [MeV]'):
-    
-    fig, axs = plt.subplots(np.ceil(len(uniq_posz)/num_cols, num_cols))
+
+    if len(uniq_posz_plot_data) == 0:
+        return
+
+    fig, axs = plt.subplots(np.ceil(len(uniq_posz_plot_data)/num_cols, num_cols))
     axs_flattened = axs.flatten()
 
-    fig.set_size_inches(np.ceil(len(uniq_posz)/2)*col_width, num_rows)
+    fig.set_size_inches(np.ceil(len(uniq_posz_plot_data)/2)*col_width, num_cols)
 
     colors = ['pink', 'purple', 'red', 'black', 'yellow', 'royalblue', 'cyan', 'blue']
     line_styles = ['-',':']
-    labels = ['{:d}st order poly'. '{:d}nd order poly', '{:d}rd order poly', '{:d}nd order poly']
-    
-    
+    labels = ['{:d}st order poly', '{:d}nd order poly', '{:d}rd order poly', '{:d}nd order poly']
+
+
     for ax_i, (label, y, yerrs, x, xerrs, fits_p) in enumerate(uniq_posz_plot_data): # xerrs = e_avg_low, e_avg_up
         eax = axs_flattened[ax_i]
-        
+
         eax.errorbar(x, y, yerr=yerrs, xerr=xerrs, ecolor='g', fmt='.', label="Measurement") # xerrs = [e_avg_low, e_avg_up]
         eax.set_title("{}".format(label))
 
         xv = np.linspace(np.min(x),np.max(x),100)
-        
+
         for j, fit_p in enumerate(fits_p):
             if not fit_p:
                 continue
@@ -862,14 +916,14 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         eax.set_ylabel('Efficiency')
         eax.set_xlabel(xlabel)
         eax.legend()
-    
+
     if save_fig_dir is not None:
         save_figure(fig, save_fig_dir, fig_file_name)
     else:
         plt.show()
 
 
-def select_simu_events_within_cond(con, cond_selection_rules):
+def select_simu_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
     cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
 
     select_simu_event_within_cond_query_format = '''
@@ -894,7 +948,7 @@ def select_simu_events_within_cond(con, cond_selection_rules):
     (t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width) DESC
     
     OFFSET {offset} LIMIT {limit}
-    ''' 
+    '''
 
     # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
     # q = '''
@@ -919,16 +973,21 @@ def select_simu_events_within_cond(con, cond_selection_rules):
     # SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 1 {conds} 
     # '''.format(conds=cond_selection_rules.replace('x_y_active_pixels_num > 1750','x_y_active_pixels_num > {}'.format(256*3))), con)
     # count_flight_entries_within_cond_3ec
+
     select_simu_event_within_cond_query_format = select_simu_event_within_cond_query_format.format(offset=0, limit=200000)
-    return psql.read_sql(select_simu_event_within_cond_query_format)
+
+    if queries_log:
+        queries_log.write(select_simu_event_within_cond_query_format)
+
+    return psql.read_sql(select_simu_event_within_cond_query_format, con)
     #con.rollback()
     #all_rows_simu_event_within_cond, all_columns_simu_event_within_cond = data_analysis_utils.select_events(con, select_simu_event_within_cond_query_format, [], limit=200000, column_prefix='t1.')
     #print("Selected {} rows".format(len(all_rows)))
     #return all_rows_simu_event_within_cond, all_columns_simu_event_within_cond
-  
-  
-def select_simu_event_not_within_cond(con, cond_selection_rules):
-    cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
+
+
+def select_simu_event_not_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
+    cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns), r't1.\g<0>', cond_selection_rules)
 
     select_simu_event_not_within_cond_query_format = '''
     SELECT 
@@ -953,7 +1012,7 @@ def select_simu_event_not_within_cond(con, cond_selection_rules):
     (t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width) ASC
     
     OFFSET {offset} LIMIT {limit}
-    ''' 
+    '''
 
     # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
     # q = '''
@@ -980,12 +1039,17 @@ def select_simu_event_not_within_cond(con, cond_selection_rules):
     # count_flight_entries_within_cond_3ec
 
     select_simu_event_not_within_cond_query_format = select_simu_event_not_within_cond_query_format.format(offset=0, limit=200000)
-    return psql.read_sql(select_simu_event_not_within_cond_query_format)
+
+    if queries_log:
+        queries_log.write(select_simu_event_not_within_cond_query_format)
+
+    return psql.read_sql(select_simu_event_not_within_cond_query_format, con)
     #con.rollback()
     #all_rows_simu_event_not_within_cond, all_columns_simu_event_not_within_cond = data_analysis_utils.select_events(con, select_simu_event_not_within_cond_query_format, [], limit=2000, column_prefix='t1.')
     ##print("Selected {} rows".format(len(all_rows)))
     #return all_rows_simu_event_not_within_cond, all_columns_simu_event_not_within_cond
-  
+
+
 # all_rows_simu_event_within_cond,all_columns_simu_event_within_cond,
 def group_rows_to_count_packets(df, groupby1_columns=['etruth_trueenergy','source_file_acquisition_full','packet_id'], groupby2_columns=['etruth_trueenergy']):
     #df = pd.DataFrame(all_rows_simu_event_within_cond, columns=all_columns_simu_event_within_cond)
@@ -993,9 +1057,9 @@ def group_rows_to_count_packets(df, groupby1_columns=['etruth_trueenergy','sourc
     #  GROUP BY egeometry_pos_z, etruth_trueenergy ORDER BY egeometry_pos_z, etruth_trueenergy;
     count_packets_df = df.groupby(groupby1_columns).count().groupby(groupby2_columns).count().loc[:,['event_id']].reindex(columns=['event_id']).reset_index().rename(columns={'event_id':'count_packets'}) #['event_id'] #.reindex(columns=['etruth_trueenergy','event_id'])
     return count_packets_df
-  
 
-def select_flight_events_within_cond(con, cond_selection_rules):
+
+def select_flight_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
     cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
 
     select_flight_events_within_cond_query_format = '''
@@ -1020,7 +1084,7 @@ def select_flight_events_within_cond(con, cond_selection_rules):
     (t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width) ASC
     
     OFFSET {offset} LIMIT {limit}
-    ''' 
+    '''
 
     # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
     # q = '''
@@ -1045,7 +1109,12 @@ def select_flight_events_within_cond(con, cond_selection_rules):
     # SELECT COUNT(*) FROM spb_processing_event_ver2 WHERE source_data_type_num = 1 {conds} 
     # '''.format(conds=cond_selection_rules.replace('x_y_active_pixels_num > 1750','x_y_active_pixels_num > {}'.format(256*3))), con)
     # count_flight_entries_within_cond_3ec
+
     select_flight_events_within_cond_query = select_flight_events_within_cond_query_format.format(offset=0, limit=100000)
+
+    if queries_log:
+        queries_log.write(select_flight_events_within_cond_query)
+
     flight_events_within_cond = psql.read_sql(select_flight_events_within_cond_query, con)
     # all_rows_flight_event_within_cond, all_columns_flight_event_within_cond = data_analysis_utils.select_events(con, select_flight_event_within_cond_query_format, [], limit=2000, column_prefix='t1.')
 
@@ -1055,28 +1124,66 @@ def select_flight_events_within_cond(con, cond_selection_rules):
     return flight_events_within_cond
 
 
+def select_utah_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
+    cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
+
+    select_utah_events_within_cond_query_format = '''
+    SELECT 
+    t1.event_id, t1.source_file_acquisition_full, t1.source_file_trigger_full, t1.packet_id, t1.num_gtu, t1.gtu_in_packet, t1.num_triggered_pixels, 
+    t1.gtu_y_hough__peak_thr2_avg_phi, t1.gtu_x_hough__peak_thr2_avg_phi, t1.gtu_y_hough__peak_thr3_avg_phi, t1.gtu_x_hough__peak_thr3_avg_phi, 
+    t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width,
+    t1.gtu_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.gtu_x_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.x_y_hough__peak_thr1__max_cluster_counts_sum_width,
+    t1.trigg_x_y_hough__dbscan_num_clusters_above_thr1, t1.trigg_gtu_y_hough__dbscan_num_clusters_above_thr1, t1.trigg_gtu_x_hough__dbscan_num_clusters_above_thr1, 
+    t1.gtu_y_hough__dbscan_num_clusters_above_thr1, t1.gtu_x_hough__dbscan_num_clusters_above_thr1, 
+    t1.x_y_neighbourhood_counts_norm_sum, t1.x_y_neighbourhood_area, t1.x_y_neighbourhood_size, t1.x_y_neighbourhood_width, t1.x_y_neighbourhood_height, t1.x_y_neighbourhood_area,
+    t1.gtu_y_neighbourhood_counts_norm_sum, t1.gtu_y_neighbourhood_area, t1.gtu_y_neighbourhood_size, t1.gtu_y_neighbourhood_width, t1.gtu_y_neighbourhood_height, t1.gtu_y_neighbourhood_area,
+    t1.gtu_x_neighbourhood_counts_norm_sum, t1.gtu_x_neighbourhood_area, t1.gtu_x_neighbourhood_size, t1.gtu_x_neighbourhood_width, t1.gtu_x_neighbourhood_height, t1.gtu_x_neighbourhood_area
+
+    FROM spb_processing_event_ver2 AS t1 
+    WHERE t1.source_data_type_num = 2   
+    AND x_y_active_pixels_num > 1750 AND ''' + cond_selection_rules_t1_prefixed + '' + \
+    '''
+    ORDER BY
+    /*t1.x_y_hough__peak_thr1__max_cluster_counts_sum_width DESC,*/
+    t1.num_triggered_pixels DESC,
+    (t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width + t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width) ASC
+    
+    OFFSET {offset} LIMIT {limit}
+    '''
+
+    select_utah_events_within_cond_query = select_utah_events_within_cond_query_format.format(offset=0, limit=100000)
+
+    if queries_log:
+        queries_log.write(select_utah_events_within_cond_query)
+
+    utah_events_within_cond = psql.read_sql(select_utah_events_within_cond_query, con)
+
+    return utah_events_within_cond
+
+
+
 def rows_generator(iterrows):
     for t in iterrows:
         yield t[1]
 
 
 def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9]):
-    
+
     flight_events_num_max_pix_on_pmt = {}
     flight_events_num_max_pix_on_ec = {}
 
-    for i in range(6):
-        for j in range(6):
-            flight_events_num_max_pix_on_pmt[(i,j)] = {}
-            for frac in fractions:
-                flight_events_num_max_pix_on_pmt[(i,j)][frac] = np.zeros((len(flight_events_within_cond),2))
+    for frac in fractions:
+        flight_events_num_max_pix_on_pmt[frac] = {}
+        for i in range(6):
+            for j in range(6):
+                    flight_events_num_max_pix_on_pmt[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
 
-    for i in range(3):
-        for j in range(3):
-            flight_events_num_max_pix_on_ec[(i,j)] = {}
-            for frac in fractions:
-                flight_events_num_max_pix_on_ec[(i,j)][frac] = np.zeros((len(flight_events_within_cond),2))
-                
+    for frac in fractions:
+        flight_events_num_max_pix_on_ec[frac] = {}
+        for i in range(3):
+            for j in range(3):
+                flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
+
     for row_i, row in flight_events_within_cond.iterrows():
         if row_i % 1000 == 0:
             sys.stdout.write("{}\n".format(row_i))
@@ -1084,7 +1191,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
         if row['source_file_acquisition_full'].endswith('.npy'):
             acquisition_arr = np.load(row['source_file_acquisition_full'])
             if acquisition_arr.shape[0] != 256:
-                raise Exception('Unexpected number of frames in the acqusition file "{}" (#{}  ID {})'.format(
+                raise RuntimeError('Unexpected number of frames in the acqusition file "{}" (#{}  ID {})'.format(
                     row['source_file_acquisition_full'], i, row['event_id']))
             frames_acquisition = acquisition_arr[
                                 row['packet_id'] * 128 + row['gtu_in_packet'] - 4:row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu']]
@@ -1093,13 +1200,13 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
                                                         row['packet_id'] * 128 + row['gtu_in_packet'] - 4,
                                                         row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu'], entry_is_gtu_optimization=True)
         else:
-            raise Exception('Unexpected source_file_acquisition_full "{}"'.format(row['source_file_acquisition_full']))
+            raise RuntimeError('Unexpected source_file_acquisition_full "{}"'.format(row['source_file_acquisition_full']))
 
         ev_integrated = np.maximum.reduce(frames_acquisition)
         ev_integrated_max = np.max(ev_integrated)
 
         # print(np.transpose(np.where(ev_integrated > ev_integrated_max*0.9)))
-            
+
     #     if row['event_id'] == 256024:
     #         print(row)
     #         print("-----------------------")
@@ -1111,7 +1218,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
     #             print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}".format(pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x))
 
         max_positions = {}
-        
+
     #     for i in range(6):
     #         for j in range(6):
     #             max_positions[(i,j)] = {}
@@ -1122,17 +1229,17 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
             for pos_y, pos_x in max_positions:
                 pmt_y = pos_y // 8
                 pmt_x = pos_x // 8
-                
+
                 ec_y = pos_y // 16
                 ec_x = pos_x // 16
-                
-                flight_events_num_max_pix_on_pmt[(pmt_y,pmt_x)][frac][row_i,0] += 1
-                flight_events_num_max_pix_on_ec[(ec_y,ec_x)][frac][row_i,0] += 1
-                
+
+                flight_events_num_max_pix_on_pmt[frac][(pmt_y,pmt_x)][row_i,0] += 1
+                flight_events_num_max_pix_on_ec[frac][(ec_y,ec_x)][row_i,0] += 1
+
     #             if row['event_id'] == 256024:
     #                 print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}   flight_events_num_max_pix_on_ec[({ec_y},{ec_x})][{frac}][{row_i},0]={v}".format(
     #                     pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x, ec_y=ec_y, ec_x=ec_x, frac=frac, row_i=row_i, v=flight_events_num_max_pix_on_ec[(ec_y,ec_x)][frac][row_i,0]))
-            
+
     #     if row_i > 50:
     #         break
         #visualized_projections = []
@@ -1159,30 +1266,30 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
 
 
     for k in range(len(flight_events_within_cond)):
-        for i in range(3):
-            for j in range(3):
-                for frac in fractions:
+        for frac in fractions:
+            for i in range(3):
+                for j in range(3):
                     for ii in range(3):
                         for jj in range(3):
                             if jj == j and ii == i:
                                 continue
-                            flight_events_num_max_pix_on_ec[(i,j)][frac][k,1] += flight_events_num_max_pix_on_ec[(ii,jj)][frac][k,0]
+                            flight_events_num_max_pix_on_ec[frac][(i,j)][k,1] += flight_events_num_max_pix_on_ec[frac][(ii,jj)][k,0]
     #                 if k == 4:
     #                     print("flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},0] = {v}   flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},1] = {v1}".format(
     #                         i=i,j=j,frac=frac,k=k,v=flight_events_num_max_pix_on_ec[(i,j)][frac][k,0], v1=flight_events_num_max_pix_on_ec[(i,j)][frac][k,1]))
     #     if k > 5:
     #         break
 
-            
+
     for k in range(len(flight_events_within_cond)):
-        for i in range(6):
-            for j in range(6):
-                for frac in fractions:
+        for frac in fractions:
+            for i in range(6):
+                for j in range(6):
                     for ii in range(6):
                         for jj in range(6):
                             if jj == j and ii == i:
                                 continue
-                            flight_events_num_max_pix_on_pmt[(i,j)][frac][k,1] += flight_events_num_max_pix_on_pmt[(ii,jj)][frac][k,0]
+                            flight_events_num_max_pix_on_pmt[frac][(i,j)][k,1] += flight_events_num_max_pix_on_pmt[frac][(ii,jj)][k,0]
     #                         if flight_events_num_pix[(ii,jj)][frac][k,0] > 0:
     #                             print('flight_events_num_pix[({i},{j})][{frac}][{k},1] += flight_events_num_pix[({ii},{jj})][{frac}][{k},1] # {v}'.format(
     #                                 i=i,j=j,frac=frac,k=k,ii=ii,jj=jj,v=flight_events_num_pix[(ii,jj)][frac][k,0]))
@@ -1195,34 +1302,35 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
 
 def extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec):
 
-    for c in flight_events_within_cond.columns:
-        print(c)
-
-
-    # In[212]:
-
+    # for c in flight_events_within_cond.columns:
+    #     print(c)
 
     #np.where(flight_events_num_pix[(0,0)][.6] > 0)
     #flight_events_num_pix[(0,1)][0.6][:,1] > 0
     flight_events_within_cond_cp = flight_events_within_cond.copy() # this is NOT creating the copy
     k=0
-    for frac in fractions:
-        for i in range(6):
-            for j in range(6):
-                col = 'pmt_{:d}_{:d}'.format(i,j) + '_frac{:.1f}'.format(frac).replace('.','') 
-                #print(pd.Series(flight_events_num_pix[(i,j)][frac][:,0]))
-                #print(col, flight_events_num_pix[(i,j)][frac][k,1] , flight_events_num_pix[(ii,jj)][frac][k,0])
-                flight_events_within_cond_cp[col + '_in'] = pd.Series(flight_events_num_max_pix_on_pmt[(i,j)][frac][:,0])
-                flight_events_within_cond_cp[col + '_out'] = pd.Series(flight_events_num_max_pix_on_pmt[(i,j)][frac][:,1])
-                
+    # for frac in fractions:
+    #     for i in range(6):
+    #         for j in range(6):
+    for frac, frac_dict in flight_events_num_max_pix_on_pmt.items():
+        for pmt_pos, pmt_counts in frac_dict.items():
+            i, j = pmt_pos
+            col = 'pmt_{:d}_{:d}'.format(i,j) + '_frac{:.1f}'.format(frac).replace('.','')
+            #print(pd.Series(flight_events_num_pix[(i,j)][frac][:,0]))
+            #print(col, flight_events_num_pix[(i,j)][frac][k,1] , flight_events_num_pix[(ii,jj)][frac][k,0])
+            flight_events_within_cond_cp[col + '_in'] = pd.Series(pmt_counts[:,0])
+            flight_events_within_cond_cp[col + '_out'] = pd.Series(pmt_counts[:,1])
 
-    for frac in fractions:
-        for i in range(3):
-            for j in range(3):            
-                col = 'ec_{:d}_{:d}'.format(i,j) + '_frac{:.1f}'.format(frac).replace('.','') 
-                flight_events_within_cond_cp[col + '_in'] = pd.Series(flight_events_num_max_pix_on_ec[(i,j)][frac][:,0])
-                flight_events_within_cond_cp[col + '_out'] = pd.Series(flight_events_num_max_pix_on_ec[(i,j)][frac][:,1])
-                
+    # for frac in fractions:
+    #     for i in range(3):
+    #         for j in range(3):
+    for frac, frac_dict in flight_events_num_max_pix_on_ec.items():
+        for ec_pos, ec_counts in frac_dict.items():
+            i, j = ec_pos
+            col = 'ec_{:d}_{:d}'.format(i,j) + '_frac{:.1f}'.format(frac).replace('.','')
+            flight_events_within_cond_cp[col + '_in'] = pd.Series(ec_counts[:,0])
+            flight_events_within_cond_cp[col + '_out'] = pd.Series(ec_counts[:,1])
+
     print(len(flight_events_within_cond_cp.columns))
     return flight_events_within_cond_cp
 
@@ -1248,38 +1356,40 @@ def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num
 
 
 def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out']):
-    vis_events_list(rows_generator(events.iterrows()), flight_events_within_cond_cp.columns, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns, 
+    events_l = [ev for ev in rows_generator(events.iterrows())]
+    vis_events_list(events_l, events.columns, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns,
                vis_gtux=vis_gtux, vis_gtuy=vis_gtuy)
-    
-    
+
+
 def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, numeric_columns=False, additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], subplot_cols=9):
-    for i in range(0, min(len(events_per_figure), events_per_figure*max_figures), events_per_figure):
+    for i in range(0, min(len(events), events_per_figure*max_figures), events_per_figure):
        fig, axs = \
            data_analysis_utils.visualize_events(
-               events, column_labels, events_per_figure, additional_printed_columns=additional_printed_columns, 
-               vis_gtux=vis_gtux, vis_gtuy=vis_gtuy, subplot_cols=subplot_cols, numeric_columns=numeric_columns, 
-               plt_show=false)
-       
+               events[i:], column_labels, events_per_figure, additional_printed_columns=additional_printed_columns,
+               vis_gtux=vis_gtux, vis_gtuy=vis_gtuy, subplot_cols=subplot_cols, numeric_columns=numeric_columns,
+               plt_show=False)
+
        if save_fig_dir is not None:
            save_figure(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
         # ,'x_y_neighbourhood_size','gtu_x_neighbourhood_size','gtu_y_neighbourhood_size'
 
 
-def main():
-    
+def main(argv):
+
     args_parser = argparse.ArgumentParser(description='Draw histograms of parameter values')
     args_parser.add_argument('-d','--dbname',default='eusospb_data')
     args_parser.add_argument('-U','--user',default='eusospb')
     args_parser.add_argument('--password')
     args_parser.add_argument('-s','--host',default='localhost')
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
-    args_parser.add_argument('-o','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where dataframes are saved")
+    args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
 
     args = args_parser.parse_args(argv)
 
-    if not args.password:
-        args.password = getpass.getpass()
+    password = args.password
+    if not password:
+        password = getpass.getpass()
 
     save_csv_dir = os.path.realpath(args.save_csv_dir)
 
@@ -1287,309 +1397,468 @@ def main():
         save_fig_dir = os.path.realpath(args.save_fig_dir)
     else:
         save_fig_dir = None
-    
-    if not os.path.exist(save_fig_dir):
+
+    if not os.path.exists(save_csv_dir):
+        os.makedirs(save_csv_dir)
+    elif not os.path.isdir(save_csv_dir):
+        raise RuntimeError('{} is not directory'.format(save_csv_dir))
+
+    if not os.path.exists(save_fig_dir):
         os.makedirs(save_fig_dir)
     elif not os.path.isdir(save_fig_dir):
-        raise Exception('{} is not directory'.format(save_fig_dir))
-    
-    con = get_conn(dbname=args['dbname'], user=args['user'], password=)
+        raise RuntimeError('{} is not directory'.format(save_fig_dir))
+
+    queries_log = open(os.path.join(save_csv_dir, 'queries.sql'), 'w')
+
+    con, cur = get_conn(dbname=args.dbname, user=args.user, host=args.host, password=password)
 
     # -----------------------------------------------------
     print("COLUMNS")
     # -----------------------------------------------------
-    
-    spb_processing_event_ver2_columns = get_spb_processing_event_ver2_columns()
+
+    spb_processing_event_ver2_columns = get_spb_processing_event_ver2_columns(cur)
 
     # -----------------------------------------------------
     print("ALL SIMU EVENTS BY ENERGY")
     # -----------------------------------------------------
-    
-    all_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con)    
-    
-    print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
-    
-    #vis_col_num_gtu_hist(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy__num_gtu')
-    
+
+    all_bgf05_and_bgf1_simu_events__packet_count_by_energy = None
+    try:
+        all_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log)
+
+        print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+        save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
+
+        #vis_col_num_gtu_hist(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy__num_gtu')
+    except Exception:
+        traceback.print_exc()
+
+
     # -----------------------------------------------------
     # COND SELECTION RULES
     # -----------------------------------------------------
     cond_selection_rules = get_selection_rules()
     # -----------------------------------------------------
-    
+
     # -----------------------------------------------------
     print("ALL SIMU EVENTS COUNT WITHIN CONDITIONS")
     # -----------------------------------------------------    
-       
-    cond_simu_entries_count = get_count_simu_entries_within_cond(con, cond_selection_rules)
-    print("cond_simu_entries_count = {}".format(cond_simu_entries_count))
-    
+
+    try:
+        cond_simu_entries_count = get_count_simu_entries_within_cond(con, cond_selection_rules, queries_log)
+        print("cond_simu_entries_count = {}".format(cond_simu_entries_count))
+    except Exception:
+        traceback.print_exc()
+
     # -----------------------------------------------------
     print("ALL SIMU EVENTS WITHIN CONDITIONS")
     # -----------------------------------------------------   
-    
-    simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf = get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns)
-    print_len(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf', 'expected to be empty')
-    save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
-    
-    simu_entries_within_cond_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns) 
-    print_len(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1', 'as many as possible of {}'.format(cond_simu_entries_count))
-    save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
-    
-    simu_entries_within_cond_bgf05_and_bgf1_v2 = get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, spb_processing_event_ver2_columns) 
-    print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
-    save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
-    
-    vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
-    
-    multiple_event_id_rows_row_idxs, multiple_event_id_rows_row_event_ids = find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2)
-    
-    print_len(multiple_event_id_rows_row_idxs, 'multiple_event_id_rows_row_idxs')
-    
-    
+
+    try:
+        simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf = get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
+        print_len(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf', 'expected to be empty')
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
+
+        simu_entries_within_cond_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
+        print_len(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1', 'as many as possible of {}'.format(cond_simu_entries_count))
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+
+        simu_entries_within_cond_bgf05_and_bgf1_v2 = get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log)
+        print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+
+        vis_col_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
+
+        multiple_event_id_rows_row_idxs, multiple_event_id_rows_row_event_ids = find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2)
+
+        print_len(multiple_event_id_rows_row_idxs, 'multiple_event_id_rows_row_idxs')
+    except Exception:
+        traceback.print_exc()
+
+
     # -----------------------------------------------------
     print("EVENTS COUNT WITHIN CONDITIONS")
-    # -----------------------------------------------------   
-    count_utah_entries_within_cond = get_count_utah_entries_within_cond(con, cond_selection_rules)
-    print("count_utah_entries_within_cond = {}".format(count_utah_entries_within_cond))
-    
-    count_flight_entries_within_cond = get_count_flight_entries_within_cond(con, cond_selection_rules)
-    print("count_flight_entries_within_cond = {}   // 7 EC".format(count_flight_entries_within_cond))
-    
-    count_flight_entries_within_cond_3ec = get_count_flight_entries_within_cond_num_ec(con, cond_selection_rules)
-    print("count_flight_entries_within_cond_3ec = {}   // 3 EC".format(count_flight_entries_within_cond_3ec))
-    
-    
-    
+    # -----------------------------------------------------
+
+    try:
+        count_utah_entries_within_cond = get_count_utah_entries_within_cond(con, cond_selection_rules, queries_log)
+        print("count_utah_entries_within_cond = {}".format(count_utah_entries_within_cond))
+
+        count_flight_entries_within_cond = get_count_flight_entries_within_cond(con, cond_selection_rules, queries_log)
+        print("count_flight_entries_within_cond = {}   // 7 EC".format(count_flight_entries_within_cond))
+
+        count_flight_entries_within_cond_3ec = get_count_flight_entries_within_cond_num_ec(con, cond_selection_rules, 3, queries_log)
+        print("count_flight_entries_within_cond_3ec = {}   // 3 EC".format(count_flight_entries_within_cond_3ec))
+
+    except Exception:
+        traceback.print_exc()
+
+
     # -----------------------------------------------------
     print("SIMU EVENTS BY ENERGY WITHIN CONDITIONS BY ENERGY")
     # -----------------------------------------------------   
-    
-    cond_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_selection_rules)
-    
-    print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_energy','should be similar to {}'.format(len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy)))
-    
-    save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events__packet_count_by_energy__comparison__linear', yscale='linear')
-    vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, fig_file_name='cond_bgf05_and_bgf1_simu_events__packet_count_by_energy__comparison__log', yscale='log')
-    
-    cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='etruth_trueenergy')
-    
-    print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir,  'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    # -----------------------------------------------------
-    print(">> FITTING")
-    # -----------------------------------------------------   
-    
-    #_, yerrs = calc_yerrs_for_merged_events_by_energy
-    x, y, yerrs, fits_p  = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy')
-    
-    save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
-    vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
-    # -----------------------------------------------------
-    print(">> THINNING")
-    # -----------------------------------------------------   
-    
-    x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy') # xerrs = xerr_low, xerr_up
-    
-    save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    # -----------------------------------------------------
-    print(">> THINNING FITTED")
-    # -----------------------------------------------------  
-    
-    fits_p = fit_points_using_yerrs(x, y, yerrs)
-    
-    save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
-    vis_thinned_datapoints(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
-    
-    vis_count_fraction_fits(x, y, [xerr_low, xerr_up], yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+
+    try:
+        cond_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_cond_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, cond_selection_rules, queries_log)
+
+        print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_energy','should be similar to {}'.format(len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy)))
+        save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_energy is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_energy is not loaded')
+
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events__packet_count_by_energy__comparison__linear', yscale='linear')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events__packet_count_by_energy__comparison__log', yscale='log')
+
+        cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='etruth_trueenergy')
+
+        print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir,  'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        # -----------------------------------------------------
+        print(">> FITTING")
+        # -----------------------------------------------------
+
+        #_, yerrs = calc_yerrs_for_merged_events_by_energy
+        x, y, yerrs, fits_p  = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy')
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        # -----------------------------------------------------
+        print(">> THINNING")
+        # -----------------------------------------------------
+
+        x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy') # xerrs = xerr_low, xerr_up
+
+        save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        # -----------------------------------------------------
+        print(">> THINNING FITTED")
+        # -----------------------------------------------------
+
+        fits_p = fit_points_using_yerrs(x, y, yerrs)
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        vis_thinned_datapoints(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
+
+        vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+
+    except Exception:
+        traceback.print_exc()
 
 
+    # -----------------------------------------------------
+    print("ALL SIMU EVENTS BY POSZ")
+    # -----------------------------------------------------
+
+    all_bgf05_and_bgf1_simu_events__packet_count_by_posz = None
+    try:
+        all_bgf05_and_bgf1_simu_events__packet_count_by_posz = get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, queries_log)
+
+        print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+    except Exception:
+        traceback.print_exc()
+
 
     # -----------------------------------------------------
-    print("ALL SIMU EVENTS BY ENERGY WITHIN CONDITIONS BY POSZ")
-    # -----------------------------------------------------   
-    all_bgf05_and_bgf1_simu_events__packet_count_by_posz = get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz(con)
-    
-    print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
-    save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_posz,save_csv_dir,'all_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
-    cond_bgf05_and_bgf1_simu_events__packet_count_by_posz = get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, cond_selection_rules)
-    
-    print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
-    vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear',yscale='linear')
-    
-    vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log',yscale='log')
-    
-    
-    cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, all_bgf05_and_bgf1_simu_events__packet_count_by_posz, merge_on='egeometry_pos_z')
-    
-    print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
-    save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
+    print("SIMU EVENTS WITHIN CONDITIONS BY POSZ")
     # -----------------------------------------------------
-    print(">> FITTING")
-    # -----------------------------------------------------   
-    
-    #_, yerrs = calc_yerrs_for_merged_events_by_energy
-    x, y, yerrs, fits_p  = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='etruth_trueenergy')
-    
-    save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
-    
-    vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
-    
-    vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
-   
-   
-       
+
+    try:
+        cond_bgf05_and_bgf1_simu_events__packet_count_by_posz = get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz(con, cond_selection_rules, queries_log)
+
+        print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_posz is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz is not loaded')
+
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear',yscale='linear')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log',yscale='log')
+
+        cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, all_bgf05_and_bgf1_simu_events__packet_count_by_posz, merge_on='egeometry_pos_z')
+
+        print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+        # -----------------------------------------------------
+        print(">> FITTING")
+        # -----------------------------------------------------
+
+        #_, yerrs = calc_yerrs_for_merged_events_by_energy
+        x, y, yerrs, fits_p  = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='egeometry_pos_z')
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+
+        vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+
+    except Exception:
+        traceback.print_exc()
+
     # -----------------------------------------------------
-    print("ALL SIMU EVENTS BY ENERGY WITHIN CONDITIONS BY ENERGY AND POSZ")
+    print("ALL SIMU EVENTS BY ENERGY AND POSZ")
+    # -----------------------------------------------------
+
+    all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = None
+    try:
+        all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con, queries_log)
+
+        print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+        save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+
+    except Exception:
+        traceback.print_exc()
+
+    # -----------------------------------------------------
+    print("SIMU EVENTS WITHIN CONDITIONS BY ENERGY AND POSZ")
     # -----------------------------------------------------   
-    
-    cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con, cond_selection_rules)
-    
-    print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
-    
-    save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
-    
-    #vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy__comparison__linear', yscale='linear')
-    #vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_fig_dir, fig_file_name='cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy__comparison__log', yscale='log')
-    
-    
-    cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups =  get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona, save_fig_dir, fig_file_name='get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit')
-    
-    vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
+
+    try:
+        cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = get_cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy(con, cond_selection_rules, queries_log)
+
+        print_len(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+        save_csv(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir, 'cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+
+        #vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_fig_dir, fig_file_name='cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy__comparison__linear', yscale='linear')
+        #vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_fig_dir, fig_file_name='cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy__comparison__log', yscale='log')
+        # cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona = merge_
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy is not loaded')
+
+        cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, merge_on=['etruth_trueenergy','egeometry_pos_z'],)
+
+        print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+        save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir,  'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+
+
+        cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups =  get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
+
+        vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
+
+    except Exception:
+        traceback.print_exc()
 
 
     # -----------------------------------------------------
     print("FLIGHT EVENTS BY ENERGY WITHIN CONDITIONS")
     # ----------------------------------------------------- 
 
-    flight_events_within_cond = select_flight_events_within_cond(con, cond_selection_rules)
+    try:
+        flight_events_within_cond = select_flight_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
 
-    print_len(flight_events_within_cond, 'flight_events_within_cond')
-    save_csv(flight_events_within_cond, save_csv_dir, 'flight_events_within_cond')
-    vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
-    
-    print(">> VISUALIZING")
-    vis_events_df(simu_events_within_cond, save_fig_dir, base_file_name)
-    
-    print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
-    
-    flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9]
+        print_len(flight_events_within_cond, 'flight_events_within_cond')
+        save_csv(flight_events_within_cond, save_csv_dir, 'flight_events_within_cond')
 
-    flight_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec)
-    
-    print_len(flight_events_within_cond_with_max_pix_count, 'flight_events_within_cond_with_max_pix_count')
-    save_csv(flight_events_within_cond_with_max_pix_count, save_csv_dir, 'flight_events_within_cond_with_max_pix_count')
+        print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-    filtered_flight_events_within_cond = filter_out_top_left_ec(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
-        
-    print_len(filtered_flight_events_within_cond, 'filtered_flight_events_within_cond')
-    save_csv(filtered_flight_events_within_cond, save_csv_dir, 'filtered_flight_events_within_cond')
-    vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
+        flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9])
 
-    
+        flight_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec)
+
+        print_len(flight_events_within_cond_with_max_pix_count, 'flight_events_within_cond_with_max_pix_count')
+        save_csv(flight_events_within_cond_with_max_pix_count, save_csv_dir, 'flight_events_within_cond_with_max_pix_count')
+
+        print(">> FILTERING")
+        filtered_flight_events_within_cond = filter_out_top_left_ec(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+
+        print_len(filtered_flight_events_within_cond, 'filtered_flight_events_within_cond')
+        save_csv(filtered_flight_events_within_cond, save_csv_dir, 'filtered_flight_events_within_cond')
+
+        print(">> SELECTING NOT PASSED THROUGH FILTER")
+
+        flight_events_within_cond_not_filter = flight_events_within_cond.subtract(filtered_flight_events_within_cond)
+
+        print_len(flight_events_within_cond_not_filter, 'flight_events_within_cond_not_filter')
+        save_csv(flight_events_within_cond_not_filter, save_csv_dir, 'flight_events_within_cond_not_filter')
+
+        print(">> VISUALIZING WITHIN CONDITIONS")
+        vis_num_gtu_hist(flight_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+        vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
+
+        print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
+        vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
+        vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
+
+        print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
+        vis_num_gtu_hist(flight_events_within_cond_not_filter, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter__num_gtu')
+        vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter')
+
+    except Exception:
+        traceback.print_exc()
+
+    # -----------------------------------------------------
+    print("UTAH EVENTS BY ENERGY WITHIN CONDITIONS")
+    # ----------------------------------------------------- 
+
+    try:
+        utah_events_within_cond = select_utah_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
+
+        print_len(utah_events_within_cond, 'utah_events_within_cond')
+        save_csv(utah_events_within_cond, save_csv_dir, 'utah_events_within_cond')
+
+        print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
+
+        utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, fractions=[0.6, 0.8, 0.9])
+
+        utah_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(utah_events_within_cond, utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec)
+
+        print_len(utah_events_within_cond_with_max_pix_count, 'utah_events_within_cond_with_max_pix_count')
+        save_csv(utah_events_within_cond_with_max_pix_count, save_csv_dir, 'utah_events_within_cond_with_max_pix_count')
+
+        print(">> FILTERING")
+        filtered_utah_events_within_cond = filter_out_top_left_ec(utah_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+
+        print_len(filtered_utah_events_within_cond, 'filtered_utah_events_within_cond')
+        save_csv(filtered_utah_events_within_cond, save_csv_dir, 'filtered_utah_events_within_cond')
+
+        print(">> SELECTING NOT PASSED THROUGH FILTER")
+
+        utah_events_within_cond_not_filter = utah_events_within_cond.subtract(filtered_utah_events_within_cond)
+
+        print_len(utah_events_within_cond_not_filter, 'utah_events_within_cond_not_filter')
+        save_csv(utah_events_within_cond_not_filter, save_csv_dir, 'utah_events_within_cond_not_filter')
+
+        print(">> VISUALIZING WITHIN CONDITIONS")
+        vis_num_gtu_hist(utah_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+        vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
+
+        print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
+        vis_num_gtu_hist(filtered_utah_events_within_cond, save_fig_dir, fig_file_name='filtered_utah_events_within_cond__num_gtu')
+        vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
+
+        print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
+        vis_num_gtu_hist(utah_events_within_cond_not_filter, save_fig_dir, fig_file_name='utah_events_within_cond_not_filter__num_gtu')
+        vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter')
+
+    except Exception:
+        traceback.print_exc()
+
+
     # -----------------------------------------------------
     print("SIMU EVENTS WITHIN CONDITIONS")
     # -----------------------------------------------------   
 
-    simu_events_within_cond = select_simu_events_within_cond(con, cond_selection_rules)
- 
-    print_len(simu_events_within_cond, 'simu_events_within_cond')
-    save_csv(simu_events_within_cond, save_csv_dir, 'simu_events_within_cond')
-    vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+    try:
+        simu_events_within_cond = select_simu_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
 
-    print(">> VISUALIZING")
-    vis_events_df(simu_events_within_cond, save_fig_dir, base_file_name)
-    
-    print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
-    
-    simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, fractions=[0.6, 0.8, 0.9]
+        print_len(simu_events_within_cond, 'simu_events_within_cond')
+        save_csv(simu_events_within_cond, save_csv_dir, 'simu_events_within_cond')
+        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
 
-    simu_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(simu_events_within_cond, simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec)
-    
-    print_len(simu_events_within_cond_with_max_pix_count, 'simu_events_within_cond_with_max_pix_count')
-    save_csv(simu_events_within_cond_with_max_pix_count, save_csv_dir, 'simu_events_within_cond_with_max_pix_count')
+        print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-    filtered_simu_events_within_cond = filter_out_top_left_ec(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
-    
-    filtered_simu_events_within_cond__packet_count_by_energy = group_rows_to_count_packets(filtered_simu_events_within_cond,all_columns_simu_event_within_cond)
-        
-    print_len(filtered_simu_events_within_cond__packet_count_by_energy, 'filtered_simu_events_within_cond__packet_count_by_energy')
-    save_csv(filtered_simu_events_within_cond__packet_count_by_energy, save_csv_dir, 'filtered_simu_events_within_cond__packet_count_by_energy')
-    vis_num_gtu_hist(filtered_simu_events_within_cond__packet_count_by_energy, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__packet_count_by_energy__num_gtu')
-    
-    
-    filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='etruth_trueenergy')
-    
-    print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+        simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, fractions=[0.6, 0.8, 0.9])
 
-   
+        simu_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(simu_events_within_cond, simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec)
+
+        print_len(simu_events_within_cond_with_max_pix_count, 'simu_events_within_cond_with_max_pix_count')
+        save_csv(simu_events_within_cond_with_max_pix_count, save_csv_dir, 'simu_events_within_cond_with_max_pix_count')
+
+        print(">> FILTERING")
+
+        filtered_simu_events_within_cond = filter_out_top_left_ec(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+
+        filtered_simu_events_within_cond__packet_count_by_energy = group_rows_to_count_packets(filtered_simu_events_within_cond)
+
+        print_len(filtered_simu_events_within_cond__packet_count_by_energy, 'filtered_simu_events_within_cond__packet_count_by_energy')
+        save_csv(filtered_simu_events_within_cond__packet_count_by_energy, save_csv_dir, 'filtered_simu_events_within_cond__packet_count_by_energy')
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_energy is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_energy is not loaded')
+
+        print(">> MERGING ")
+
+        filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='etruth_trueenergy')
+
+        print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+        save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        print(">> SELECTING NOT PASSED THROUGH FILTER")
+
+        simu_events_within_cond_not_filter = simu_events_within_cond.subtract(filtered_simu_events_within_cond)
+
+        print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
+        save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
+
+        print(">> VISUALIZING WITHIN CONDITIONS")
+        vis_events_df(simu_events_within_cond, save_fig_dir, 'simu_events_within_cond')
+        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+
+        print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
+        vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond')
+        vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu')
+
+        print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
+        vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter')
+        vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu')
+
+        # -----------------------------------------------------
+        print(">> FITTING")
+        # -----------------------------------------------------
+
+        #_, yerrs = calc_yerrs_for_merged_events_by_energy
+        x, y, yerrs, fits_p  = fit_points_cond_all_merged(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy')
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        vis_count_fraction(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        # -----------------------------------------------------
+        print(">> THINNING")
+        # -----------------------------------------------------
+
+        x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy') # xerrs = xerr_low, xerr_up
+
+        save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+
+        # -----------------------------------------------------
+        print(">> THINNING FITTED")
+        # -----------------------------------------------------
+
+        fits_p = fit_points_using_yerrs(x, y, yerrs)
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+
+        vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
+
+        vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+
+    except Exception:
+        traceback.print_exc()
+
+
     # -----------------------------------------------------
-    print(">> FITTING")
-    # -----------------------------------------------------   
-    
-    #_, yerrs = calc_yerrs_for_merged_events_by_energy
-    x, y, yerrs, fits_p  = fit_points_cond_all_merged(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy')
-    
-    save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
-    vis_count_fraction(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
+    print("SIMU EVENTS NOT WITHIN SQL CONDITIONS")
     # -----------------------------------------------------
-    print(">> THINNING")
-    # -----------------------------------------------------   
-    
-    x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy') # xerrs = xerr_low, xerr_up
-    
-    save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-    
-    # -----------------------------------------------------
-    print(">> THINNING FITTED")
-    # -----------------------------------------------------  
-    
-    fits_p = fit_points_using_yerrs(x, y, yerrs)
-    
-    save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
-    
-    vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
-    
-    vis_count_fraction_fits(x, y, [xerr_low, xerr_up], yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
 
-        
-    # -----------------------------------------------------
-    print("SIMU EVENTS NOT WITHIN CONDITIONS")
-    # -----------------------------------------------------   
-    
-    simu_events_not_within_cond =select_simu_event_not_within_cond(con, cond_selection_rules)
- 
-    print_len(simu_events_not_within_cond, 'simu_events_not_within_cond')
-    save_csv(simu_events_not_within_cond, save_csv_dir, 'simu_events_not_within_cond')
-    vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
-    
-    print(">> VISUALIZING")
-    vis_events_df(simu_events_not_within_cond, save_fig_dir, base_file_name)
-    
+    try:
+        simu_events_not_within_cond = select_simu_event_not_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
 
+        print_len(simu_events_not_within_cond, 'simu_events_not_within_cond')
+        save_csv(simu_events_not_within_cond, save_csv_dir, 'simu_events_not_within_cond')
+        vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
+
+        print(">> VISUALIZING")
+        vis_events_df(simu_events_not_within_cond, save_fig_dir, 'simu_events_not_within_cond')
+
+    except Exception:
+        traceback.print_exc()
+
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    main(sys.argv[1:])
