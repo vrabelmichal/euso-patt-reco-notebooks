@@ -1360,6 +1360,12 @@ def vis_num_gtu_hist(flight_events_within_cond_cp, save_fig_dir, fig_file_name='
 #             plt.show()
 
 
+def df_difference(df1, df2):
+    merged = df1.merge(df2, indicator=True, how='outer')
+    # merged[merged['_merge'] == 'right_only']
+    return merged[merged['_merge'] == 'left_only']
+
+
 def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num_gtu_gt=15):
     ec_0_0_frac = flight_events_within_cond_cp['ec_0_0_frac06_in'] / flight_events_within_cond_cp['ec_0_0_frac06_out']
     # filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp['ec_0_0_frac06_out'] == 0) ]
@@ -1708,7 +1714,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        flight_events_within_cond_not_filter = flight_events_within_cond.subtract(filtered_flight_events_within_cond)
+        flight_events_within_cond_not_filter = df_difference(flight_events_within_cond, filtered_flight_events_within_cond)
 
         print_len(flight_events_within_cond_not_filter, 'flight_events_within_cond_not_filter')
         save_csv(flight_events_within_cond_not_filter, save_csv_dir, 'flight_events_within_cond_not_filter')
@@ -1757,7 +1763,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        utah_events_within_cond_not_filter = utah_events_within_cond.subtract(filtered_utah_events_within_cond)
+        utah_events_within_cond_not_filter = df_difference(utah_events_within_cond, filtered_utah_events_within_cond)
 
         print_len(utah_events_within_cond_not_filter, 'utah_events_within_cond_not_filter')
         save_csv(utah_events_within_cond_not_filter, save_csv_dir, 'utah_events_within_cond_not_filter')
@@ -1821,7 +1827,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        simu_events_within_cond_not_filter = simu_events_within_cond.subtract(filtered_simu_events_within_cond)
+        simu_events_within_cond_not_filter = df_difference(simu_events_within_cond, filtered_simu_events_within_cond)
 
         print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
         save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
