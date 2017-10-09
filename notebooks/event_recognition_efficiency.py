@@ -885,7 +885,7 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
     if len(uniq_posz_plot_data) == 0:
         return
 
-    fig, axs = plt.subplots(np.ceil(len(uniq_posz_plot_data)/num_cols), num_cols)
+    fig, axs = plt.subplots(int(np.ceil(len(uniq_posz_plot_data)/num_cols)), num_cols)
     axs_flattened = axs.flatten()
 
     fig.set_size_inches(np.ceil(len(uniq_posz_plot_data)/num_cols)*row_height, num_cols*col_width)
