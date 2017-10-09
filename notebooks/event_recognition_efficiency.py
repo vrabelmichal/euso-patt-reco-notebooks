@@ -501,12 +501,12 @@ def calc_yerrs_for_merged_events_by_energy(cond_all_merged_bgf05_simu_events_by_
     return calc_error_bars(n1, n2)
 
 
-def vis_count_fraction(cond_all_merged_bgf05_simu_events_by_energy, xerrs=None, yerrs=None, save_fig_dir=None, fig_file_name='count_fraction_by_energy.png'):
+def vis_count_fraction(cond_all_merged_bgf05_simu_events_by_energy, xerrs=None, yerrs=None, save_fig_dir=None, fig_file_name='count_fraction_by_energy.png', x_axis_column='etruth_trueenergy', y_axis_column='count_fraction'):
     if len(cond_all_merged_bgf05_simu_events_by_energy):
         fig, axs = plt.subplots(2,1)
         fig.set_size_inches(18.5/1.8, 2*10.5/1.8)
         for ax_i, ax in enumerate(axs):
-            ax = cond_all_merged_bgf05_simu_events_by_energy.plot(x='etruth_trueenergy', y='count_fraction', xerr=xerrs, yerr=yerrs, marker='.',linestyle='-', ecolor='green', linewidth=1, label='Fraction of all packets', ax=ax)
+            ax = cond_all_merged_bgf05_simu_events_by_energy.plot(x=x_axis_column, y=y_axis_column, xerr=xerrs, yerr=yerrs, marker='.', linestyle='-', ecolor='green', linewidth=1, label='Fraction of all packets', ax=ax)
             ax.set_ylim([0,1.1])
             if ax_i == 1:
                 ax.set_xscale('log')
@@ -1616,9 +1616,9 @@ def main(argv):
 
         save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
 
-        vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz', x_axis_column='egeometry_pos_z')
 
-        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits', xlabel='Altitude (EGeimetry.Pos.Z')
 
     except Exception:
         traceback.print_exc()
