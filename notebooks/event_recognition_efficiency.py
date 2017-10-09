@@ -535,6 +535,7 @@ def fit_points_using_yerrs(x, y, yerrs, norders=8):
 
     fits_p =  []
     for i in range(1,norders+1):
+        print(">>> POLYFIT OF {} DEGREE".format(i))
         z =  np.polyfit(x, y, i, w=w)
         fits_p.append(np.poly1d(z))
 
@@ -853,9 +854,14 @@ def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_m
 
     for posz_i, posz_val in enumerate(uniq_posz):
 
+        print(">> THINNING (EGeometry.Pos.Z={})".format(posz_val))
+
         single_posz_data = cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona[ cond_all_merged_bgf05_simu_events_by_posz_and_energy_nona['egeometry_pos_z']==posz_val ]
 
         e_avg_vals, y, xerrs, yerrs, cond_thinned, all_thinned = thin_datapoints_from_dataframe(single_posz_data, x_axis_column='etruth_trueenergy', num_steps=100 if len(single_posz_data) < 10 else 10)  # e_avg_low, e_avg_up
+
+        print(">> FITTING (EGeometry.Pos.Z={})".format(posz_val))
+
         fits_p = fit_points_using_yerrs(e_avg_vals, y, yerrs)
 
         uniq_posz_plot_data[posz_i] = ('EGeometry.Pos.Z={}'.format(posz_val), y, yerrs, e_avg_vals, xerrs, fits_p) # xerrs = e_avg_low, e_avg_up
@@ -874,15 +880,15 @@ def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_m
 def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         uniq_posz_plot_data,
         #y_posz_vals, yerrs_posz_vals, e_avg_vals_posz_vals, e_avg_low_posz_vals, e_avg_up_posz_vals, fits_p_posz_vals,
-        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=5, col_width=18.5/1.8, col_height=10.5/1.8, xlabel='Energy [MeV]'):
+        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=5, col_width=18.5/1.8, row_height=10.5/1.8, xlabel='Energy [MeV]'):
 
     if len(uniq_posz_plot_data) == 0:
         return
 
-    fig, axs = plt.subplots(np.ceil(len(uniq_posz_plot_data)/num_cols, num_cols))
+    fig, axs = plt.subplots(np.ceil(len(uniq_posz_plot_data)/num_cols), num_cols)
     axs_flattened = axs.flatten()
 
-    fig.set_size_inches(np.ceil(len(uniq_posz_plot_data)/2)*col_width, num_cols)
+    fig.set_size_inches(np.ceil(len(uniq_posz_plot_data)/num_cols)*row_height, num_cols*col_width)
 
     colors = ['pink', 'purple', 'red', 'black', 'yellow', 'royalblue', 'cyan', 'blue']
     line_styles = ['-',':']
@@ -1663,7 +1669,6 @@ def main(argv):
         print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
         save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir,  'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
 
-
         cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups =  get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
 
         vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
@@ -1694,6 +1699,7 @@ def main(argv):
         save_csv(flight_events_within_cond_with_max_pix_count, save_csv_dir, 'flight_events_within_cond_with_max_pix_count')
 
         print(">> FILTERING")
+
         filtered_flight_events_within_cond = filter_out_top_left_ec(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
 
         print_len(filtered_flight_events_within_cond, 'filtered_flight_events_within_cond')
