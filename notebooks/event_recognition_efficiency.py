@@ -582,12 +582,13 @@ def vis_count_fraction_fits(x, y, xerrs=None, yerrs=None, fits_p=[], save_fig_di
         labels = ['{:d}st order poly', '{:d}nd order poly', '{:d}rd order poly', '{:d}nd order poly']
 
         for eax_i, eax in enumerate(eaxs):
-            eax.errorbar(x,y,xerr=xerrs, yerr=yerrs,ecolor='g',fmt='.',label="Measurement")
+            eax.errorbar(x,y, xerr=xerrs, yerr=yerrs,ecolor='g',fmt='.',label="Measurement")
 
             for j, fit_p in enumerate(fits_p):
                 if not fit_p:
                     continue
-                eax.plot(xv, fit_p(xv), (j//len(colors))%len(line_styles),color=j%len(colors), label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
+                eax.plot(xv, fit_p(xv), line_style=line_styles[(j//len(colors))%len(line_styles)], color=colors[j%len(colors)],
+                         label=(labels[j] if j < len(labels) else labels[-1]).format(j+1))
 
             eax.set_ylim([0.3,1.1])
             eax.grid(True)
