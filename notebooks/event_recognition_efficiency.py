@@ -587,7 +587,7 @@ def vis_count_fraction_fits(x, y, xerrs=None, yerrs=None, fits_p=[], save_fig_di
             for j, fit_p in enumerate(fits_p):
                 if not fit_p:
                     continue
-                eax.plot(xv, fit_p(xv), line_style=line_styles[(j//len(colors))%len(line_styles)], color=colors[j%len(colors)],
+                eax.plot(xv, fit_p(xv), linestyle=line_styles[(j//len(colors))%len(line_styles)], color=colors[j%len(colors)],
                          label=(labels[j] if j < len(labels) else labels[-1]).format(j+1))
 
             eax.set_ylim([0.3,1.1])
