@@ -1599,8 +1599,8 @@ def main(argv):
         if all_bgf05_and_bgf1_simu_events__packet_count_by_posz is None:
             raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz is not loaded')
 
-        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear', yscale='linear')
-        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log', yscale='log')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__linear', xaxis='egeometry_pos_z', yscale='linear')
+        vis_df_comparison(all_bgf05_and_bgf1_simu_events__packet_count_by_posz, cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_fig_dir, 'cond_all_bgf05_and_bgf1_simu_events__packet_count_by_posz__comparison__log', xaxis='egeometry_pos_z', yscale='log')
 
         cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz = merge_cond_all_dataframes(cond_bgf05_and_bgf1_simu_events__packet_count_by_posz, all_bgf05_and_bgf1_simu_events__packet_count_by_posz, merge_on='egeometry_pos_z')
 
@@ -1612,7 +1612,7 @@ def main(argv):
         # -----------------------------------------------------
 
         #_, yerrs = calc_yerrs_for_merged_events_by_energy
-        x, y, yerrs, fits_p  = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='egeometry_pos_z')
+        x, y, yerrs, fits_p = fit_points_cond_all_merged(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='egeometry_pos_z')
 
         save_csv_of_fits(fits_p, save_csv_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
 
