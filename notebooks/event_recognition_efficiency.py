@@ -1406,7 +1406,7 @@ def main(argv):
     args_parser.add_argument('-s','--host',default='localhost')
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
     args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
-    args_parser.add_argument('-c','--pickle-dir',default='/tmp/event_classification_efficiency', help="Directory where pickled data are stored")
+    # args_parser.add_argument('-p','--pickle-dir',default='/tmp/event_classification_efficiency', help="Directory where pickled data are stored")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
     args_parser.add_argument('--exit-on-failure',type=str2bool_argparse,default=False,help='If true, exits on failure')
 
