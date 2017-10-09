@@ -364,10 +364,14 @@ def get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_p
 
 
 def get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log=None):
+    # t1.event_id AS t1_event_id, t2.event_id AS t2_event_id, t1.source_data_type_num AS t1_source_data_type_num, t2.source_data_type_num AS t2_source_data_type_num, t1.global_gtu AS t1_global_gtu, t2.global_gtu AS t2_global_gtu,
+    # t1.gtu_in_packet AS t1_gtu_in_packet, t2.gtu_in_packet AS t2_gtu_in_packet, t1.num_gtu AS t1_num_gtu, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full AS t1_source_file_acquisition_full, t2.source_file_acquisition_full AS t2_source_file_acquisition_full,
+    # t1.source_file_trigger AS t1_source_file_trigger, t2.source_file_trigger AS t2_source_file_trigger, t1.run_timestamp AS t1_run_timestamp, t2.run_timestamp AS t2_run_timestamp
+    # , etruth_trueenergy /* */
     q = ''' SELECT  /* t1.event_id, t1.source_data_type_num, t1.gtu_in_packet, t1.num_gtu, t2.gtu_in_packet AS t2_gtu_in_packet, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full, t1.source_file_trigger */
-    t1.event_id AS t1_event_id, t2.event_id AS t2_event_id, t1.source_data_type_num AS t1_source_data_type_num, t2.source_data_type_num AS t2_source_data_type_num, t1.global_gtu AS t1_global_gtu, t2.global_gtu AS t2_global_gtu,
-    t1.gtu_in_packet AS t1_gtu_in_packet, t2.gtu_in_packet AS t2_gtu_in_packet, t1.num_gtu AS t1_num_gtu, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full AS t1_source_file_acquisition_full, t2.source_file_acquisition_full AS t2_source_file_acquisition_full, 
-    t1.source_file_trigger AS t1_source_file_trigger, t2.source_file_trigger AS t2_source_file_trigger, t1.run_timestamp AS t1_run_timestamp, t2.run_timestamp AS t2_run_timestamp 
+    t1.event_id AS event_id, t2.event_id AS t2_event_id, t1.source_data_type_num AS source_data_type_num, t2.source_data_type_num AS t2_source_data_type_num, t1.global_gtu AS global_gtu, t2.global_gtu AS t2_global_gtu,
+    t1.gtu_in_packet AS gtu_in_packet, t2.gtu_in_packet AS t2_gtu_in_packet, t1.num_gtu AS num_gtu, t2.num_gtu AS t2_num_gtu, t1.source_file_acquisition_full AS source_file_acquisition_full, t2.source_file_acquisition_full AS t2_source_file_acquisition_full, 
+    t1.source_file_trigger AS source_file_trigger, t2.source_file_trigger AS t2_source_file_trigger, t1.run_timestamp AS run_timestamp, t2.run_timestamp AS t2_run_timestamp 
     , etruth_trueenergy /* */
     FROM /**/ simu_event_spb_proc 
     JOIN simu_event USING(simu_event_id) 
@@ -392,10 +396,10 @@ def find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2):
     row_idxs = []
     row_event_ids = []
     for i, r in simu_entries_within_cond_bgf05_and_bgf1_v2.iterrows():
-        srch = simu_entries_within_cond_bgf05_and_bgf1_v2[ simu_entries_within_cond_bgf05_and_bgf1_v2['t1_event_id'] == r.t1_event_id ]
+        srch = simu_entries_within_cond_bgf05_and_bgf1_v2[ simu_entries_within_cond_bgf05_and_bgf1_v2['event_id'] == r.event_id ]
         if len(srch) > 1:
             row_idxs.append(i)
-            row_event_ids.append(r.t1_event_id)
+            row_event_ids.append(r.event_id)
     return row_idxs, list(set(row_event_ids))
 
 
@@ -1360,10 +1364,11 @@ def vis_num_gtu_hist(flight_events_within_cond_cp, save_fig_dir, fig_file_name='
 #             plt.show()
 
 
-def df_difference(df1, df2):
-    merged = df1.merge(df2, indicator=True, how='outer')
+def df_difference(df1, df2, unique_column='event_id'):
+    return df1[~df1[unique_column].isin(df2[unique_column])]
+    # merged = df1.merge(df2, indicator=True, how='outer')
     # merged[merged['_merge'] == 'right_only']
-    return merged[merged['_merge'] == 'left_only']
+    # return merged[merged['_merge'] == 'left_only']
 
 
 def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num_gtu_gt=15):
@@ -1401,6 +1406,7 @@ def main(argv):
     args_parser.add_argument('-s','--host',default='localhost')
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
     args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
+    args_parser.add_argument('-c','--pickle-dir',default='/tmp/event_classification_efficiency', help="Directory where pickled data are stored")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
     args_parser.add_argument('--exit-on-failure',type=str2bool_argparse,default=False,help='If true, exits on failure')
 
