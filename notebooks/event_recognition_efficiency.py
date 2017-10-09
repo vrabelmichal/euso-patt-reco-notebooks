@@ -906,7 +906,8 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         for j, fit_p in enumerate(fits_p):
             if not fit_p:
                 continue
-            eax.plot(xv, fit_p(xv), (j//len(colors))%len(line_styles),color=j%len(colors), label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
+            eax.plot(xv, fit_p(xv), linestyle=line_styles[(j//len(colors))%len(line_styles)], color=colors[j%len(colors)],
+                     label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
 
         eax.set_ylim([0.3,1.1])
         eax.grid(True)
