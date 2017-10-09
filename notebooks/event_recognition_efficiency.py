@@ -687,13 +687,16 @@ def thin_datapoints_from_dataframe(df, x_axis_column='etruth_trueenergy', y_axis
 
 
 def save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, file_name, sep='\t'):
+    columns = [x, y, xerrs[0], xerrs[1], yerrs, cond_thinned[0], cond_thinned[1], cond_thinned[2], cond_thinned[3], cond_thinned[4], all_thinned[0], all_thinned[1], all_thinned[2], all_thinned[3], all_thinned[4]]
+
     # TODO pass
     #np.column_stack(x,y,np.array(xerrs)[:0,], )
+
     csv_path = ensure_ext(os.path.join(save_csv_dir, file_name),".{}sv".format('t' if sep=='\t' else 'c'))
     with open(csv_path,'w') as csv_file:
         print(sep.join(("x", "y", "avg_x_low", "avg_x_up", "y_err", "cond_x", "cond_y", "cond_x_err", "cond_x_low", "cond_x_high", "all_x", "all_y", "all_x_err", "all_x_low", "all_x_high")), file=csv_file)
         for i in range(len(x)):
-            print(sep.join([x, y, xerrs[0], xerrs[1], yerrs, cond_thinned[0], cond_thinned[1], cond_thinned[2], cond_thinned[3], cond_thinned[4], all_thinned[0], all_thinned[1], all_thinned[2], all_thinned[3], all_thinned[4]]), file=csv_file)
+            print(sep.join([str(col[i]) for col in columns]), file=csv_file)
 
 
 def vis_thinned_datapoints(cond_all_merged_bgf05_simu_events_by_energy,
