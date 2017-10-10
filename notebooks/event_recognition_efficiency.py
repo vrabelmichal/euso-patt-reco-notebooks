@@ -1193,7 +1193,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
     def try_load_npy_file(dest, basename, frac):
         # global hashstr save_npy_dir npy_file_key
         if save_npy_dir and npy_file_key:
-            pkl_pathname = get_npy_pathname(basename, frac, hashstr)
+            pkl_pathname = get_npy_pathname(basename, frac)
             if os.path.exists(pkl_pathname):
                 if frac not in dest:
                     dest[frac] = {}
