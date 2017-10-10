@@ -18,6 +18,7 @@ import argparse
 import glob
 # from tqdm import tqdm
 import traceback
+import hashlib
 
 from utility_funtions import str2bool_argparse
 
@@ -1169,136 +1170,196 @@ def rows_generator(iterrows):
         yield t[1]
 
 
-def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9]):
+def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9], save_npy_dir=None, npy_file_key=None):
 
     flight_events_num_max_pix_on_pmt = {}
     flight_events_num_max_pix_on_ec = {}
+
+    pickled_flight_events_num_max_pix_on_pmt = {}
+    pickled_flight_events_num_max_pix_on_ec = {}
+
+    hashstr = hashlib.md5(flight_events_within_cond.values.tobytes()).hexdigest()
+
+    def get_npy_pathname(basename, frac):
+        # global hashstr npy_file_key
+        pkl_pathname = os.path.join(save_npy_dir,
+                                    '{npy_file_key}_{basename}_{hashstr}_{frac:.1f}_{i:d}_{j:d}.numpy.pkl'.format(
+                                        npy_file_key=npy_file_key, hashstr=hashstr, basename=basename, frac=frac,
+                                        i=i, j=j))
+        return pkl_pathname
+
+    def try_load_npy_file(dest, basename, frac):
+        # global hashstr save_npy_dir npy_file_key
+        if save_npy_dir and npy_file_key:
+            pkl_pathname = get_npy_pathname(basename, frac, hashstr)
+            if os.path.exists(pkl_pathname):
+                if frac not in dest:
+                    dest[frac] = {}
+                dest[frac][(i, j)] = np.load(pkl_pathname)
+                return True
+        return False
+
+    if save_npy_dir:
+        os.makedirs(save_npy_dir, exist_ok=True)
 
     for frac in fractions:
         flight_events_num_max_pix_on_pmt[frac] = {}
         for i in range(6):
             for j in range(6):
+                load_successful = try_load_npy_file(pickled_flight_events_num_max_pix_on_pmt, 'num_max_pix_on_pmt', frac)
+                if not load_successful:
                     flight_events_num_max_pix_on_pmt[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
 
     for frac in fractions:
         flight_events_num_max_pix_on_ec[frac] = {}
         for i in range(3):
             for j in range(3):
-                flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
+                load_successful = try_load_npy_file(flight_events_num_max_pix_on_ec, 'num_max_pix_on_ec', frac)
+                if not load_successful:
+                    flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
 
-    for row_i, row in flight_events_within_cond.iterrows():
-        if row_i % 1000 == 0:
-            sys.stdout.write("{}\n".format(row_i))
-            sys.stdout.flush()
-        if row['source_file_acquisition_full'].endswith('.npy'):
-            acquisition_arr = np.load(row['source_file_acquisition_full'])
-            if acquisition_arr.shape[0] != 256:
-                raise RuntimeError('Unexpected number of frames in the acqusition file "{}" (#{}  ID {})'.format(
-                    row['source_file_acquisition_full'], i, row['event_id']))
-            frames_acquisition = acquisition_arr[
-                                row['packet_id'] * 128 + row['gtu_in_packet'] - 4:row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu']]
-        elif row['source_file_acquisition_full'].endswith('.root'):
-            frames_acquisition = tool.acqconv.get_frames(row['source_file_acquisition_full'],
-                                                        row['packet_id'] * 128 + row['gtu_in_packet'] - 4,
-                                                        row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu'], entry_is_gtu_optimization=True)
+    load_files = False
+    for frac in fractions:
+        if frac not in pickled_flight_events_num_max_pix_on_ec or frac not in pickled_flight_events_num_max_pix_on_pmt:
+            load_files = True
+            break
         else:
-            raise RuntimeError('Unexpected source_file_acquisition_full "{}"'.format(row['source_file_acquisition_full']))
-
-        ev_integrated = np.maximum.reduce(frames_acquisition)
-        ev_integrated_max = np.max(ev_integrated)
-
-        # print(np.transpose(np.where(ev_integrated > ev_integrated_max*0.9)))
-
-    #     if row['event_id'] == 256024:
-    #         print(row)
-    #         print("-----------------------")
-    #         for pos_y, pos_x in max_positions:
-    #             pmt_y = pos_y // 8
-    #             pmt_x = pos_x // 8
-    #             ec_y = pos_y // 16
-    #             ec_x = pos_x // 16
-    #             print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}".format(pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x))
-
-        max_positions = {}
-
-    #     for i in range(6):
-    #         for j in range(6):
-    #             max_positions[(i,j)] = {}
-        for frac in fractions:
-            max_positions = np.transpose(np.where(ev_integrated > ev_integrated_max*frac))
-            # max_pos[i][index]
-            # max_pos[index][i]
-            for pos_y, pos_x in max_positions:
-                pmt_y = pos_y // 8
-                pmt_x = pos_x // 8
-
-                ec_y = pos_y // 16
-                ec_x = pos_x // 16
-
-                flight_events_num_max_pix_on_pmt[frac][(pmt_y,pmt_x)][row_i,0] += 1
-                flight_events_num_max_pix_on_ec[frac][(ec_y,ec_x)][row_i,0] += 1
-
-    #             if row['event_id'] == 256024:
-    #                 print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}   flight_events_num_max_pix_on_ec[({ec_y},{ec_x})][{frac}][{row_i},0]={v}".format(
-    #                     pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x, ec_y=ec_y, ec_x=ec_x, frac=frac, row_i=row_i, v=flight_events_num_max_pix_on_ec[(ec_y,ec_x)][frac][row_i,0]))
-
-    #     if row_i > 50:
-    #         break
-        #visualized_projections = []
-        #if vis_xy:
-            #ev_integrated = np.maximum.reduce(frames_acquisition)
-            #visualized_projections.append((ev_integrated, "x [pixel]", "y [pixel]"))
-        #if vis_gtux:
-            #max_integrated_gtu_y = []
-            #for frame in frames_acquisition:
-                #max_integrated_gtu_y.append(np.max(frame, axis=1).reshape(-1, 1))  # max in the x axis
-            #max_integrated_gtu_y = np.hstack(max_integrated_gtu_y)
-            #visualized_projections.append((max_integrated_gtu_y, "GTU", "y [pixel]"))
-        #if vis_gtuy:
-            #max_integrated_gtu_x = []
-            #for frame in frames_acquisition:
-                #max_integrated_gtu_x.append(np.max(frame, axis=0).reshape(-1, 1))  # max the y axis
-            #max_integrated_gtu_x = np.hstack(max_integrated_gtu_x)
-            #visualized_projections.append((max_integrated_gtu_x, "GTU", "x [pixel]"))
-
-        #plt.show()
-
-
-    # In[210]:
-
-
-    for k in range(len(flight_events_within_cond)):
-        for frac in fractions:
-            for i in range(3):
-                for j in range(3):
-                    for ii in range(3):
-                        for jj in range(3):
-                            if jj == j and ii == i:
-                                continue
-                            flight_events_num_max_pix_on_ec[frac][(i,j)][k,1] += flight_events_num_max_pix_on_ec[frac][(ii,jj)][k,0]
-    #                 if k == 4:
-    #                     print("flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},0] = {v}   flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},1] = {v1}".format(
-    #                         i=i,j=j,frac=frac,k=k,v=flight_events_num_max_pix_on_ec[(i,j)][frac][k,0], v1=flight_events_num_max_pix_on_ec[(i,j)][frac][k,1]))
-    #     if k > 5:
-    #         break
-
-
-    for k in range(len(flight_events_within_cond)):
-        for frac in fractions:
             for i in range(6):
                 for j in range(6):
-                    for ii in range(6):
-                        for jj in range(6):
-                            if jj == j and ii == i:
-                                continue
-                            flight_events_num_max_pix_on_pmt[frac][(i,j)][k,1] += flight_events_num_max_pix_on_pmt[frac][(ii,jj)][k,0]
-    #                         if flight_events_num_pix[(ii,jj)][frac][k,0] > 0:
-    #                             print('flight_events_num_pix[({i},{j})][{frac}][{k},1] += flight_events_num_pix[({ii},{jj})][{frac}][{k},1] # {v}'.format(
-    #                                 i=i,j=j,frac=frac,k=k,ii=ii,jj=jj,v=flight_events_num_pix[(ii,jj)][frac][k,0]))
-    #     if k > 5:
-    #         break
-    return flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec
+                    if (i,j) not in pickled_flight_events_num_max_pix_on_pmt[frac]:
+                        load_files = True
+                        break
+            for i in range(3):
+                for j in range(3):
+                    if (i,j) not in pickled_flight_events_num_max_pix_on_ec[frac]:
+                        load_files = True
+                        break
 
+    if load_files:
+        for row_i, row in flight_events_within_cond.iterrows():
+            if row_i % 1000 == 0:
+                sys.stdout.write("{}\n".format(row_i))
+                sys.stdout.flush()
+            if row['source_file_acquisition_full'].endswith('.npy'):
+                acquisition_arr = np.load(row['source_file_acquisition_full'])
+                if acquisition_arr.shape[0] != 256:
+                    raise RuntimeError('Unexpected number of frames in the acqusition file "{}" (#{}  ID {})'.format(
+                        row['source_file_acquisition_full'], i, row['event_id']))
+                frames_acquisition = acquisition_arr[
+                                    row['packet_id'] * 128 + row['gtu_in_packet'] - 4:row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu']]
+            elif row['source_file_acquisition_full'].endswith('.root'):
+                frames_acquisition = tool.acqconv.get_frames(row['source_file_acquisition_full'],
+                                                            row['packet_id'] * 128 + row['gtu_in_packet'] - 4,
+                                                            row['packet_id'] * 128 + row['gtu_in_packet'] - 4 + row['num_gtu'], entry_is_gtu_optimization=True)
+            else:
+                raise RuntimeError('Unexpected source_file_acquisition_full "{}"'.format(row['source_file_acquisition_full']))
+
+            ev_integrated = np.maximum.reduce(frames_acquisition)
+            ev_integrated_max = np.max(ev_integrated)
+
+            # print(np.transpose(np.where(ev_integrated > ev_integrated_max*0.9)))
+
+        #     if row['event_id'] == 256024:
+        #         print(row)
+        #         print("-----------------------")
+        #         for pos_y, pos_x in max_positions:
+        #             pmt_y = pos_y // 8
+        #             pmt_x = pos_x // 8
+        #             ec_y = pos_y // 16
+        #             ec_x = pos_x // 16
+        #             print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}".format(pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x))
+
+            max_positions = {}
+
+        #     for i in range(6):
+        #         for j in range(6):
+        #             max_positions[(i,j)] = {}
+            for frac in fractions:
+                max_positions = np.transpose(np.where(ev_integrated > ev_integrated_max*frac))
+                # max_pos[i][index]
+                # max_pos[index][i]
+                for pos_y, pos_x in max_positions:
+                    pmt_y = pos_y // 8
+                    pmt_x = pos_x // 8
+
+                    ec_y = pos_y // 16
+                    ec_x = pos_x // 16
+
+                    flight_events_num_max_pix_on_pmt[frac][(pmt_y,pmt_x)][row_i,0] += 1
+                    flight_events_num_max_pix_on_ec[frac][(ec_y,ec_x)][row_i,0] += 1
+
+        #             if row['event_id'] == 256024:
+        #                 print("y={} x={}    pmt_y={} pmt_x={}   ec_y={} ec_x={}   flight_events_num_max_pix_on_ec[({ec_y},{ec_x})][{frac}][{row_i},0]={v}".format(
+        #                     pos_y,pos_x, pmt_y,pmt_x, ec_y, ec_x, ec_y=ec_y, ec_x=ec_x, frac=frac, row_i=row_i, v=flight_events_num_max_pix_on_ec[(ec_y,ec_x)][frac][row_i,0]))
+
+        #     if row_i > 50:
+        #         break
+            #visualized_projections = []
+            #if vis_xy:
+                #ev_integrated = np.maximum.reduce(frames_acquisition)
+                #visualized_projections.append((ev_integrated, "x [pixel]", "y [pixel]"))
+            #if vis_gtux:
+                #max_integrated_gtu_y = []
+                #for frame in frames_acquisition:
+                    #max_integrated_gtu_y.append(np.max(frame, axis=1).reshape(-1, 1))  # max in the x axis
+                #max_integrated_gtu_y = np.hstack(max_integrated_gtu_y)
+                #visualized_projections.append((max_integrated_gtu_y, "GTU", "y [pixel]"))
+            #if vis_gtuy:
+                #max_integrated_gtu_x = []
+                #for frame in frames_acquisition:
+                    #max_integrated_gtu_x.append(np.max(frame, axis=0).reshape(-1, 1))  # max the y axis
+                #max_integrated_gtu_x = np.hstack(max_integrated_gtu_x)
+                #visualized_projections.append((max_integrated_gtu_x, "GTU", "x [pixel]"))
+
+            #plt.show()
+
+
+        # In[210]:
+
+
+        for k in range(len(flight_events_within_cond)):
+            for frac in fractions:
+                for i in range(3):
+                    for j in range(3):
+                        for ii in range(3):
+                            for jj in range(3):
+                                if jj == j and ii == i:
+                                    continue
+                                flight_events_num_max_pix_on_ec[frac][(i,j)][k,1] += flight_events_num_max_pix_on_ec[frac][(ii,jj)][k,0]
+
+                        if save_npy_dir and npy_file_key:
+                            np.save(get_npy_pathname('num_max_pix_on_ec', frac), flight_events_num_max_pix_on_ec[frac][(i, j)])
+
+        #                 if k == 4:
+        #                     print("flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},0] = {v}   flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},1] = {v1}".format(
+        #                         i=i,j=j,frac=frac,k=k,v=flight_events_num_max_pix_on_ec[(i,j)][frac][k,0], v1=flight_events_num_max_pix_on_ec[(i,j)][frac][k,1]))
+        #     if k > 5:
+        #         break
+
+
+        for k in range(len(flight_events_within_cond)):
+            for frac in fractions:
+                for i in range(6):
+                    for j in range(6):
+                        for ii in range(6):
+                            for jj in range(6):
+                                if jj == j and ii == i:
+                                    continue
+                                flight_events_num_max_pix_on_pmt[frac][(i,j)][k,1] += flight_events_num_max_pix_on_pmt[frac][(ii,jj)][k,0]
+
+                        if save_npy_dir and npy_file_key:
+                            np.save(get_npy_pathname('num_max_pix_on_pmt', frac), flight_events_num_max_pix_on_pmt[frac][(i, j)])
+
+        #                         if flight_events_num_pix[(ii,jj)][frac][k,0] > 0:
+        #                             print('flight_events_num_pix[({i},{j})][{frac}][{k},1] += flight_events_num_pix[({ii},{jj})][{frac}][{k},1] # {v}'.format(
+        #                                 i=i,j=j,frac=frac,k=k,ii=ii,jj=jj,v=flight_events_num_pix[(ii,jj)][frac][k,0]))
+        #     if k > 5:
+        #         break
+
+        return flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec
+    else:
+
+        return pickled_flight_events_num_max_pix_on_pmt, pickled_flight_events_num_max_pix_on_ec
 
     # In[211]:
 
@@ -1408,9 +1469,10 @@ def main(argv):
     args_parser.add_argument('-s','--host',default='localhost')
     args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
     args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
-    # args_parser.add_argument('-p','--pickle-dir',default='/tmp/event_classification_efficiency', help="Directory where pickled data are stored")
+    args_parser.add_argument('-p','--save-npy-dir',default='/tmp/event_classification_efficiency/npy', help="Directory where pickled data are stored")
     args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
     args_parser.add_argument('--exit-on-failure',type=str2bool_argparse,default=False,help='If true, exits on failure')
+    args_parser.add_argument('--skip-vis-events',type=str2bool_argparse,default=False,help='If true, events are not visualized')
 
     args = args_parser.parse_args(argv)
 
@@ -1418,12 +1480,18 @@ def main(argv):
     if not password:
         password = getpass.getpass()
 
+    save_npy_dir = os.path.realpath(args.save_npy_dir)
     save_csv_dir = os.path.realpath(args.save_csv_dir)
 
     if not args.show_plots:
         save_fig_dir = os.path.realpath(args.save_fig_dir)
     else:
         save_fig_dir = None
+
+    if not os.path.exists(save_npy_dir):
+        os.makedirs(save_npy_dir)
+    elif not os.path.isdir(save_npy_dir):
+        raise RuntimeError('{} is not directory'.format(save_npy_dir))
 
     if not os.path.exists(save_csv_dir):
         os.makedirs(save_csv_dir)
@@ -1684,7 +1752,7 @@ def main(argv):
         print_len(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
         save_csv(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir,  'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
 
-        cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups =  get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
+        cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups = get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
 
         vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
 
@@ -1706,7 +1774,7 @@ def main(argv):
 
         print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-        flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9])
+        flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'flight_events_within_cond')
 
         flight_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec)
 
@@ -1719,6 +1787,8 @@ def main(argv):
 
         print_len(filtered_flight_events_within_cond, 'filtered_flight_events_within_cond')
         save_csv(filtered_flight_events_within_cond, save_csv_dir, 'filtered_flight_events_within_cond')
+        
+        # ----------------------------------------------------- 
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
@@ -1727,17 +1797,22 @@ def main(argv):
         print_len(flight_events_within_cond_not_filter, 'flight_events_within_cond_not_filter')
         save_csv(flight_events_within_cond_not_filter, save_csv_dir, 'flight_events_within_cond_not_filter')
 
+        # ----------------------------------------------------- 
+        
         print(">> VISUALIZING WITHIN CONDITIONS")
-        vis_num_gtu_hist(flight_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
-        vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
+        vis_num_gtu_hist(flight_events_within_cond, save_fig_dir, fig_file_name='flight_events_within_cond__num_gtu')
+        if not args.skip_vis_events:
+            vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
 
         print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
         vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
-        vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+        if not args.skip_vis_events:
+            vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
         vis_num_gtu_hist(flight_events_within_cond_not_filter, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter__num_gtu')
-        vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+        if not args.skip_vis_events:
+            vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
     except Exception:
         traceback.print_exc()
@@ -1756,7 +1831,7 @@ def main(argv):
 
         print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-        utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, fractions=[0.6, 0.8, 0.9])
+        utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'utah_events_within_cond')
 
         utah_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(utah_events_within_cond, utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec)
 
@@ -1778,15 +1853,18 @@ def main(argv):
 
         print(">> VISUALIZING WITHIN CONDITIONS")
         vis_num_gtu_hist(utah_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
-        vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
+        if not args.skip_vis_events:
+            vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
 
         print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
         vis_num_gtu_hist(filtered_utah_events_within_cond, save_fig_dir, fig_file_name='filtered_utah_events_within_cond__num_gtu')
-        vis_events_df(filtered_utah_events_within_cond, save_fig_dir, 'filtered_utah_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+        if not args.skip_vis_events:
+            vis_events_df(filtered_utah_events_within_cond, save_fig_dir, 'filtered_utah_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
         vis_num_gtu_hist(utah_events_within_cond_not_filter, save_fig_dir, fig_file_name='utah_events_within_cond_not_filter__num_gtu')
-        vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+        if not args.skip_vis_events:
+            vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
     except Exception:
         traceback.print_exc()
@@ -1807,7 +1885,7 @@ def main(argv):
 
         print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-        simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, fractions=[0.6, 0.8, 0.9])
+        simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'simu_events_within_cond')
 
         simu_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(simu_events_within_cond, simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec)
 
@@ -1818,6 +1896,10 @@ def main(argv):
 
         filtered_simu_events_within_cond = filter_out_top_left_ec(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
 
+        # -----------------------------------------------------
+        print(">> GROUPING BY ENERGY ")
+        # -----------------------------------------------------
+
         filtered_simu_events_within_cond__packet_count_by_energy = group_rows_to_count_packets(filtered_simu_events_within_cond)
 
         print_len(filtered_simu_events_within_cond__packet_count_by_energy, 'filtered_simu_events_within_cond__packet_count_by_energy')
@@ -1826,34 +1908,17 @@ def main(argv):
         if all_bgf05_and_bgf1_simu_events__packet_count_by_energy is None:
             raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_energy is not loaded')
 
-        print(">> MERGING ")
+        # -----------------------------------------------------
+        print(">> MERGING (GROUPED BY ENERGY)")
+        # -----------------------------------------------------
 
         filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_energy, merge_on='etruth_trueenergy')
 
         print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
         save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
 
-        print(">> SELECTING NOT PASSED THROUGH FILTER")
-
-        simu_events_within_cond_not_filter = df_difference(simu_events_within_cond_with_max_pix_count, filtered_simu_events_within_cond)
-
-        print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
-        save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
-
-        print(">> VISUALIZING WITHIN CONDITIONS")
-        vis_events_df(simu_events_within_cond, save_fig_dir, 'simu_events_within_cond')
-        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
-
-        print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
-        vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond')
-        vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
-
-        print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
-        vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter')
-        vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
-
         # -----------------------------------------------------
-        print(">> FITTING")
+        print(">> FITTING (GROUPED BY ENERGY)")
         # -----------------------------------------------------
 
         #_, yerrs = calc_yerrs_for_merged_events_by_energy
@@ -1865,7 +1930,7 @@ def main(argv):
         vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
 
         # -----------------------------------------------------
-        print(">> THINNING")
+        print(">> THINNING (GROUPED BY ENERGY)")
         # -----------------------------------------------------
 
         x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, x_axis_column='etruth_trueenergy') # xerrs = xerr_low, xerr_up
@@ -1873,7 +1938,7 @@ def main(argv):
         save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
 
         # -----------------------------------------------------
-        print(">> THINNING FITTED")
+        print(">> THINNING FITTED (GROUPED BY ENERGY)")
         # -----------------------------------------------------
 
         fits_p = fit_points_using_yerrs(x, y, yerrs)
@@ -1883,6 +1948,123 @@ def main(argv):
         vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
 
         vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+
+        # -----------------------------------------------------
+
+        # -----------------------------------------------------
+        print(">> GROUPING BY POSZ ")
+        # -----------------------------------------------------
+
+        filtered_simu_events_within_cond__packet_count_by_posz = \
+            group_rows_to_count_packets(filtered_simu_events_within_cond,
+                                        groupby1_columns=['egeometry_pos_z','source_file_acquisition_full','packet_id'], groupby2_columns=['egeometry_pos_z'])
+
+        print_len(filtered_simu_events_within_cond__packet_count_by_posz, 'filtered_simu_events_within_cond__packet_count_by_posz')
+        save_csv(filtered_simu_events_within_cond__packet_count_by_posz, save_csv_dir, 'filtered_simu_events_within_cond__packet_count_by_posz')
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_posz is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz is not loaded')
+
+        # -----------------------------------------------------
+        print(">> MERGING (GROUPED BY POSZ)")
+        # -----------------------------------------------------
+
+        filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_posz, all_bgf05_and_bgf1_simu_events__packet_count_by_posz, merge_on='egeometry_pos_z')
+
+        print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+        # -----------------------------------------------------
+        print(">> FITTING (GROUPED BY POSZ)")
+        # -----------------------------------------------------
+
+        #_, yerrs = calc_yerrs_for_merged_events_by_posz
+        x, y, yerrs, fits_p  = fit_points_cond_all_merged(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='egeometry_pos_z')
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+
+        vis_count_fraction(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+        vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+
+        # -----------------------------------------------------
+        print(">> THINNING (GROUPED BY POSZ)")
+        # -----------------------------------------------------
+
+        x, y, xerrs, yerrs, cond_thinned, all_thinned  = thin_datapoints_from_dataframe(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, x_axis_column='egeometry_pos_z') # xerrs = xerr_low, xerr_up
+
+        save_thinned_datapoints(x, y, xerrs, yerrs, cond_thinned, all_thinned, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz')
+
+        # -----------------------------------------------------
+        print(">> THINNING FITTED (GROUPED BY POSZ)")
+        # -----------------------------------------------------
+
+        fits_p = fit_points_using_yerrs(x, y, yerrs)
+
+        save_csv_of_fits(fits_p, save_csv_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits')
+
+        vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__thinned_comparison')
+
+        vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__thinned__fits')
+
+        # =====================================================
+
+        # -----------------------------------------------------
+        print(">> GROUPING BY ENERGY AND POSZ")
+        # -----------------------------------------------------
+
+        filtered_simu_events_within_cond__packet_count_by_posz_and_energy = \
+            group_rows_to_count_packets(filtered_simu_events_within_cond,
+                                        groupby1_columns=['egeometry_pos_z','etruth_trueenergy','source_file_acquisition_full','packet_id'], groupby2_columns=['egeometry_pos_z','etruth_trueenergy'])
+
+        print_len(filtered_simu_events_within_cond__packet_count_by_posz_and_energy, 'filtered_simu_events_within_cond__packet_count_by_posz_and_energy')
+        save_csv(filtered_simu_events_within_cond__packet_count_by_posz_and_energy, save_csv_dir, 'filtered_simu_events_within_cond__packet_count_by_posz_and_energy')
+
+        if all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy is None:
+            raise RuntimeError('all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy is not loaded')
+
+        # -----------------------------------------------------
+        print(">> MERGING (GROUPED BY ENERGY AND POSZ)")
+        # -----------------------------------------------------
+
+        filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_posz_and_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, merge_on='egeometry_pos_z')
+
+        print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+        save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
+
+        # -----------------------------------------------------
+        print(">> THINNING AND FITTING (GROUPED BY ENERGY AND POSZ)")
+        # -----------------------------------------------------
+
+        filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups = get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
+
+        vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
+
+
+        # =====================================================
+
+        print(">> SELECTING NOT PASSED THROUGH FILTER")
+
+        simu_events_within_cond_not_filter = df_difference(simu_events_within_cond_with_max_pix_count, filtered_simu_events_within_cond)
+
+        print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
+        save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
+        
+        # -----------------------------------------------------
+
+        print(">> VISUALIZING WITHIN CONDITIONS")
+        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+        if not args.skip_vis_events:
+            vis_events_df(simu_events_within_cond, save_fig_dir, 'simu_events_within_cond')
+
+        print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
+        vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu')
+        if not args.skip_vis_events:
+            vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+
+        print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
+        vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu')
+        if not args.skip_vis_events:
+            vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
     except Exception:
         traceback.print_exc()
@@ -1902,7 +2084,8 @@ def main(argv):
         vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
 
         print(">> VISUALIZING")
-        vis_events_df(simu_events_not_within_cond, save_fig_dir, 'simu_events_not_within_cond')
+        if not args.skip_vis_events:
+            vis_events_df(simu_events_not_within_cond, save_fig_dir, 'simu_events_not_within_cond')
 
     except Exception:
         traceback.print_exc()
