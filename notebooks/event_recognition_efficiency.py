@@ -24,12 +24,13 @@ from utility_funtions import str2bool_argparse
 
 
 def __check_agg():
-    args_parser = argparse.ArgumentParser(description='')
-    args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
-    args , _ = args_parser.parse_known_args()
+    if '--show-plots' in sys.argv[1:]:
+        args_parser = argparse.ArgumentParser(description='')
+        args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
+        args , _ = args_parser.parse_known_args(sys.argv[1:])
 
-    if not args.show_plots:
-        mpl.use('Agg')
+        if not args.show_plots:
+            mpl.use('Agg')
 
 
 __check_agg()
@@ -1463,16 +1464,16 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
 def main(argv):
 
     args_parser = argparse.ArgumentParser(description='Draw histograms of parameter values')
-    args_parser.add_argument('-d','--dbname',default='eusospb_data')
-    args_parser.add_argument('-U','--user',default='eusospb')
+    args_parser.add_argument('-d', '--dbname', default='eusospb_data')
+    args_parser.add_argument('-U', '--user', default='eusospb')
     args_parser.add_argument('--password')
-    args_parser.add_argument('-s','--host',default='localhost')
-    args_parser.add_argument('-o','--save-fig-dir',default='/tmp/event_classification_efficiency', help="Directory where figures are saved")
-    args_parser.add_argument('-c','--save-csv-dir',default='/tmp/event_classification_efficiency', help="Directory where csv are saved")
-    args_parser.add_argument('-p','--save-npy-dir',default='/tmp/event_classification_efficiency/npy', help="Directory where pickled data are stored")
-    args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
-    args_parser.add_argument('--exit-on-failure',type=str2bool_argparse,default=False,help='If true, exits on failure')
-    args_parser.add_argument('--skip-vis-events',type=str2bool_argparse,default=False,help='If true, events are not visualized')
+    args_parser.add_argument('-s', '--host', default='localhost')
+    args_parser.add_argument('-o', '--save-fig-dir', default='/tmp/event_classification_efficiency', help="Directory where figures are saved (default: /tmp/event_classification_efficiency)")
+    args_parser.add_argument('-c', '--save-csv-dir', default='/tmp/event_classification_efficiency', help="Directory where csv are saved (default: /tmp/event_classification_efficiency)")
+    args_parser.add_argument('-p', '--save-npy-dir', default='/tmp/event_classification_efficiency/npy', help="Directory where numpy arrays are stored (default: /tmp/event_classification_efficiency/npy)")
+    args_parser.add_argument('--show-plots', type=str2bool_argparse, default=False, help='If true, plots are only showed in windows (default: no)')
+    args_parser.add_argument('--exit-on-failure', type=str2bool_argparse, default=True, help='If true, exits on failure (default: yes)')
+    args_parser.add_argument('--skip-vis-events', type=str2bool_argparse, default=False, help='If true, events are not visualized (default: no)')
 
     args = args_parser.parse_args(argv)
 
@@ -1819,6 +1820,7 @@ def main(argv):
         if args.exit_on_failure:
             sys.exit(2)
 
+
     # -----------------------------------------------------
     print("UTAH EVENTS BY ENERGY WITHIN CONDITIONS")
     # ----------------------------------------------------- 
@@ -2038,7 +2040,6 @@ def main(argv):
         filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups = get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
 
         vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
-
 
         # =====================================================
 
