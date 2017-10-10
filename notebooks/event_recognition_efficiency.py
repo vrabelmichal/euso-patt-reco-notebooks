@@ -1378,13 +1378,13 @@ def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num
     return filtered_flight_events_within_cond
 
 
-def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out']):
+def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=[]):
     events_l = [ev for ev in rows_generator(events.iterrows())]
     vis_events_list(events_l, events.columns, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns,
                vis_gtux=vis_gtux, vis_gtuy=vis_gtuy)
 
 
-def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, numeric_columns=False, additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], subplot_cols=9):
+def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, numeric_columns=False, additional_printed_columns=[], subplot_cols=9):
     for i in range(0, min(len(events), events_per_figure*max_figures), events_per_figure):
        fig, axs = \
            data_analysis_utils.visualize_events(
@@ -1720,7 +1720,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        flight_events_within_cond_not_filter = df_difference(flight_events_within_cond, filtered_flight_events_within_cond)
+        flight_events_within_cond_not_filter = df_difference(flight_events_within_cond_with_max_pix_count, filtered_flight_events_within_cond)
 
         print_len(flight_events_within_cond_not_filter, 'flight_events_within_cond_not_filter')
         save_csv(flight_events_within_cond_not_filter, save_csv_dir, 'flight_events_within_cond_not_filter')
@@ -1731,11 +1731,11 @@ def main(argv):
 
         print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
         vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
-        vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
+        vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
         vis_num_gtu_hist(flight_events_within_cond_not_filter, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter__num_gtu')
-        vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter')
+        vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
     except Exception:
         traceback.print_exc()
@@ -1769,7 +1769,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        utah_events_within_cond_not_filter = df_difference(utah_events_within_cond, filtered_utah_events_within_cond)
+        utah_events_within_cond_not_filter = df_difference(utah_events_within_cond_with_max_pix_count, filtered_utah_events_within_cond)
 
         print_len(utah_events_within_cond_not_filter, 'utah_events_within_cond_not_filter')
         save_csv(utah_events_within_cond_not_filter, save_csv_dir, 'utah_events_within_cond_not_filter')
@@ -1780,11 +1780,11 @@ def main(argv):
 
         print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
         vis_num_gtu_hist(filtered_utah_events_within_cond, save_fig_dir, fig_file_name='filtered_utah_events_within_cond__num_gtu')
-        vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
+        vis_events_df(filtered_utah_events_within_cond, save_fig_dir, 'filtered_utah_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
         vis_num_gtu_hist(utah_events_within_cond_not_filter, save_fig_dir, fig_file_name='utah_events_within_cond_not_filter__num_gtu')
-        vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter')
+        vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
     except Exception:
         traceback.print_exc()
@@ -1833,7 +1833,7 @@ def main(argv):
 
         print(">> SELECTING NOT PASSED THROUGH FILTER")
 
-        simu_events_within_cond_not_filter = df_difference(simu_events_within_cond, filtered_simu_events_within_cond)
+        simu_events_within_cond_not_filter = df_difference(simu_events_within_cond_with_max_pix_count, filtered_simu_events_within_cond)
 
         print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
         save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
@@ -1844,11 +1844,11 @@ def main(argv):
 
         print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
         vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond')
-        vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu')
+        vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
         vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter')
-        vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu')
+        vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
         # -----------------------------------------------------
         print(">> FITTING")
