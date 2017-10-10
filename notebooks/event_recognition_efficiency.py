@@ -1558,15 +1558,15 @@ def main(argv):
     try:
         simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf = get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
         print_len(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf', 'expected to be empty')
-        save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
 
         simu_entries_within_cond_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
         print_len(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1', 'as many as possible of {}'.format(cond_simu_entries_count))
-        save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
 
         simu_entries_within_cond_bgf05_and_bgf1_v2 = get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log)
         print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
-        save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+        save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
 
         vis_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
 
