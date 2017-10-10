@@ -892,7 +892,7 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
     fig, axs = plt.subplots(int(np.ceil(len(uniq_posz_plot_data)/num_cols)), num_cols)
     axs_flattened = axs.flatten()
 
-    fig.set_size_inches(np.ceil(len(uniq_posz_plot_data)/num_cols)*row_height, num_cols*col_width)
+    fig.set_size_inches(num_cols * col_width, np.ceil(len(uniq_posz_plot_data) / num_cols) * row_height)
 
     colors = ['pink', 'purple', 'red', 'black', 'yellow', 'royalblue', 'cyan', 'blue']
     line_styles = ['-',':']
@@ -1380,7 +1380,7 @@ def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num
 
 def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=[]):
     events_l = [ev for ev in rows_generator(events.iterrows())]
-    vis_events_list(events_l, events.columns, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns,
+    vis_events_list(events_l, events.columns, save_fig_dir, base_file_name, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns,
                vis_gtux=vis_gtux, vis_gtuy=vis_gtuy)
 
 
@@ -1393,6 +1393,8 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
                plt_show=False)
 
        if save_fig_dir is not None:
+           # print("XXXXXXXXXXXXXX")
+           # print(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
            save_figure(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
         # ,'x_y_neighbourhood_size','gtu_x_neighbourhood_size','gtu_y_neighbourhood_size'
 
