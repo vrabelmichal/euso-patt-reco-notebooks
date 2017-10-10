@@ -24,13 +24,14 @@ from utility_funtions import str2bool_argparse
 
 
 def __check_agg():
+    show_plots = False
     if '--show-plots' in sys.argv[1:]:
         args_parser = argparse.ArgumentParser(description='')
         args_parser.add_argument('--show-plots',type=str2bool_argparse,default=False,help='If true, plots are only showed in windows')
         args , _ = args_parser.parse_known_args(sys.argv[1:])
-
-        if not args.show_plots:
-            mpl.use('Agg')
+        show_plots = args.show_plots
+    if not show_plots:
+        mpl.use('Agg')
 
 
 __check_agg()
