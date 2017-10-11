@@ -1181,9 +1181,10 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
     pickled_flight_events_num_max_pix_on_ec = {}
 
     hashstr = hashlib.md5(df.values.tobytes()).hexdigest()
-    with open("/tmp/debug_{}".format(npy_file_key)) as f:
+    with open("/tmp/debug_{}_{}".format(npy_file_key,hashstr),'w') as f:
         for v in df.values:
             print(v, file=f)
+
 
     def get_npy_pathname(basename, frac, i, j):
         # global hashstr npy_file_key
