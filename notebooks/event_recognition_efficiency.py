@@ -1172,7 +1172,7 @@ def rows_generator(iterrows):
         yield t[1]
 
 
-def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0.8, 0.9], save_npy_dir=None, npy_file_key=None):
+def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=None, npy_file_key=None):
 
     flight_events_num_max_pix_on_pmt = {}
     flight_events_num_max_pix_on_ec = {}
@@ -1180,9 +1180,9 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
     pickled_flight_events_num_max_pix_on_pmt = {}
     pickled_flight_events_num_max_pix_on_ec = {}
 
-    hashstr = hashlib.md5(flight_events_within_cond.values.tobytes()).hexdigest()
+    hashstr = hashlib.md5(df.values.tobytes()).hexdigest()
 
-    def get_npy_pathname(basename, frac):
+    def get_npy_pathname(basename, frac, i, j):
         # global hashstr npy_file_key
         pkl_pathname = os.path.join(save_npy_dir,
                                     '{npy_file_key}_{basename}_{hashstr}_{frac:.1f}_{i:d}_{j:d}.numpy.pkl'.format(
@@ -1190,10 +1190,10 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
                                         i=i, j=j))
         return pkl_pathname
 
-    def try_load_npy_file(dest, basename, frac):
+    def try_load_npy_file(dest, basename, frac, i, j):
         # global hashstr save_npy_dir npy_file_key
         if save_npy_dir and npy_file_key:
-            pkl_pathname = get_npy_pathname(basename, frac)
+            pkl_pathname = get_npy_pathname(basename, frac, i, j)
             if os.path.exists(pkl_pathname):
                 if frac not in dest:
                     dest[frac] = {}
@@ -1208,17 +1208,17 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
         flight_events_num_max_pix_on_pmt[frac] = {}
         for i in range(6):
             for j in range(6):
-                load_successful = try_load_npy_file(pickled_flight_events_num_max_pix_on_pmt, 'num_max_pix_on_pmt', frac)
+                load_successful = try_load_npy_file(pickled_flight_events_num_max_pix_on_pmt, 'num_max_pix_on_pmt', frac, i, j)
                 if not load_successful:
-                    flight_events_num_max_pix_on_pmt[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
+                    flight_events_num_max_pix_on_pmt[frac][(i,j)] = np.zeros((len(df), 2))
 
     for frac in fractions:
         flight_events_num_max_pix_on_ec[frac] = {}
         for i in range(3):
             for j in range(3):
-                load_successful = try_load_npy_file(flight_events_num_max_pix_on_ec, 'num_max_pix_on_ec', frac)
+                load_successful = try_load_npy_file(pickled_flight_events_num_max_pix_on_ec, 'num_max_pix_on_ec', frac, i, j)
                 if not load_successful:
-                    flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(flight_events_within_cond),2))
+                    flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(df), 2))
 
     load_files = False
     for frac in fractions:
@@ -1238,7 +1238,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
                         break
 
     if load_files:
-        for row_i, row in flight_events_within_cond.iterrows():
+        for row_i, row in df.iterrows():
             if row_i % 1000 == 0:
                 sys.stdout.write("{}\n".format(row_i))
                 sys.stdout.flush()
@@ -1319,7 +1319,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
         # In[210]:
 
 
-        for k in range(len(flight_events_within_cond)):
+        for k in range(len(df)):
             for frac in fractions:
                 for i in range(3):
                     for j in range(3):
@@ -1330,7 +1330,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
                                 flight_events_num_max_pix_on_ec[frac][(i,j)][k,1] += flight_events_num_max_pix_on_ec[frac][(ii,jj)][k,0]
 
                         if save_npy_dir and npy_file_key:
-                            np.save(get_npy_pathname('num_max_pix_on_ec', frac), flight_events_num_max_pix_on_ec[frac][(i, j)])
+                            np.save(get_npy_pathname('num_max_pix_on_ec', frac, i, j), flight_events_num_max_pix_on_ec[frac][(i, j)])
 
         #                 if k == 4:
         #                     print("flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},0] = {v}   flight_events_num_max_pix_on_ec[({i},{j})][{frac}][{k},1] = {v1}".format(
@@ -1339,7 +1339,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
         #         break
 
 
-        for k in range(len(flight_events_within_cond)):
+        for k in range(len(df)):
             for frac in fractions:
                 for i in range(6):
                     for j in range(6):
@@ -1350,7 +1350,7 @@ def count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, fractions=[0.6, 0
                                 flight_events_num_max_pix_on_pmt[frac][(i,j)][k,1] += flight_events_num_max_pix_on_pmt[frac][(ii,jj)][k,0]
 
                         if save_npy_dir and npy_file_key:
-                            np.save(get_npy_pathname('num_max_pix_on_pmt', frac), flight_events_num_max_pix_on_pmt[frac][(i, j)])
+                            np.save(get_npy_pathname('num_max_pix_on_pmt', frac, i, j), flight_events_num_max_pix_on_pmt[frac][(i, j)])
 
         #                         if flight_events_num_pix[(ii,jj)][frac][k,0] > 0:
         #                             print('flight_events_num_pix[({i},{j})][{frac}][{k},1] += flight_events_num_pix[({ii},{jj})][{frac}][{k},1] # {v}'.format(
