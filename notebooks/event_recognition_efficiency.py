@@ -1540,23 +1540,24 @@ def main(argv):
 
     spb_processing_event_ver2_columns = get_spb_processing_event_ver2_columns(cur)
 
-    # -----------------------------------------------------
-    print("ALL SIMU EVENTS BY ENERGY")
-    # -----------------------------------------------------
+    if args.do_simu:
+        # -----------------------------------------------------
+        print("ALL SIMU EVENTS BY ENERGY")
+        # -----------------------------------------------------
 
-    all_bgf05_and_bgf1_simu_events__packet_count_by_energy = None
-    try:
-        all_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log)
+        all_bgf05_and_bgf1_simu_events__packet_count_by_energy = None
+        try:
+            all_bgf05_and_bgf1_simu_events__packet_count_by_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log)
 
-        print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
-        save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+            print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
+            save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
 
-        vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
+            vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
 
-    except Exception:
-        traceback.print_exc()
-        if args.exit_on_failure:
-            sys.exit(2)
+        except Exception:
+            traceback.print_exc()
+            if args.exit_on_failure:
+                sys.exit(2)
 
     # -----------------------------------------------------
     # COND SELECTION RULES
@@ -1929,6 +1930,8 @@ def main(argv):
             print(">> FILTERING")
 
             filtered_simu_events_within_cond = filter_out_top_left_ec(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+            print_len(filtered_simu_events_within_cond, 'filtered_simu_events_within_cond')
+            save_csv(filtered_simu_events_within_cond, save_csv_dir, 'filtered_simu_events_within_cond')
 
             # -----------------------------------------------------
             print(">> GROUPING BY ENERGY ")
