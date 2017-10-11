@@ -2058,7 +2058,7 @@ def main(argv):
         print(">> MERGING (GROUPED BY ENERGY AND POSZ)")
         # -----------------------------------------------------
 
-        filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_posz_and_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, merge_on='egeometry_pos_z')
+        filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy = merge_cond_all_dataframes(filtered_simu_events_within_cond__packet_count_by_posz_and_energy, all_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, merge_on=['egeometry_pos_z','etruth_trueenergy'])
 
         print_len(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
         save_csv(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy, save_csv_dir,  'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy')
