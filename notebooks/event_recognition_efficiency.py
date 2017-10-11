@@ -1180,14 +1180,15 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
     pickled_flight_events_num_max_pix_on_pmt = {}
     pickled_flight_events_num_max_pix_on_ec = {}
 
-    hashstr = hashlib.md5(df.values.tobytes()).hexdigest()
-    with open("/tmp/debug_{}_{}".format(npy_file_key,hashstr),'w') as f:
-        for v in df.values:
-            print(v, file=f)
+    hashstr = '' #hashlib.md5(df.values.tobytes()).hexdigest()
 
+    # TODO hash entries, then hash all
 
-    with open("/tmp/debug_{}_{}_bytes".format(npy_file_key,hashstr),'w') as f:
-        f.write(df.values.tobytes().decode())
+    # with open("/tmp/debug_{}_{}".format(npy_file_key,hashstr),'w') as f:
+    #     for v in df.values:
+    #         print(v, file=f)
+    # with open("/tmp/debug_{}_{}_bytes".format(npy_file_key,hashstr),'w') as f:
+    #     f.write(df.values.tobytes().decode())
 
 
     def get_npy_pathname(basename, frac, i, j):
@@ -1654,6 +1655,7 @@ def main(argv):
         vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
 
         vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+        vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__1poly_fit')
 
         # -----------------------------------------------------
         print(">> THINNING")
@@ -1674,6 +1676,7 @@ def main(argv):
         vis_thinned_datapoints(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
 
         vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+        vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
 
     except Exception:
         traceback.print_exc()
@@ -1731,6 +1734,7 @@ def main(argv):
         vis_count_fraction(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz', x_axis_column='egeometry_pos_z')
 
         vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits', xlabel='Altitude (EGeimetry.Pos.Z')
+        vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__1poly_fit', xlabel='Altitude (EGeimetry.Pos.Z')
 
     except Exception:
         traceback.print_exc()
@@ -1952,6 +1956,7 @@ def main(argv):
 
         vis_count_fraction(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, None, yerrs, save_fig_dir, fig_file_name='filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy')
         vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
+        vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__1poly_fit')
 
         # -----------------------------------------------------
         print(">> THINNING (GROUPED BY ENERGY)")
@@ -1972,6 +1977,7 @@ def main(argv):
         vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned_comparison')
 
         vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
+        vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
 
         # -----------------------------------------------------
 
@@ -2009,6 +2015,7 @@ def main(argv):
 
         vis_count_fraction(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, None, yerrs, save_fig_dir, fig_file_name='filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz', x_axis_column='egeometry_pos_z')
         vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits', xlabel='Altitude (EGeometry.Pos.Z)')
+        vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__1poly_fit', xlabel='Altitude (EGeometry.Pos.Z)')
 
         # -----------------------------------------------------
         print(">> THINNING (GROUPED BY POSZ)")
@@ -2029,6 +2036,7 @@ def main(argv):
         vis_thinned_datapoints(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz, *cond_thinned, *all_thinned, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__thinned_comparison', x_axis_column='egeometry_pos_z')
 
         vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__thinned__fits', xlabel='Altitude (EGeometry.Pos.Z)')
+        vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__thinned__1poly_fit', xlabel='Altitude (EGeometry.Pos.Z)')
 
         # =====================================================
 
