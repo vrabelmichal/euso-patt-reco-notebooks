@@ -1222,18 +1222,25 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
 
     load_files = False
     for frac in fractions:
-        if frac not in pickled_flight_events_num_max_pix_on_ec or frac not in pickled_flight_events_num_max_pix_on_pmt:
+        if frac not in pickled_flight_events_num_max_pix_on_ec:
             load_files = True
+            print(">>> pickled_flight_events_num_max_pix_on_ec[{:.f}] IS NOT LOADED - READING ALL EVENTS".format(frac))
+            break
+        if frac not in pickled_flight_events_num_max_pix_on_pmt:
+            load_files = True
+            print(">>> pickled_flight_events_num_max_pix_on_pmt[{:.f}] IS NOT LOADED - READING ALL EVENTS".format(frac))
             break
         else:
             for i in range(6):
                 for j in range(6):
                     if (i,j) not in pickled_flight_events_num_max_pix_on_pmt[frac]:
+                        print(">>> pickled_flight_events_num_max_pix_on_pmt[{:.f}][({:d},{:d})] IS NOT LOADED - READING ALL EVENTS".format(frac, i, j))
                         load_files = True
                         break
             for i in range(3):
                 for j in range(3):
                     if (i,j) not in pickled_flight_events_num_max_pix_on_ec[frac]:
+                        print(">>> pickled_flight_events_num_max_pix_on_ec[{:.f}][({:d},{:d})] IS NOT LOADED - READING ALL EVENTS".format(frac, i, j))
                         load_files = True
                         break
 
