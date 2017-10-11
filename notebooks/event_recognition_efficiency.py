@@ -1187,7 +1187,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
 
 
     with open("/tmp/debug_{}_{}_bytes".format(npy_file_key,hashstr),'w') as f:
-        f.write(df.values.tobytes())
+        f.write(df.values.tobytes().decode())
 
 
     def get_npy_pathname(basename, frac, i, j):
