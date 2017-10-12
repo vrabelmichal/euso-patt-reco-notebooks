@@ -1465,13 +1465,13 @@ def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num
     return filtered_flight_events_within_cond
 
 
-def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=[]):
+def vis_events_df(events, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, additional_printed_columns=[], close_after_vis=True):
     events_l = [ev for ev in rows_generator(events.iterrows())]
     vis_events_list(events_l, events.columns, save_fig_dir, base_file_name, events_per_figure, max_figures, additional_printed_columns=additional_printed_columns,
-               vis_gtux=vis_gtux, vis_gtuy=vis_gtuy)
+               vis_gtux=vis_gtux, vis_gtuy=vis_gtuy, close_after_vis=close_after_vis)
 
 
-def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, numeric_columns=False, additional_printed_columns=[], subplot_cols=9):
+def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_per_figure=50, max_figures=10, vis_gtux=True, vis_gtuy=True, numeric_columns=False, additional_printed_columns=[], subplot_cols=9, close_after_vis=True):
     for i in range(0, min(len(events), events_per_figure*max_figures), events_per_figure):
        fig, axs = \
            data_analysis_utils.visualize_events(
@@ -1484,6 +1484,9 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
            # print(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
            save_figure(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
         # ,'x_y_neighbourhood_size','gtu_x_neighbourhood_size','gtu_y_neighbourhood_size'
+
+        if close_after_vis:
+            plt.close('all')
 
 
 def main(argv):
@@ -1534,6 +1537,12 @@ def main(argv):
 
     queries_log = open(os.path.join(save_csv_dir, 'queries.sql'), 'w')
 
+    # -----------------------------------------------------
+    # COND SELECTION RULES
+    # -----------------------------------------------------
+    cond_selection_rules = get_selection_rules()
+    # -----------------------------------------------------
+
     con, cur = get_conn(dbname=args.dbname, user=args.user, host=args.host, password=password)
 
     # -----------------------------------------------------
@@ -1541,7 +1550,6 @@ def main(argv):
     # -----------------------------------------------------
 
     spb_processing_event_ver2_columns = get_spb_processing_event_ver2_columns(cur)
-
     if args.do_simu:
         # -----------------------------------------------------
         print("ALL SIMU EVENTS BY ENERGY")
@@ -1561,13 +1569,6 @@ def main(argv):
             if args.exit_on_failure:
                 sys.exit(2)
 
-    # -----------------------------------------------------
-    # COND SELECTION RULES
-    # -----------------------------------------------------
-    cond_selection_rules = get_selection_rules()
-    # -----------------------------------------------------
-
-    if args.do_simu:
         # -----------------------------------------------------
         print("ALL SIMU EVENTS COUNT WITHIN CONDITIONS")
         # -----------------------------------------------------
@@ -1606,6 +1607,8 @@ def main(argv):
             traceback.print_exc()
             if args.exit_on_failure:
                 sys.exit(2)
+
+        plt.close('all')
 
 
     # -----------------------------------------------------
@@ -1687,6 +1690,8 @@ def main(argv):
             vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
             vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
 
+            plt.close('all')
+
         except Exception:
             traceback.print_exc()
             if args.exit_on_failure:
@@ -1745,6 +1750,8 @@ def main(argv):
             vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__fits', xlabel='Altitude (EGeimetry.Pos.Z')
             vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz__1poly_fit', xlabel='Altitude (EGeimetry.Pos.Z')
 
+            plt.close('all')
+
         except Exception:
             traceback.print_exc()
             if args.exit_on_failure:
@@ -1791,6 +1798,8 @@ def main(argv):
             cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups = get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
 
             vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir, 'cond_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups')
+
+            plt.close('all')
 
         except Exception:
             traceback.print_exc()
@@ -2091,6 +2100,8 @@ def main(argv):
             print_len(simu_events_within_cond_not_filter, 'simu_events_within_cond_not_filter')
             save_csv(simu_events_within_cond_not_filter, save_csv_dir,  'simu_events_within_cond_not_filter')
 
+            plt.close('all')
+
             # -----------------------------------------------------
 
             print(">> VISUALIZING WITHIN CONDITIONS")
@@ -2124,6 +2135,8 @@ def main(argv):
             print_len(simu_events_not_within_cond, 'simu_events_not_within_cond')
             save_csv(simu_events_not_within_cond, save_csv_dir, 'simu_events_not_within_cond')
             vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
+
+            plt.close('all')
 
             print(">> VISUALIZING")
             if not args.skip_vis_events:
