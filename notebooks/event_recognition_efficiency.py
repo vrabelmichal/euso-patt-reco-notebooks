@@ -1172,7 +1172,7 @@ def rows_generator(iterrows):
         yield t[1]
 
 
-def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=None, npy_file_key=None):
+def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=None, npy_file_key=None, debug_messages=False):
 
     flight_events_num_max_pix_on_pmt = {}
     flight_events_num_max_pix_on_ec = {}
@@ -1209,7 +1209,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
                     dest[frac] = {}
                 dest[frac][(i, j)] = np.load(pkl_pathname)
                 return True
-            else:
+            elif debug_messages:
                 print("#### {} DOES NOT EXIST".format(pkl_pathname))
         return False
 
@@ -1506,6 +1506,7 @@ def main(argv):
     args_parser.add_argument('--do-flight', type=str2bool_argparse, default=True, help='If true, flight events are processed (default: yes)')
     args_parser.add_argument('--do-utah', type=str2bool_argparse, default=True, help='If true, utah events are processed (default: yes)')
     args_parser.add_argument('--do-simu', type=str2bool_argparse, default=True, help='If true, simu events are processed (default: yes)')
+    args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=No, help='If true, debug messages are printed (default: no)')
 
     args = args_parser.parse_args(argv)
 
@@ -1820,7 +1821,7 @@ def main(argv):
 
             print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-            flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'flight_events_within_cond')
+            flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(flight_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'flight_events_within_cond', args.print_debug_messages)
 
             flight_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec)
 
@@ -1878,7 +1879,7 @@ def main(argv):
 
             print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-            utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'utah_events_within_cond')
+            utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'utah_events_within_cond', args.print_debug_messages)
 
             utah_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(utah_events_within_cond, utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec)
 
@@ -1932,7 +1933,7 @@ def main(argv):
 
             print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
-            simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'simu_events_within_cond')
+            simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'simu_events_within_cond', args.print_debug_messages)
 
             simu_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(simu_events_within_cond, simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec)
 
