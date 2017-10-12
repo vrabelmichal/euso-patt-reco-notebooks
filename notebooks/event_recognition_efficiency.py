@@ -887,7 +887,7 @@ def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_m
 def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         uniq_posz_plot_data,
         #y_posz_vals, yerrs_posz_vals, e_avg_vals_posz_vals, e_avg_low_posz_vals, e_avg_up_posz_vals, fits_p_posz_vals,
-        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=5, col_width=18.5/1.8, row_height=10.5/1.8, xlabel='Energy [MeV]'):
+        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=3, col_width=18.5/1.8, row_height=10.5/1.6, xlabel='Energy [MeV]'):
 
     if len(uniq_posz_plot_data) == 0:
         return
@@ -1208,6 +1208,8 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
                     dest[frac] = {}
                 dest[frac][(i, j)] = np.load(pkl_pathname)
                 return True
+            else:
+                print("#### {} DOES NOT EXIST".format(pkl_pathname))
         return False
 
     if save_npy_dir:
