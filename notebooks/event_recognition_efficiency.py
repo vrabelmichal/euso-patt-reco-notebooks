@@ -1483,9 +1483,9 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
            # print("XXXXXXXXXXXXXX")
            # print(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
            save_figure(fig, save_fig_dir, "{}_{:d}_{:d}".format(base_file_name, i, min(i+events_per_figure, len(events))))
-        # ,'x_y_neighbourhood_size','gtu_x_neighbourhood_size','gtu_y_neighbourhood_size'
+           # ,'x_y_neighbourhood_size','gtu_x_neighbourhood_size','gtu_y_neighbourhood_size'
 
-        if close_after_vis:
+       if close_after_vis:
             plt.close('all')
 
 
