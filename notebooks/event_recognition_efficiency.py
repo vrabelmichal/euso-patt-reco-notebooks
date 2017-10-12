@@ -1193,8 +1193,9 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
 
     def get_npy_pathname(basename, frac, i, j):
         # global hashstr npy_file_key
+        # .npy extension will be appended to the file name if it does not already have one
         pkl_pathname = os.path.join(save_npy_dir,
-                                    '{npy_file_key}_{basename}_{hashstr}_{frac:.1f}_{i:d}_{j:d}.numpy.pkl'.format(
+                                    '{npy_file_key}_{basename}_{hashstr}_{frac:.1f}_{i:d}_{j:d}.npy'.format(
                                         npy_file_key=npy_file_key, hashstr=hashstr, basename=basename, frac=frac,
                                         i=i, j=j))
         return pkl_pathname
