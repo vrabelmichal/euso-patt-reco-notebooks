@@ -1518,7 +1518,7 @@ def main(argv):
     args_parser.add_argument('--do-flight', type=str2bool_argparse, default=True, help='If true, flight events are processed (default: yes)')
     args_parser.add_argument('--do-utah', type=str2bool_argparse, default=True, help='If true, utah events are processed (default: yes)')
     args_parser.add_argument('--do-simu', type=str2bool_argparse, default=True, help='If true, simu events are processed (default: yes)')
-    args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=No, help='If true, debug messages are printed (default: no)')
+    args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=False, help='If true, debug messages are printed (default: no)')
 
     args = args_parser.parse_args(argv)
 
