@@ -1490,7 +1490,7 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
            data_analysis_utils.visualize_events(
                events[i:], column_labels, events_per_figure, additional_printed_columns=additional_printed_columns,
                vis_gtux=vis_gtux, vis_gtuy=vis_gtuy, subplot_cols=subplot_cols, numeric_columns=numeric_columns,
-               plt_show=False)
+               plt_show=False, event_count_offset=events_per_figure*i)
 
        if save_fig_dir is not None:
            # print("XXXXXXXXXXXXXX")
@@ -1519,6 +1519,10 @@ def main(argv):
     args_parser.add_argument('--do-utah', type=str2bool_argparse, default=True, help='If true, utah events are processed (default: yes)')
     args_parser.add_argument('--do-simu', type=str2bool_argparse, default=True, help='If true, simu events are processed (default: yes)')
     args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=False, help='If true, debug messages are printed (default: no)')
+    args_parser.add_argument('--max-vis-pages-within-cond', type=int, default=10, help='Number of visualized pages/images of events within conditions (default: 10)')
+    args_parser.add_argument('--max-vis-pages-not-within-cond', type=int, default=10, help='Number of visualized pages/images of events not within conditions (default: 10)')
+    args_parser.add_argument('--max-vis-pages-within-cond-filtered', type=int, default=10, help='Number of visualized pages/images of events within conditions and passed through the filter (default: 10)')
+    args_parser.add_argument('--max-vis-pages-within-cond-filtered-out', type=int, default=10, help='Number of visualized pages/images of events within conditions and not passed through the filter (default: 10)')
 
     args = args_parser.parse_args(argv)
 
@@ -1897,27 +1901,27 @@ def main(argv):
             print(">> VISUALIZING WITHIN CONDITIONS")
             vis_num_gtu_hist(flight_events_within_cond, save_fig_dir, fig_file_name='flight_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
+                vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond', max_figures=args.max_vis_pages_within_cond)
 
             print(">> VISUALIZING FILTERED (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15) WITHIN CONDITIONS")
             vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered)
 
             print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15)")
             vis_num_gtu_hist(flight_events_within_cond_not_filter, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
 
             print(">> VISUALIZING FILTERED (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13) WITHIN CONDITIONS")
             vis_num_gtu_hist(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_fig_dir, fig_file_name='filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_fig_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_fig_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered)
 
             print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13)")
             vis_num_gtu_hist(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_fig_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_fig_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
 
 
         except Exception:
@@ -1961,17 +1965,17 @@ def main(argv):
             print(">> VISUALIZING WITHIN CONDITIONS")
             vis_num_gtu_hist(utah_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond')
+                vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond', max_figures=args.max_vis_pages_within_cond)
 
             print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
             vis_num_gtu_hist(filtered_utah_events_within_cond, save_fig_dir, fig_file_name='filtered_utah_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(filtered_utah_events_within_cond, save_fig_dir, 'filtered_utah_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(filtered_utah_events_within_cond, save_fig_dir, 'filtered_utah_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered)
 
             print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
             vis_num_gtu_hist(utah_events_within_cond_not_filter, save_fig_dir, fig_file_name='utah_events_within_cond_not_filter__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(utah_events_within_cond_not_filter, save_fig_dir, 'utah_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
 
         except Exception:
             traceback.print_exc()
@@ -2168,17 +2172,17 @@ def main(argv):
             print(">> VISUALIZING WITHIN CONDITIONS")
             vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(simu_events_within_cond, save_fig_dir, 'simu_events_within_cond')
+                vis_events_df(simu_events_within_cond, save_fig_dir, 'simu_events_within_cond', max_figures=args.max_vis_pages_within_cond)
 
             print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
             vis_num_gtu_hist(filtered_simu_events_within_cond, save_fig_dir, fig_file_name='filtered_simu_events_within_cond__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(filtered_simu_events_within_cond, save_fig_dir, 'filtered_simu_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered)
 
             print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
             vis_num_gtu_hist(simu_events_within_cond_not_filter, save_fig_dir, fig_file_name='simu_events_within_cond_not_filter__num_gtu')
             if not args.skip_vis_events:
-                vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+                vis_events_df(simu_events_within_cond_not_filter, save_fig_dir, 'simu_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
 
         except Exception:
             traceback.print_exc()
@@ -2195,13 +2199,15 @@ def main(argv):
 
             print_len(simu_events_not_within_cond, 'simu_events_not_within_cond')
             save_csv(simu_events_not_within_cond, save_csv_dir, 'simu_events_not_within_cond')
-            vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
 
-            plt.close('all')
 
             print(">> VISUALIZING")
+
+            vis_num_gtu_hist(simu_events_not_within_cond, save_fig_dir, fig_file_name='simu_events_not_within_cond__num_gtu')
+            plt.close('all')
+
             if not args.skip_vis_events:
-                vis_events_df(simu_events_not_within_cond, save_fig_dir, 'simu_events_not_within_cond')
+                vis_events_df(simu_events_not_within_cond, save_fig_dir, 'simu_events_not_within_cond', max_figures=args.max_vis_pages_not_within_cond)
 
         except Exception:
             traceback.print_exc()
