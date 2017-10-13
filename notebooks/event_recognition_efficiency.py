@@ -1459,10 +1459,22 @@ def df_difference(df1, df2, unique_column='event_id'):
     # return merged[merged['_merge'] == 'left_only']
 
 
-def filter_out_top_left_ec(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num_gtu_gt=15):
-    ec_0_0_frac = flight_events_within_cond_cp['ec_0_0_frac06_in'] / flight_events_within_cond_cp['ec_0_0_frac06_out']
+def filter_out_by_fraction(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, ec_in_column='ec_0_0_frac06_in', ec_out_column='ec_0_0_frac06_out'):
+    ec_0_0_frac = flight_events_within_cond_cp[ec_in_column] / flight_events_within_cond_cp[ec_out_column]
     # filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp['ec_0_0_frac06_out'] == 0) ]
-    filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp['ec_0_0_frac06_out'] != 0) & (ec_0_0_frac < ec_0_0_frac_lt) & (flight_events_within_cond_cp['num_gtu'] > num_gtu_gt) ]
+    filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp[ec_out_column] != 0) & (ec_0_0_frac < ec_0_0_frac_lt) ]
+    return filtered_flight_events_within_cond
+
+
+def filter_out_col_thr(flight_events_within_cond_cp, num_gtu_gt=15, num_gtu_column='num_gtu'): # num_gtu BETWEEN 10 AND 40
+    filtered_flight_events_within_cond = flight_events_within_cond_cp[ flight_events_within_cond_cp[num_gtu_column] > num_gtu_gt ]
+    return filtered_flight_events_within_cond
+
+
+def filter_out_by_fraction_and_col_thr(flight_events_within_cond_cp, ec_0_0_frac_lt=0.5, num_gtu_gt=15, ec_in_column='ec_0_0_frac06_in', ec_out_column='ec_0_0_frac06_out', num_gtu_column='num_gtu'): # num_gtu BETWEEN 10 AND 40
+    ec_0_0_frac = flight_events_within_cond_cp[ec_in_column] / flight_events_within_cond_cp[ec_out_column]
+    # filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp['ec_0_0_frac06_out'] == 0) ]
+    filtered_flight_events_within_cond = flight_events_within_cond_cp[ (flight_events_within_cond_cp[ec_out_column] != 0) & (ec_0_0_frac < ec_0_0_frac_lt) & (flight_events_within_cond_cp[num_gtu_column] > num_gtu_gt) ]
     return filtered_flight_events_within_cond
 
 
@@ -1564,7 +1576,7 @@ def main(argv):
             print_len(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
             save_csv(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__packet_count_by_energy')
 
-            vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_fig_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
+            vis_df_etruth_trueenergy_count_packets(all_bgf05_and_bgf1_simu_events__packet_count_by_energy, save_csv_dir, 'all_bgf05_and_bgf1_simu_events__count_packets_by_energy')
 
         except Exception:
             traceback.print_exc()
@@ -1828,16 +1840,43 @@ def main(argv):
             print_len(flight_events_within_cond_with_max_pix_count, 'flight_events_within_cond_with_max_pix_count')
             save_csv(flight_events_within_cond_with_max_pix_count, save_csv_dir, 'flight_events_within_cond_with_max_pix_count')
 
-            print(">> FILTERING")
+            print(">> FILTERING (EC_0_0/OTHER_EC < 0.5)")
 
-            filtered_flight_events_within_cond = filter_out_top_left_ec(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+            filtered_flight_events_within_cond_ec_0_0 = filter_out_by_fraction(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5)
+
+            print_len(filtered_flight_events_within_cond_ec_0_0, 'filtered_flight_events_within_cond_ec_0_0')
+            save_csv(filtered_flight_events_within_cond_ec_0_0, save_csv_dir, 'filtered_flight_events_within_cond_ec_0_0')
+
+            # -----------------------------------------------------
+
+            print(">> FILTERING (EC_0_0/OTHER_EC < 0.6)")
+
+            filtered_flight_events_within_cond_ec_0_0_lt06 = filter_out_by_fraction(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.6)
+
+            print_len(filtered_flight_events_within_cond_ec_0_0_lt06, 'filtered_flight_events_within_cond_ec_0_0_lt06')
+            save_csv(filtered_flight_events_within_cond_ec_0_0_lt06, save_csv_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06')
+
+            # -----------------------------------------------------
+
+            print(">> FILTERING (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13)")
+
+            filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu = filter_out_by_fraction_and_col_thr(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.6, num_gtu_gt=13)
+
+            print_len(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu')
+            save_csv(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_csv_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu')
+
+            # -----------------------------------------------------
+
+            print(">> FILTERING (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15)")
+
+            filtered_flight_events_within_cond = filter_out_by_fraction_and_col_thr(flight_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
 
             print_len(filtered_flight_events_within_cond, 'filtered_flight_events_within_cond')
             save_csv(filtered_flight_events_within_cond, save_csv_dir, 'filtered_flight_events_within_cond')
 
             # -----------------------------------------------------
 
-            print(">> SELECTING NOT PASSED THROUGH FILTER")
+            print(">> SELECTING NOT PASSED THROUGH FILTER (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15)")
 
             flight_events_within_cond_not_filter = df_difference(flight_events_within_cond_with_max_pix_count, filtered_flight_events_within_cond)
 
@@ -1846,20 +1885,40 @@ def main(argv):
 
             # -----------------------------------------------------
 
+            print(">> SELECTING NOT PASSED THROUGH FILTER (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13)")
+
+            flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu = df_difference(flight_events_within_cond_with_max_pix_count, filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu)
+
+            print_len(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu')
+            save_csv(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_csv_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu')
+
+            # -----------------------------------------------------
+
             print(">> VISUALIZING WITHIN CONDITIONS")
             vis_num_gtu_hist(flight_events_within_cond, save_fig_dir, fig_file_name='flight_events_within_cond__num_gtu')
             if not args.skip_vis_events:
                 vis_events_df(flight_events_within_cond, save_fig_dir, 'flight_events_within_cond')
 
-            print(">> VISUALIZING FILTERED WITHIN CONDITIONS")
+            print(">> VISUALIZING FILTERED (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15) WITHIN CONDITIONS")
             vis_num_gtu_hist(filtered_flight_events_within_cond, save_fig_dir, fig_file_name='filtered_flight_events_within_cond__num_gtu')
             if not args.skip_vis_events:
                 vis_events_df(filtered_flight_events_within_cond, save_fig_dir, 'filtered_flight_events_within_cond', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
 
-            print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER")
+            print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15)")
             vis_num_gtu_hist(flight_events_within_cond_not_filter, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter__num_gtu')
             if not args.skip_vis_events:
                 vis_events_df(flight_events_within_cond_not_filter, save_fig_dir, 'flight_events_within_cond_not_filter', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+
+            print(">> VISUALIZING FILTERED (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13) WITHIN CONDITIONS")
+            vis_num_gtu_hist(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_fig_dir, fig_file_name='filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu__num_gtu')
+            if not args.skip_vis_events:
+                vis_events_df(filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu, save_fig_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+
+            print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER (EC_0_0/OTHER_EC < 0.6 AND NUM_GTU > 13)")
+            vis_num_gtu_hist(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu__num_gtu')
+            if not args.skip_vis_events:
+                vis_events_df(flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu, save_fig_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'])
+
 
         except Exception:
             traceback.print_exc()
@@ -1887,7 +1946,7 @@ def main(argv):
             save_csv(utah_events_within_cond_with_max_pix_count, save_csv_dir, 'utah_events_within_cond_with_max_pix_count')
 
             print(">> FILTERING")
-            filtered_utah_events_within_cond = filter_out_top_left_ec(utah_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+            filtered_utah_events_within_cond = filter_out_by_fraction_and_col_thr(utah_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
 
             print_len(filtered_utah_events_within_cond, 'filtered_utah_events_within_cond')
             save_csv(filtered_utah_events_within_cond, save_csv_dir, 'filtered_utah_events_within_cond')
@@ -1942,7 +2001,7 @@ def main(argv):
 
             print(">> FILTERING")
 
-            filtered_simu_events_within_cond = filter_out_top_left_ec(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
+            filtered_simu_events_within_cond = filter_out_by_fraction_and_col_thr(simu_events_within_cond_with_max_pix_count, ec_0_0_frac_lt=0.5, num_gtu_gt=15)
             print_len(filtered_simu_events_within_cond, 'filtered_simu_events_within_cond')
             save_csv(filtered_simu_events_within_cond, save_csv_dir, 'filtered_simu_events_within_cond')
 
