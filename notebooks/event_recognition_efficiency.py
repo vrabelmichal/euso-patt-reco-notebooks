@@ -933,6 +933,9 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
 def select_simu_events_within_cond(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log=None):
     cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
 
+    if cond_selection_rules_t1_prefixed and not cond_selection_rules_t1_prefixed.strip().startswith('AND'):
+        cond_selection_rules_t1_prefixed = 'AND ' + cond_selection_rules_t1_prefixed
+
     select_simu_event_within_cond_query_format = '''
     SELECT t1.event_id, t1.source_file_acquisition_full, t1.source_file_trigger_full, t1.packet_id, t1.num_gtu, t1.gtu_in_packet, t1.num_triggered_pixels, 
     t1.gtu_y_hough__peak_thr2_avg_phi, t1.gtu_x_hough__peak_thr2_avg_phi, t1.gtu_y_hough__peak_thr3_avg_phi, t1.gtu_x_hough__peak_thr3_avg_phi, 
@@ -947,7 +950,7 @@ def select_simu_events_within_cond(con, cond_selection_rules, spb_processing_eve
     JOIN simu_event USING(simu_event_id) 
     WHERE t1.source_data_type_num = 3 AND t2.source_data_type_num = 5   
     AND ((t1.gtu_in_packet <= t2.gtu_in_packet AND t2.gtu_in_packet - t1.gtu_in_packet < t1.num_gtu - 4) OR (t2.gtu_in_packet < t1.gtu_in_packet AND t1.gtu_in_packet - t2.gtu_in_packet < t2.num_gtu - 4))
-    AND ''' + cond_selection_rules_t1_prefixed + \
+    ''' + cond_selection_rules_t1_prefixed + \
     '''
     ORDER BY
     t1.x_y_hough__peak_thr1__max_cluster_counts_sum_width DESC,
@@ -1702,6 +1705,7 @@ def main(argv):
     args_parser.add_argument('--do-utah', type=str2bool_argparse, default=True, help='If true, utah events are processed (default: yes)')
     args_parser.add_argument('--do-simu', type=str2bool_argparse, default=True, help='If true, simu events are processed (default: yes)')
     args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=False, help='If true, debug messages are printed (default: no)')
+    args_parser.add_argument('--check-bgf05-bgf1-join', type=str2bool_argparse, default=False, help='If true, bgf05 and bgf1 inner merge is checked - multiple event_ids, num_gtu histogram (default: no)')
     args_parser.add_argument('--max-vis-pages-within-cond', type=int, default=10, help='Number of visualized pages/images of events within conditions (default: 10)')
     args_parser.add_argument('--max-vis-pages-not-within-cond', type=int, default=10, help='Number of visualized pages/images of events not within conditions (default: 10)')
     args_parser.add_argument('--max-vis-pages-within-cond-filtered', type=int, default=10, help='Number of visualized pages/images of events within conditions and passed through the filter (default: 10)')
@@ -1784,32 +1788,35 @@ def main(argv):
             if args.exit_on_failure:
                 sys.exit(2)
 
-        # -----------------------------------------------------
-        print("SIMU EVENTS WITHIN CONDITIONS")
-        # -----------------------------------------------------
+        if args.check_bgf05_bgf1_join:
+            # -----------------------------------------------------
+            print("SIMU EVENTS WITHIN CONDITIONS")
+            # -----------------------------------------------------
 
-        try:
-            simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf = get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
-            print_len(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf', 'expected to be empty')
-            save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
+            try:
+                # this is probably unnecessary
 
-            simu_entries_within_cond_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
-            print_len(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1', 'as many as possible of {}'.format(cond_simu_entries_count))
-            save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+                simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf = get_simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
+                print_len(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf', 'expected to be empty')
+                save_csv(simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1__only_1bgf_lt_05bgf')
 
-            simu_entries_within_cond_bgf05_and_bgf1_v2 = get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log)
-            print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
-            save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
+                simu_entries_within_cond_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, cond_selection_rules, spb_processing_event_ver2_columns, queries_log)
+                print_len(simu_entries_within_cond_bgf05_and_bgf1, 'simu_entries_within_cond_bgf05_and_bgf1', 'as many as possible of {}'.format(cond_simu_entries_count))
+                save_csv(simu_entries_within_cond_bgf05_and_bgf1, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
 
-            vis_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
+                simu_entries_within_cond_bgf05_and_bgf1_v2 = get_simu_entries_within_cond_bgf05_and_bgf1_v2(con, cond_selection_rules, queries_log)
+                print_len(simu_entries_within_cond_bgf05_and_bgf1_v2, 'simu_entries_within_cond_bgf05_and_bgf1_v2', 'as many as possible of {} and same as {}'.format(cond_simu_entries_count, len(simu_entries_within_cond_bgf05_and_bgf1)))
+                save_csv(simu_entries_within_cond_bgf05_and_bgf1_v2, save_csv_dir, 'simu_entries_within_cond_bgf05_and_bgf1')
 
-            multiple_event_id_rows_row_idxs, multiple_event_id_rows_row_event_ids = find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2)
+                vis_num_gtu_hist(simu_entries_within_cond_bgf05_and_bgf1, save_fig_dir, 'simu_entries_within_cond_bgf05_and_bgf1__num_gtu')
 
-            print_len(multiple_event_id_rows_row_idxs, 'multiple_event_id_rows_row_idxs')
-        except Exception:
-            traceback.print_exc()
-            if args.exit_on_failure:
-                sys.exit(2)
+                multiple_event_id_rows_row_idxs, multiple_event_id_rows_row_event_ids = find_multiple_event_id_rows(simu_entries_within_cond_bgf05_and_bgf1_v2)
+
+                print_len(multiple_event_id_rows_row_idxs, 'multiple_event_id_rows_row_idxs')
+            except Exception:
+                traceback.print_exc()
+                if args.exit_on_failure:
+                    sys.exit(2)
 
         plt.close('all')
 
@@ -2299,7 +2306,7 @@ def main(argv):
 
             # -----------------------------------------------------
 
-            simu_events_all_bgf05_and_bgf1 = get_simu_entries_within_cond_bgf05_and_bgf1(con, '', spb_processing_event_ver2_columns, queries_log)
+            simu_events_all_bgf05_and_bgf1 = select_simu_events_within_cond(con, '', spb_processing_event_ver2_columns, queries_log)
 
             print_len(simu_events_all_bgf05_and_bgf1, 'simu_events_all_bgf05_and_bgf1')
             # save_csv(simu_events_all_bgf05_and_bgf1, save_csv_dir, 'simu_events_all_bgf05_and_bgf1')
