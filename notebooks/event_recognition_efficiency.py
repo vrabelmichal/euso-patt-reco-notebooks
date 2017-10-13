@@ -1490,7 +1490,7 @@ def vis_events_list(events, column_labels, save_fig_dir, base_file_name, events_
            data_analysis_utils.visualize_events(
                events[i:], column_labels, events_per_figure, additional_printed_columns=additional_printed_columns,
                vis_gtux=vis_gtux, vis_gtuy=vis_gtuy, subplot_cols=subplot_cols, numeric_columns=numeric_columns,
-               plt_show=False, event_count_offset=events_per_figure*i)
+               plt_show=False, event_count_offset=i)
 
        if save_fig_dir is not None:
            # print("XXXXXXXXXXXXXX")
