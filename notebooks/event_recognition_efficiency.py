@@ -1504,9 +1504,10 @@ def vis_column_fraction(df, a_column='ec_0_0_frac06_in', b_column='ec_0_0_frac06
     # for k,v in flight_events_within_cond_cp[2000:].iloc[64].iteritems():
     #     if k in ["event_id"] or k.startswith('ec')
     #     print("{}\t{}".format(k,v))
-    if len(df) > 0:
+    nz_df = df[ df[b_column] != 0 ]
+    if len(nz_df) > 0:
         fig,ax = plt.subplots(1)
-        (df[a_column]/df[b_column]).hist(ax=ax, bins=bins)
+        (nz_df[a_column]/nz_df[b_column]).hist(ax=ax, bins=bins)
         fig.set_size_inches(25,5)
         if save_fig_dir is not None:
             save_figure(fig, save_fig_dir, fig_file_name)
