@@ -2304,7 +2304,13 @@ def main(argv):
             print_len(simu_events_all_bgf05_and_bgf1, 'simu_events_all_bgf05_and_bgf1')
             # save_csv(simu_events_all_bgf05_and_bgf1, save_csv_dir, 'simu_events_all_bgf05_and_bgf1')
 
-            simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06 = filter_out_by_fraction(simu_events_all_bgf05_and_bgf1, ec_0_0_frac_lt=0.6)
+            simu_events_all_bgf05_and_bgf1_num_max_pix_on_pmt, simu_events_all_bgf05_and_bgf1_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_all_bgf05_and_bgf1, [0.6, 0.8, 0.9], save_npy_dir, 'simu_events_all_bgf05_and_bgf1', args.print_debug_messages)
+            simu_events_all_bgf05_and_bgf1_with_max_pix_count = extend_df_with_num_max_pix(simu_events_all_bgf05_and_bgf1, simu_events_all_bgf05_and_bgf1_num_max_pix_on_pmt, simu_events_all_bgf05_and_bgf1_num_max_pix_on_ec)
+
+            simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06 = filter_out_by_fraction(simu_events_all_bgf05_and_bgf1_with_max_pix_count, ec_0_0_frac_lt=0.6)
+
+            print_len(simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06, 'simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06')
+            save_csv(simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06, save_csv_dir, 'simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06') # could produce a large file
 
             simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06__packet_count_by_energy = \
                 group_rows_to_count_packets(simu_events_all_bgf05_and_bgf1_filtered_ec_0_0_lt06)
