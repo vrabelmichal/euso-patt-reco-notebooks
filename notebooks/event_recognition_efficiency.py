@@ -2029,7 +2029,7 @@ def main(argv):
             # -----------------------------------------------------
 
             print(">> VISUALIZING DISTRIBUTION OD EC_0_0/OTHER_EC")
-            vis_column_fraction(flight_events_within_cond_with_max_pix_count, 'ec_0_0_frac06_in', 'ec_0_0_frac06_out')
+            vis_column_fraction(flight_events_within_cond_with_max_pix_count, 'ec_0_0_frac06_in', 'ec_0_0_frac06_out', save_fig_dir, 'flight_events_within_cond_with_max_pix_count__ec_0_0_frac06_ratio')
 
             # -----------------------------------------------------
 
@@ -2163,7 +2163,7 @@ def main(argv):
             # -----------------------------------------------------
 
             print(">> VISUALIZING DISTRIBUTION OD EC_0_0/OTHER_EC")
-            vis_column_fraction(utah_events_within_cond_with_max_pix_count, 'ec_0_0_frac06_in', 'ec_0_0_frac06_out')
+            vis_column_fraction(utah_events_within_cond_with_max_pix_count, 'ec_0_0_frac06_in', 'ec_0_0_frac06_out', save_fig_dir, 'utah_events_within_cond_with_max_pix_count__ec_0_0_frac06_ratio')
 
             # -----------------------------------------------------
 
@@ -2253,8 +2253,15 @@ def main(argv):
 
             simu_events_within_cond_with_max_pix_count = extend_df_with_num_max_pix(simu_events_within_cond, simu_events_num_max_pix_on_pmt, simu_events_num_max_pix_on_ec)
 
+            # -----------------------------------------------------
+
             print_len(simu_events_within_cond_with_max_pix_count, 'simu_events_within_cond_with_max_pix_count')
             save_csv(simu_events_within_cond_with_max_pix_count, save_csv_dir, 'simu_events_within_cond_with_max_pix_count')
+
+            # -----------------------------------------------------
+
+            print(">> VISUALIZING DISTRIBUTION OD EC_0_0/OTHER_EC")
+            vis_column_fraction(simu_events_within_cond_with_max_pix_count, 'ec_0_0_frac06_in', 'ec_0_0_frac06_out', save_fig_dir, 'simu_events_within_cond_with_max_pix_count__ec_0_0_frac06_ratio')
 
             # -----------------------------------------------------
 
