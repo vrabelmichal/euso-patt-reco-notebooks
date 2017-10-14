@@ -1140,7 +1140,7 @@ def select_utah_events_within_cond(con, cond_selection_rules, spb_processing_eve
 
     select_utah_events_within_cond_query_format = '''
     SELECT 
-    t1.event_id, t1.source_file_acquisition_full, t1.source_file_trigger_full, t1.packet_id, t1.num_gtu, t1.gtu_in_packet, t1.num_triggered_pixels, 
+    t1.event_id, t1.source_file_acquisition, t1.source_file_acquisition_full, t1.source_file_trigger_full, t1.packet_id, t1.num_gtu, t1.gtu_in_packet, t1.num_triggered_pixels, 
     t1.gtu_y_hough__peak_thr2_avg_phi, t1.gtu_x_hough__peak_thr2_avg_phi, t1.gtu_y_hough__peak_thr3_avg_phi, t1.gtu_x_hough__peak_thr3_avg_phi, 
     t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width,
     t1.gtu_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.gtu_x_hough__peak_thr1__max_cluster_counts_sum_width, t1.trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width, t1.x_y_hough__peak_thr1__max_cluster_counts_sum_width,
