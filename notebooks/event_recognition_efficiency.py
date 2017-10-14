@@ -889,7 +889,8 @@ def get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(cond_all_m
 def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         uniq_posz_plot_data,
         #y_posz_vals, yerrs_posz_vals, e_avg_vals_posz_vals, e_avg_low_posz_vals, e_avg_up_posz_vals, fits_p_posz_vals,
-        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=3, col_width=18.5/1.8, row_height=10.5/1.6, xlabel='Energy [MeV]'):
+        save_fig_dir, fig_file_name='cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit.png', num_cols=3, col_width=18.5/1.8, row_height=10.5/1.6, xlabel='Energy [MeV]',
+        fits_mask=[]):
 
     if len(uniq_posz_plot_data) == 0:
         return
@@ -913,7 +914,7 @@ def vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(
         xv = np.linspace(np.min(x),np.max(x),100)
 
         for j, fit_p in enumerate(fits_p):
-            if not fit_p:
+            if not fit_p or (fits_mask and len(fits_mask) > j and not fits_mask[j]):
                 continue
             eax.plot(xv, fit_p(xv), linestyle=line_styles[(j//len(colors))%len(line_styles)], color=colors[j%len(colors)],
                      label=(labels[j] if j < len(labels) else labels[-1]).format(j+1) )
@@ -1677,7 +1678,9 @@ def simu_efficiency_stats(filtered_df,
 
     filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups = get_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_posz_and_energy)
 
-    if do_vis: vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_fits__posz_groups'.format(merged_specifier))
+    if do_vis:
+        vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_fits__posz_groups'.format(merged_specifier))
+        vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_1poly_fit__posz_groups'.format(merged_specifier), fits_mask=[True]+[False]*7)
 
     return filtered_simu_events_within_cond__packet_count_by_energy, \
            filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, \
@@ -1767,9 +1770,9 @@ def main(argv):
             simu_events_all_bgf05_and_bgf1__packet_count_by_energy = get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log)
 
             print_len(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, 'simu_events_all_bgf05_and_bgf1__packet_count_by_energy')
-            save_csv(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, save_fig_dir, 'simu_events_all_bgf05_and_bgf1__packet_count_by_energy')
+            save_csv(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, save_csv_dir, 'simu_events_all_bgf05_and_bgf1__packet_count_by_energy')
 
-            vis_df_etruth_trueenergy_count_packets(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, save_csv_dir, 'simu_events_all_bgf05_and_bgf1__count_packets_by_energy')
+            vis_df_etruth_trueenergy_count_packets(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, save_fig_dir, 'simu_events_all_bgf05_and_bgf1__count_packets_by_energy')
 
         except Exception:
             traceback.print_exc()
@@ -1878,6 +1881,7 @@ def main(argv):
 
             vis_count_fraction_fits(x, y, None, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__fits')
             vis_count_fraction_fits(x, y, None, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__1poly_fit')
+            vis_count_fraction_fits(x, y, None, yerrs, [None,fits_p[1]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__2poly_fit')
 
             # -----------------------------------------------------
             print(">> THINNING")
@@ -1899,6 +1903,7 @@ def main(argv):
 
             vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
             vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
+            vis_count_fraction_fits(x, y, xerrs, yerrs, [None, fits_p[1]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
 
             plt.close('all')
 
@@ -2296,20 +2301,20 @@ def main(argv):
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_energy,
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_posz,
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_posz_and_energy,
-                                  save_csv_dir, save_fig_dir, '')
+                                  save_csv_dir, save_fig_dir, 'cond_filtered_ec_0_0_lt05_numgtu_gt15')
 
             simu_efficiency_stats(simu_events_within_cond_filtered_ec_0_0_lt06,
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_energy,
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_posz,
                                   simu_events_all_bgf05_and_bgf1__packet_count_by_posz_and_energy,
-                                  save_csv_dir, save_fig_dir, 'filtered_ec_0_0_lt06')
+                                  save_csv_dir, save_fig_dir, 'cond_filtered_ec_0_0_lt06')
 
             # -----------------------------------------------------
 
             simu_events_all_bgf05_and_bgf1 = select_simu_events_within_cond(con, '', spb_processing_event_ver2_columns, queries_log)
 
             print_len(simu_events_all_bgf05_and_bgf1, 'simu_events_all_bgf05_and_bgf1')
-            # save_csv(simu_events_all_bgf05_and_bgf1, save_csv_dir, 'simu_events_all_bgf05_and_bgf1')
+            save_csv(simu_events_all_bgf05_and_bgf1, save_csv_dir, 'simu_events_all_bgf05_and_bgf1') # could produce large files
 
             simu_events_all_bgf05_and_bgf1_num_max_pix_on_pmt, simu_events_all_bgf05_and_bgf1_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(simu_events_all_bgf05_and_bgf1, [0.6, 0.8, 0.9], save_npy_dir, 'simu_events_all_bgf05_and_bgf1', args.print_debug_messages)
             simu_events_all_bgf05_and_bgf1_with_max_pix_count = extend_df_with_num_max_pix(simu_events_all_bgf05_and_bgf1, simu_events_all_bgf05_and_bgf1_num_max_pix_on_pmt, simu_events_all_bgf05_and_bgf1_num_max_pix_on_ec)
