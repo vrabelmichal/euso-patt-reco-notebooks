@@ -1522,6 +1522,19 @@ def vis_column_fraction(df, a_column='ec_0_0_frac06_in', b_column='ec_0_0_frac06
             plt.show()
 
 
+def search_utah_files(utah_df, column_name='source_file_acquisition',
+                      source_file_names=["allpackets-SPBEUSO-ACQUISITION-20161004-033506-001.001--45degaway55per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033605-001.001--45degaway54per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033719-001.001--45degaway53per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033821-001.001--45degaway52per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033935-001.001--45degaway51per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034204-001.001--45degaway50per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034320-001.001--45degaway49per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034423-001.001--45degaway48per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034919-001.001--45degaway47per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035045-001.001--45degaway46per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035141-001.001--45degaway45per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035239-001.001--45degaway44per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035329-001.001--45degaway43per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035419-001.001--45degaway42per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035507-001.001--45degaway41per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040528-001.001--45degaway40per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040645-001.001--45degaway39per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040816-001.001--45degaway38per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040913-001.001--45degaway37per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041003-001.001--45degaway36per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041102-001.001--45degaway35per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041430-001.001--45degaway34per.root"]):
+    for source_file_name in source_file_names:
+        yield source_file_name, utah_df[ utah_df[column_name] == source_file_name ]
+
+
+# tpdo add support for expected count meessagge
+def print_utah_file_events_counts(utah_df, column_name='source_file_acquisition',
+                                  source_file_names=["allpackets-SPBEUSO-ACQUISITION-20161004-033506-001.001--45degaway55per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033605-001.001--45degaway54per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033719-001.001--45degaway53per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033821-001.001--45degaway52per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-033935-001.001--45degaway51per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034204-001.001--45degaway50per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034320-001.001--45degaway49per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034423-001.001--45degaway48per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-034919-001.001--45degaway47per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035045-001.001--45degaway46per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035141-001.001--45degaway45per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035239-001.001--45degaway44per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035329-001.001--45degaway43per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035419-001.001--45degaway42per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-035507-001.001--45degaway41per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040528-001.001--45degaway40per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040645-001.001--45degaway39per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040816-001.001--45degaway38per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-040913-001.001--45degaway37per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041003-001.001--45degaway36per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041102-001.001--45degaway35per.root", "allpackets-SPBEUSO-ACQUISITION-20161004-041430-001.001--45degaway34per.root"]):
+    for source_file_name, file_utah_df in search_utah_files(utah_df, column_name, source_file_names):
+        print_len(file_utah_df, source_file_name)
+
+
 def simu_efficiency_stats(filtered_df,
                           df_all__packet_count_by_energy,
                           df_all__packet_count_by_posz,
@@ -2215,6 +2228,17 @@ def main(argv):
 
             print_len(utah_events_within_cond_not_filter_ec_0_0_lt06, 'utah_events_within_cond_not_filter_ec_0_0_lt06')
             save_csv(utah_events_within_cond_not_filter_ec_0_0_lt06, save_csv_dir, 'utah_events_within_cond_not_filter_ec_0_0_lt06')
+
+            # -----------------------------------------------------
+
+            print(">> COUNTS OF UTAH EVENTS WITHIN CONDITIONS")
+            print_utah_file_events_counts(utah_events_within_cond)
+
+            print(">> COUNTS OF FILTERED (EC_0_0/OTHER_EC < 0.5 AND NUM_GTU > 15) UTAH EVENTS WITHIN CONDITIONS")
+            print_utah_file_events_counts(filtered_utah_events_within_cond)
+
+            print(">> COUNTS OF FILTERED (EC_0_0/OTHER_EC < 0.6) UTAH EVENTS WITHIN CONDITIONS")
+            print_utah_file_events_counts(filtered_utah_events_within_cond_ec_0_0_lt06)
 
             # -----------------------------------------------------
 
