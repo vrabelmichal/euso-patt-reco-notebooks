@@ -1681,6 +1681,7 @@ def simu_efficiency_stats(filtered_df,
     if do_vis:
         vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_fits__posz_groups'.format(merged_specifier))
         vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_1poly_fit__posz_groups'.format(merged_specifier), fits_mask=[True]+[False]*7)
+        vis_cond_all_merged_bgf05_simu_events_by_posz_and_energy_thin_fit(filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups, save_fig_dir,  '{}__packet_count_by_posz_and_energy__thinned_1poly_fit__posz_groups'.format(merged_specifier), fits_mask=[False,True]+[False]*6)
 
     return filtered_simu_events_within_cond__packet_count_by_energy, \
            filtered_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy, \
