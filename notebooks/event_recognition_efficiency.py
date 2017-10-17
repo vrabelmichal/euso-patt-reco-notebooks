@@ -2756,13 +2756,13 @@ def main(argv):
                                       'invisible_showers_cond', 'invisible_showers_not_cond', 'invisible_showers_all', 'INVISIBLE SHOWERS',
                                       save_csv_dir, save_fig_dir, args)
 
-        process_simu_group_statistics(low_energy_in_pmt_cond, low_energy_in_pmt_not_cond, low_energy_in_pmt_all,
-                                      'low_energy_in_pmt_cond', 'low_energy_in_pmt_not_cond', 'low_energy_in_pmt_all', 'CHARGED PARTICLES',
-                                      save_csv_dir, save_fig_dir, args)
+        # process_simu_group_statistics(low_energy_in_pmt_cond, low_energy_in_pmt_not_cond, low_energy_in_pmt_all,
+        #                               'low_energy_in_pmt_cond', 'low_energy_in_pmt_not_cond', 'low_energy_in_pmt_all', 'CHARGED PARTICLES',
+        #                               save_csv_dir, save_fig_dir, args)
 
-        process_simu_group_statistics(led_cond, led_not_cond, led_all,
-                                      'led_cond', 'led_not_cond', 'led_all', 'LED',
-                                      save_csv_dir, save_fig_dir, args)
+        # process_simu_group_statistics(led_cond, led_not_cond, led_all,
+        #                               'led_cond', 'led_not_cond', 'led_all', 'LED',
+        #                               save_csv_dir, save_fig_dir, args)
 
 if __name__ == "__main__":
     # execute only if run as a script
