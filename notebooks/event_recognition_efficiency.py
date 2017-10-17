@@ -1761,7 +1761,7 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
 
         print_len(simu_events_within_cond, base_label_cond)
         save_csv(simu_events_within_cond, save_csv_dir, base_label_cond)
-        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name=save_fig_dir+'__num_gtu')
+        vis_num_gtu_hist(simu_events_within_cond, save_fig_dir, fig_file_name=base_label_cond+'__num_gtu')
 
         print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
