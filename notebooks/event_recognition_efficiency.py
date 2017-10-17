@@ -2450,6 +2450,11 @@ def main(argv):
             print_len(utah_events_within_cond, 'utah_events_within_cond')
             save_csv(utah_events_within_cond, save_csv_dir, 'utah_events_within_cond')
 
+            utah_events_not_within_cond = select_utah_events_within_cond(con, ' NOT({}) '.format(cond_selection_rules), spb_processing_event_ver2_columns, queries_log)
+
+            print_len(utah_events_not_within_cond, 'utah_events_not_within_cond')
+            save_csv(utah_events_not_within_cond, save_csv_dir, 'utah_events_not_within_cond')
+
             print(">> COUNTING MAX PIXELS ON PMTS AND ECS")
 
             utah_events_num_max_pix_on_pmt, utah_events_num_max_pix_on_ec = count_num_max_pix_on_pmt_and_ec(utah_events_within_cond, [0.6, 0.8, 0.9], save_npy_dir, 'utah_events_within_cond', args.print_debug_messages)
@@ -2513,7 +2518,7 @@ def main(argv):
             # -----------------------------------------------------
 
             print(">> VISUALIZING WITHIN CONDITIONS")
-            vis_num_gtu_hist(utah_events_within_cond, save_fig_dir, fig_file_name='simu_events_within_cond__num_gtu')
+            vis_num_gtu_hist(utah_events_within_cond, save_fig_dir, fig_file_name='utah_events_within_cond__num_gtu')
             if not args.skip_vis_events:
                 vis_events_df(utah_events_within_cond, save_fig_dir, 'utah_events_within_cond', max_figures=args.max_vis_pages_within_cond)
 
@@ -2539,6 +2544,15 @@ def main(argv):
                 vis_num_gtu_hist(utah_events_within_cond_not_filter_ec_0_0_lt06, save_fig_dir, fig_file_name='utah_events_within_cond_not_filter_ec_0_0_lt06__num_gtu')
                 if not args.skip_vis_events:
                     vis_events_df(utah_events_within_cond_not_filter_ec_0_0_lt06, save_fig_dir, 'utah_events_within_cond_not_filter_ec_0_0_lt06', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
+
+
+            # -----------------------------------------------------
+
+            print(">> VISUALIZING NOT WITHIN CONDITIONS")
+            vis_num_gtu_hist(utah_events_not_within_cond, save_fig_dir, fig_file_name='utah_events_not_within_cond__num_gtu')
+            if not args.skip_vis_events:
+                vis_events_df(utah_events_not_within_cond, save_fig_dir, 'utah_events_not_within_cond', max_figures=args.max_vis_pages_not_within_cond)
+
 
         except Exception:
             traceback.print_exc()
