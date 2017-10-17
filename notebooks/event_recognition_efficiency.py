@@ -2726,8 +2726,8 @@ def main(argv):
         less34_visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
         visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
         invisible_showers_all = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0), con)
-        low_energy_in_pmt_all = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0), con) # maybe too many gtu ?
-        led_all = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0), con)
+        # low_energy_in_pmt_all = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0), con) # maybe too many gtu ?
+        # led_all = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0), con)
 
         # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
         cond_selection_rules_not = 'NOT ('+cond_selection_rules+' )'
@@ -2735,14 +2735,14 @@ def main(argv):
         less34_visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
         visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
         invisible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        low_energy_in_pmt_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
-        led_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+        # low_energy_in_pmt_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
+        # led_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
 
         less34_visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
         visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
         invisible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
-        led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+        # low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
+        # led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
 
         process_simu_group_statistics(visible_showers_cond, visible_showers_not_cond, visible_showers_all,
                                       'visible_showers_cond', 'visible_showers_not_cond', 'visible_showers_all', 'VISIBLE SHOWERS',
