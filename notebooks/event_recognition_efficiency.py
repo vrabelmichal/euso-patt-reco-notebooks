@@ -1975,6 +1975,7 @@ def main(argv):
     args_parser.add_argument('--do-flight', type=str2bool_argparse, default=True, help='If true, flight events are processed (default: yes)')
     args_parser.add_argument('--do-utah', type=str2bool_argparse, default=True, help='If true, utah events are processed (default: yes)')
     args_parser.add_argument('--do-simu', type=str2bool_argparse, default=True, help='If true, simu events are processed (default: yes)')
+    args_parser.add_argument('--do-labeled', type=str2bool_argparse, default=True, help='If true, labeled events are processed (default: yes)')
     args_parser.add_argument('--print-debug-messages', type=str2bool_argparse, default=False, help='If true, debug messages are printed (default: no)')
     args_parser.add_argument('--check-bgf05-bgf1-join', type=str2bool_argparse, default=False, help='If true, bgf05 and bgf1 inner merge is checked - multiple event_ids, num_gtu histogram (default: no)')
     args_parser.add_argument('--max-vis-pages-within-cond', type=int, default=10, help='Number of visualized pages/images of events within conditions (default: 10)')
@@ -2709,59 +2710,59 @@ def main(argv):
             if args.exit_on_failure:
                 sys.exit(2)
 
+        if args.do_labeled:
+            # -----------------------------------------------------
+            print('"LABELED" EVENTS')
+            # -----------------------------------------------------
 
-        # -----------------------------------------------------
-        print('"LABELED" EVENTS')
-        # -----------------------------------------------------
+            labeled_events_columns = ['event_id', 'source_file_acquisition_full', 'source_file_trigger_full', 'packet_id', 'num_gtu', 'gtu_in_packet', 'num_triggered_pixels',
+            'gtu_y_hough__peak_thr2_avg_phi', 'gtu_x_hough__peak_thr2_avg_phi', 'gtu_y_hough__peak_thr3_avg_phi', 'gtu_x_hough__peak_thr3_avg_phi',
+            'trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width',
+            'gtu_y_hough__peak_thr1__max_cluster_counts_sum_width', 'gtu_x_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width', 'x_y_hough__peak_thr1__max_cluster_counts_sum_width',
+            'trigg_x_y_hough__dbscan_num_clusters_above_thr1', 'trigg_gtu_y_hough__dbscan_num_clusters_above_thr1', 'trigg_gtu_x_hough__dbscan_num_clusters_above_thr1',
+            'gtu_y_hough__dbscan_num_clusters_above_thr1', 'gtu_x_hough__dbscan_num_clusters_above_thr1',
+            'etruth_trueenergy', 'egeometry_pos_z']
 
-        labeled_events_columns = ['event_id', 'source_file_acquisition_full', 'source_file_trigger_full', 'packet_id', 'num_gtu', 'gtu_in_packet', 'num_triggered_pixels',
-        'gtu_y_hough__peak_thr2_avg_phi', 'gtu_x_hough__peak_thr2_avg_phi', 'gtu_y_hough__peak_thr3_avg_phi', 'gtu_x_hough__peak_thr3_avg_phi',
-        'trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width',
-        'gtu_y_hough__peak_thr1__max_cluster_counts_sum_width', 'gtu_x_hough__peak_thr1__max_cluster_counts_sum_width', 'trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width', 'x_y_hough__peak_thr1__max_cluster_counts_sum_width',
-        'trigg_x_y_hough__dbscan_num_clusters_above_thr1', 'trigg_gtu_y_hough__dbscan_num_clusters_above_thr1', 'trigg_gtu_x_hough__dbscan_num_clusters_above_thr1',
-        'gtu_y_hough__dbscan_num_clusters_above_thr1', 'gtu_x_hough__dbscan_num_clusters_above_thr1',
-        'etruth_trueenergy', 'egeometry_pos_z']
+            less34_visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
+            visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
+            invisible_showers_all = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0), con)
+            low_energy_in_pmt_all = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0), con) # maybe too many gtu ?
+            led_all = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0), con)
 
-        less34_visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
-        visible_showers_all = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0), con)
-        invisible_showers_all = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0), con)
-        low_energy_in_pmt_all = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0), con) # maybe too many gtu ?
-        led_all = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0), con)
+            # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
+            cond_selection_rules_not = 'NOT ('+cond_selection_rules+' )'
 
-        # cond_selection_rules_t1_prefixed = re.sub('|'.join(spb_processing_event_ver2_columns),r't1.\g<0>', cond_selection_rules)
-        cond_selection_rules_not = 'NOT ('+cond_selection_rules+' )'
-        
-        less34_visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        invisible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        low_energy_in_pmt_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
-        led_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            less34_visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            visible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            invisible_showers_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            low_energy_in_pmt_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
+            led_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
 
-        less34_visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        invisible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
-        led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            less34_visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            invisible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+            low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
+            led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
 
-        process_simu_group_statistics(visible_showers_cond, visible_showers_not_cond, visible_showers_all, 
-                                      'visible_showers_cond', 'visible_showers_not_cond', 'visible_showers_all', 'VISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
-        
-        process_simu_group_statistics(less34_visible_showers_cond, less34_visible_showers_not_cond, less34_visible_showers_all, 
-                                      'less34_visible_showers_cond', 'less34_visible_showers_not_cond', 'less34_visible_showers_all', 'LESS34 VISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
-        
-        process_simu_group_statistics(invisible_showers_cond, invisible_showers_not_cond, invisible_showers_all, 
-                                      'invisible_showers_cond', 'invisible_showers_not_cond', 'invisible_showers_all', 'INVISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
-        
-        process_simu_group_statistics(low_energy_in_pmt_cond, low_energy_in_pmt_not_cond, low_energy_in_pmt_all, 
-                                      'low_energy_in_pmt_cond', 'low_energy_in_pmt_not_cond', 'low_energy_in_pmt_all', 'CHARGED PARTICLES',
-                                      save_csv_dir, save_fig_dir, args)
-        
-        process_simu_group_statistics(led_cond, led_not_cond, led_all, 
-                                      'led_cond', 'led_not_cond', 'led_all', 'LED',
-                                      save_csv_dir, save_fig_dir, args)
+            process_simu_group_statistics(visible_showers_cond, visible_showers_not_cond, visible_showers_all,
+                                          'visible_showers_cond', 'visible_showers_not_cond', 'visible_showers_all', 'VISIBLE SHOWERS',
+                                          save_csv_dir, save_fig_dir, args)
+
+            process_simu_group_statistics(less34_visible_showers_cond, less34_visible_showers_not_cond, less34_visible_showers_all,
+                                          'less34_visible_showers_cond', 'less34_visible_showers_not_cond', 'less34_visible_showers_all', 'LESS34 VISIBLE SHOWERS',
+                                          save_csv_dir, save_fig_dir, args)
+
+            process_simu_group_statistics(invisible_showers_cond, invisible_showers_not_cond, invisible_showers_all,
+                                          'invisible_showers_cond', 'invisible_showers_not_cond', 'invisible_showers_all', 'INVISIBLE SHOWERS',
+                                          save_csv_dir, save_fig_dir, args)
+
+            process_simu_group_statistics(low_energy_in_pmt_cond, low_energy_in_pmt_not_cond, low_energy_in_pmt_all,
+                                          'low_energy_in_pmt_cond', 'low_energy_in_pmt_not_cond', 'low_energy_in_pmt_all', 'CHARGED PARTICLES',
+                                          save_csv_dir, save_fig_dir, args)
+
+            process_simu_group_statistics(led_cond, led_not_cond, led_all,
+                                          'led_cond', 'led_not_cond', 'led_all', 'LED',
+                                          save_csv_dir, save_fig_dir, args)
 
 if __name__ == "__main__":
     # execute only if run as a script
