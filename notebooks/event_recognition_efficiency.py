@@ -1707,7 +1707,7 @@ def simu_efficiency_stats(filtered_df,
            filtered_all_merged_bgf05_simu_events_by_energy_thin_fit_posz_groups
 
 
-def process_simu_group_statistics(simu_events_within_cond, simu_events_not_within_cond, simu_events_all, base_label_cond, base_label_not_cond, base_label_all, run_label, save_csv_dir, save_fig_dir, args):
+def process_simu_group_statistics(simu_events_within_cond, simu_events_not_within_cond, simu_events_all, base_label_cond, base_label_not_cond, base_label_all, run_label, save_csv_dir, save_fig_dir, save_npy_dir, args):
     # TODO !!!
     if run_label:
         if run_label[-1] != ' ':
@@ -2746,15 +2746,15 @@ def main(argv):
 
         process_simu_group_statistics(visible_showers_cond, visible_showers_not_cond, visible_showers_all,
                                       'visible_showers_cond', 'visible_showers_not_cond', 'visible_showers_all', 'VISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
+                                      save_csv_dir, save_fig_dir, save_npy_dir, args)
 
         process_simu_group_statistics(less34_visible_showers_cond, less34_visible_showers_not_cond, less34_visible_showers_all,
                                       'less34_visible_showers_cond', 'less34_visible_showers_not_cond', 'less34_visible_showers_all', 'LESS34 VISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
+                                      save_csv_dir, save_fig_dir, save_npy_dir, args)
 
         process_simu_group_statistics(invisible_showers_cond, invisible_showers_not_cond, invisible_showers_all,
                                       'invisible_showers_cond', 'invisible_showers_not_cond', 'invisible_showers_all', 'INVISIBLE SHOWERS',
-                                      save_csv_dir, save_fig_dir, args)
+                                      save_csv_dir, save_fig_dir, save_npy_dir, args)
 
         # process_simu_group_statistics(low_energy_in_pmt_cond, low_energy_in_pmt_not_cond, low_energy_in_pmt_all,
         #                               'low_energy_in_pmt_cond', 'low_energy_in_pmt_not_cond', 'low_energy_in_pmt_all', 'CHARGED PARTICLES',
