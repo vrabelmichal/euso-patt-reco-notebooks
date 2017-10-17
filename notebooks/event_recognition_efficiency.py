@@ -1717,6 +1717,10 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     print(run_label+" ALL")
     # -----------------------------------------------------
 
+    if len(simu_events_all) == 0:
+        print('Cannot continue, not events')
+        return
+
     simu_events_all__packet_count_by_energy = \
         group_rows_to_count_packets(simu_events_all)
 
@@ -1744,6 +1748,10 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     # -----------------------------------------------------
     print(run_label+" WITHIN CONDITIONS")
     # -----------------------------------------------------
+
+    if len(simu_events_cond) == 0:
+        print('Cannot continue, not events')
+        return
 
     try:
         # simu_events_within_cond = select_simu_events_within_cond(con, cond_selection_rules,
@@ -1936,6 +1944,10 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     # -----------------------------------------------------
     print(run_label+"NOT WITHIN SQL CONDITIONS")
     # -----------------------------------------------------
+
+    if len(simu_events_not_within_cond) == 0:
+        print('Cannot continue, not events')
+        return
 
     try:
         # simu_events_not_within_cond = select_simu_event_not_within_cond(con, cond_selection_rules,
