@@ -628,7 +628,35 @@ def get_columns_for_classification():
     return columns_for_classification
 
 
-def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=0, num_triggered_pixels__le=99999, source_data_type_num=3, etruth_theta=0.261799):
+def get_columns_str(columns, column_prefix='', none_val='{columns}'):
+    if columns is None:
+        return columns
+    if isinstance(columns, str):
+        if column_prefix:
+            columns_str = ', '.join([column_prefix+col.strip() for col in columns.split(',')])
+        else:
+            columns_str = columns
+    else:
+        columns_str = ', '.join([column_prefix+col.strip() for col in columns])
+
+    return columns_str
+
+
+def process_additional_conditions(additional_conditions):
+    additional_conditions = additional_conditions.strip()
+    if additional_conditions and not additional_conditions.startswith('AND'):
+        additional_conditions = 'AND '+additional_conditions
+        additional_conditions = ' ' + additional_conditions + ' '
+    return additional_conditions
+
+
+def get_query__select_simu_events(num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=0, num_triggered_pixels__le=99999, source_data_type_num=3, etruth_theta=0.261799,
+                                  columns=None, limit=None, offset=None, none_columns='{columns}', none_offset='{offset:d}', none_limit='{limit:d}',
+                                  additional_conditions=''):
+    columns_str = get_columns_str(columns, '', none_columns)
+    limit_str = none_limit if limit is None else limit
+    offset_str = none_offset if offset is None else offset
+    additional_conditions = process_additional_conditions(additional_conditions)
     select_simu_events_query_format = '''SELECT 
           {columns}
         FROM spb_processing_event_ver2
@@ -636,28 +664,34 @@ def get_select_simu_events_query_format(num_frames_signals_ge_bg__ge=3, num_fram
         JOIN simu_event USING (simu_event_id) 
         JOIN simu_event_spb_proc_additional_info USING (relation_id) 
         WHERE 
-        ''' + '''
+        '''.format(columns=columns_str) + '''
          source_data_type_num = {source_data_type_num:d}
          AND etruth_truetheta > {etruth_theta:.4f}
          AND num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
          AND num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
          '''.format(num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
                 num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
-                source_data_type_num=source_data_type_num, etruth_theta=etruth_theta) + '''
+                source_data_type_num=source_data_type_num, etruth_theta=etruth_theta) + additional_conditions + '''
         ORDER BY num_triggered_pixels ASC, event_id ASC 
-        OFFSET {offset:d} LIMIT {limit:d}
-        ;'''
+        OFFSET {offset} LIMIT {limit}
+        ;'''.format(offset=offset_str, limit=limit_str)
     return select_simu_events_query_format
 
-
-def get_select_simu_events_other_bgf_query_format(t1_source_data_type_num=3, t2_source_data_type_num=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799):
-
+### parameter additional_conditions needs condfitions prefixed with t1
+def get_query__select_simu_events_other_bgf(t1_source_data_type_num=3, t2_source_data_type_num=5, gtu_in_packet_diff=5, num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999, num_triggered_pixels__ge=8, num_triggered_pixels__le=800, etruth_theta=0.261799,
+                                            columns=None, limit=None, offset=None, none_columns='{columns}', none_offset='{offset:d}', none_limit='{limit:d}',
+                                            additional_conditions=''):
+    ### requires t1. prefixed conditions
+    columns_str = get_columns_str(columns, '', none_columns)
+    limit_str = none_limit if limit is None else limit
+    offset_str = none_offset if offset is None else offset
+    additional_conditions = process_additional_conditions(additional_conditions)
     select_simu_events_query_format = '''SELECT {columns}
     FROM spb_processing_event_ver2 AS t1 
     JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
     JOIN simu_event_spb_proc ON (t2.event_id = simu_event_spb_proc.event_id) 
     JOIN simu_event AS t2_simu_event USING (simu_event_id) 
-    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id)''' + ''' 
+    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id)'''.format(columns=columns_str) + ''' 
     WHERE 
          t1.source_data_type_num={t1_source_data_type_num:d} AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
      AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
@@ -666,8 +700,8 @@ def get_select_simu_events_other_bgf_query_format(t1_source_data_type_num=3, t2_
         gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
         num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
         t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta) + ''' 
-    OFFSET {offset:d} LIMIT {limit:d}
-    ;'''
+    OFFSET {offset} LIMIT {limit}
+    ;'''.format(offset=offset_str, limit=limit_str)
     return select_simu_events_query_format
 
 
@@ -697,21 +731,26 @@ def select_events(cur, query_format, columns, offset=0, limit=100000, check_sele
 
 
 def select_training_data__visible_showers(cur, columns):
-    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(3, 999, 3, 800, 3), columns, limit=100000)
+    all_rows, all_columns = select_events(cur, get_query__select_simu_events(3, 999, 3, 800, 3), columns, limit=100000)
     return all_rows
 
 
 def select_training_data__invisible_showers(cur, columns):
-    all_rows, all_columns = select_events(cur, get_select_simu_events_query_format(0, 2, 0, 1), columns, limit=100000)
+    all_rows, all_columns = select_events(cur, get_query__select_simu_events(0, 2, 0, 1), columns, limit=100000)
     return all_rows
 
 
 def select_training_data__visible_showers_other_bgf(cur, columns):
-    all_rows, all_columns = select_events(cur, get_select_simu_events_other_bgf_query_format(), columns, limit=100000, column_prefix='t1.')
+    all_rows, all_columns = select_events(cur, get_query__select_simu_events_other_bgf(), columns, limit=100000, column_prefix='t1.')
     return all_rows
 
 
-def select_training_data__low_energy_in_pmt(cur, columns):
+def get_query__select_training_data__low_energy_in_pmt(columns=None, limit=None, offset=None, none_columns='{columns}', none_limit='{limit:d}', none_offset='{offset:d}',
+                                            additional_conditions=''):
+    columns_str = get_columns_str(columns, '', none_columns)
+    limit_str = none_limit if limit is None else limit
+    offset_str = none_offset if offset is None else offset
+    additional_conditions = process_additional_conditions(additional_conditions)
     select_low_energy_in_pmt_query_format = '''
     SELECT {columns} FROM spb_processing_event_ver2
     WHERE   
@@ -727,25 +766,40 @@ def select_training_data__low_energy_in_pmt(cur, columns):
             OR (trigg_x_y_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_x_hough__peak_thr1__max_cluster_counts_sum_width <= 40 AND trigg_gtu_y_hough__peak_thr1__max_cluster_counts_sum_width <= 70)
          )
         AND
-           ( abs(gtu_y_hough__peak_thr3_avg_phi)  BETWEEN -0.174 AND 0.1745  OR  abs(gtu_x_hough__peak_thr3_avg_phi) BETWEEN -0.174 AND 0.1745 )
+           ( abs(gtu_y_hough__peak_thr3_avg_phi)  BETWEEN -0.174 AND 0.1745  OR  abs(gtu_x_hough__peak_thr3_avg_phi) BETWEEN -0.174 AND 0.1745 )''' + additional_conditions + \
+    '''
     ORDER BY
         num_triggered_pixels DESC, event_id ASC 
     OFFSET {offset} LIMIT {limit}
-    '''
+    '''.format(columns=columns_str, offset=offset_str, limit=limit_str)
+    return select_low_energy_in_pmt_query_format
+
+
+def select_training_data__low_energy_in_pmt(cur, columns):
+    select_low_energy_in_pmt_query_format = get_query__select_training_data__low_energy_in_pmt()
     all_rows, all_columns = select_events(cur, select_low_energy_in_pmt_query_format, columns, limit=100000)
     return all_rows
 
 
-def select_training_data__led(cur, columns):
+def get_query__select_training_data__led(columns=None, limit=None, offset=None, none_columns='{columns}', none_limit='{limit:d}', none_offset='{offset:d}', additional_conditions=''):
+    columns_str = get_columns_str(columns, '', none_columns)
+    limit_str = none_limit if limit is None else limit
+    offset_str = none_offset if offset is None else offset
+    additional_conditions = process_additional_conditions(additional_conditions)
     select_led_query_format = '''
     SELECT {columns} FROM spb_processing_event_ver2
     WHERE   
             source_data_type_num = 1
-        AND num_triggered_pixels > 500 
+        AND num_triggered_pixels > 500''' + additional_conditions + '''
     ORDER BY
         num_triggered_pixels DESC, event_id ASC 
     OFFSET {offset:d} LIMIT {limit:d}
-    '''
+    '''.format(columns=columns_str, offset=offset_str, limit=limit_str)
+    return select_led_query_format
+
+
+def select_training_data__led(cur, columns):
+    select_led_query_format = get_query__select_training_data__led()
     all_rows, all_columns = select_events(cur, select_led_query_format, columns, limit=100000)
     return all_rows
 
