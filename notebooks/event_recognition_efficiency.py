@@ -1717,6 +1717,8 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     print(run_label+" ALL")
     # -----------------------------------------------------
 
+
+
     if len(simu_events_all) == 0:
         print('Cannot continue, not events')
         return
@@ -1806,13 +1808,13 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
                               simu_events_all__packet_count_by_energy,
                               simu_events_all__packet_count_by_posz,
                               simu_events_all__packet_count_by_posz_and_energy,
-                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt05_numgtu_gt15')
+                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt05_numgtu_gt15', base_label_all, 'labeled')
 
         simu_efficiency_stats(simu_events_within_cond_filtered_ec_0_0_lt06,
                               simu_events_all__packet_count_by_energy,
                               simu_events_all__packet_count_by_posz,
                               simu_events_all__packet_count_by_posz_and_energy,
-                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt06')
+                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt06', base_label_all, 'labeled')
 
         # -----------------------------------------------------
 
@@ -1869,7 +1871,7 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
                               simu_events_all_filtered_ec_0_0_lt06__packet_count_by_energy,
                               simu_events_all_filtered_ec_0_0_lt06__packet_count_by_posz,
                               simu_events_all_filtered_ec_0_0_lt06__packet_count_by_posz_and_energy,
-                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt06_cond', base_label_all+'_filtered_ec_0_0_lt06')
+                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt06_cond', base_label_all+'_filtered_ec_0_0_lt06', 'labeled')
 
         # =====================================================
 
