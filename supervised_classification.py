@@ -702,7 +702,7 @@ def get_query__select_simu_events_other_bgf(t1_source_data_type_num=3, t2_source
             t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta) + ''' 
         OFFSET {offset} LIMIT {limit}
         ;'''.format(offset=offset_str, limit=limit_str)
-        return select_simu_events_query_format
+    return select_simu_events_query_format
 
 
 def select_events(cur, query_format, columns, offset=0, limit=100000, check_selected_columns=True, column_prefix=''):
