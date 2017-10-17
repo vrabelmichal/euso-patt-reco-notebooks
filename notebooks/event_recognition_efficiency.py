@@ -1186,7 +1186,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
     flight_events_num_max_pix_on_ec = {}
 
     pickled_flight_events_num_max_pix_on_pmt = {}
-    pickled_flight_events_num_max_pix_on_ec = {}
+    pickled_events_num_max_pix_on_ec = {}
 
     hashstr = '' #hashlib.md5(df.values.tobytes()).hexdigest()
 
@@ -1236,15 +1236,15 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
         flight_events_num_max_pix_on_ec[frac] = {}
         for i in range(3):
             for j in range(3):
-                load_successful = try_load_npy_file(pickled_flight_events_num_max_pix_on_ec, 'num_max_pix_on_ec', frac, i, j)
+                load_successful = try_load_npy_file(pickled_events_num_max_pix_on_ec, 'num_max_pix_on_ec', frac, i, j)
                 if not load_successful:
                     flight_events_num_max_pix_on_ec[frac][(i,j)] = np.zeros((len(df), 2))
 
     load_files = False
     for frac in fractions:
-        if frac not in pickled_flight_events_num_max_pix_on_ec:
+        if frac not in pickled_events_num_max_pix_on_ec:
             load_files = True
-            print(">>> pickled_flight_events_num_max_pix_on_ec[{:.1f}] IS NOT LOADED - READING ALL EVENTS".format(frac))
+            print(">>> pickled_events_num_max_pix_on_ec[{:.1f}] IS NOT LOADED - READING ALL EVENTS".format(frac))
             break
         if frac not in pickled_flight_events_num_max_pix_on_pmt:
             load_files = True
@@ -1259,8 +1259,8 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
                         break
             for i in range(3):
                 for j in range(3):
-                    if (i,j) not in pickled_flight_events_num_max_pix_on_ec[frac]:
-                        print(">>> pickled_flight_events_num_max_pix_on_ec[{:.1f}][({:d},{:d})] IS NOT LOADED - READING ALL EVENTS".format(frac, i, j))
+                    if (i,j) not in pickled_events_num_max_pix_on_ec[frac]:
+                        print(">>> pickled_events_num_max_pix_on_ec[{:.1f}][({:d},{:d})] IS NOT LOADED - READING ALL EVENTS".format(frac, i, j))
                         load_files = True
                         break
 
@@ -1394,7 +1394,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
         return flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec
     else:
 
-        return pickled_flight_events_num_max_pix_on_pmt, pickled_flight_events_num_max_pix_on_ec
+        return pickled_flight_events_num_max_pix_on_pmt, pickled_events_num_max_pix_on_ec
 
 
 def extend_df_with_num_max_pix(flight_events_within_cond, flight_events_num_max_pix_on_pmt, flight_events_num_max_pix_on_ec):
@@ -1779,8 +1779,8 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
 
         filtered_simu_events_within_cond = filter_out_by_fraction_and_col_thr(simu_events_within_cond_with_max_pix_count,
                                                                               ec_0_0_frac_lt=0.5, num_gtu_gt=15)
-        print_len(filtered_simu_events_within_cond, base_prefix+'_filtered')
-        save_csv(filtered_simu_events_within_cond, save_csv_dir, base_prefix+'_filtered')
+        print_len(filtered_simu_events_within_cond, base_label_cond+'_filtered')
+        save_csv(filtered_simu_events_within_cond, save_csv_dir, base_label_cond+'_filtered')
 
         # -----------------------------------------------------
 
@@ -1789,8 +1789,8 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
         simu_events_within_cond_filtered_ec_0_0_lt06 = filter_out_by_fraction(simu_events_within_cond_with_max_pix_count,
                                                                               ec_0_0_frac_lt=0.6)
 
-        print_len(simu_events_within_cond_filtered_ec_0_0_lt06, base_prefix+'_filtered_ec_0_0_lt06')
-        save_csv(simu_events_within_cond_filtered_ec_0_0_lt06, save_csv_dir, base_prefix+'_filtered_ec_0_0_lt06')
+        print_len(simu_events_within_cond_filtered_ec_0_0_lt06, base_label_cond+'_filtered_ec_0_0_lt06')
+        save_csv(simu_events_within_cond_filtered_ec_0_0_lt06, save_csv_dir, base_label_cond+'_filtered_ec_0_0_lt06')
 
         # -----------------------------------------------------
 
@@ -1798,13 +1798,13 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
                               simu_events_all__packet_count_by_energy,
                               simu_events_all__packet_count_by_posz,
                               simu_events_all__packet_count_by_posz_and_energy,
-                              save_csv_dir, save_fig_dir, base_prefix+'_filtered_ec_0_0_lt05_numgtu_gt15')
+                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt05_numgtu_gt15')
 
         simu_efficiency_stats(simu_events_within_cond_filtered_ec_0_0_lt06,
                               simu_events_all__packet_count_by_energy,
                               simu_events_all__packet_count_by_posz,
                               simu_events_all__packet_count_by_posz_and_energy,
-                              save_csv_dir, save_fig_dir, base_prefix+'_filtered_ec_0_0_lt06')
+                              save_csv_dir, save_fig_dir, base_label_cond+'_filtered_ec_0_0_lt06')
 
         # -----------------------------------------------------
 
