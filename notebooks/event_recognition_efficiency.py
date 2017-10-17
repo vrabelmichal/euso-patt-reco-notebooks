@@ -1749,7 +1749,7 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     print(run_label+" WITHIN CONDITIONS")
     # -----------------------------------------------------
 
-    if len(simu_events_cond) == 0:
+    if len(simu_events_within_cond) == 0:
         print('Cannot continue, not events')
         return
 
