@@ -657,14 +657,13 @@ def get_query__select_simu_events(num_frames_signals_ge_bg__ge=3, num_frames_sig
     limit_str = none_limit if limit is None else limit
     offset_str = none_offset if offset is None else offset
     additional_conditions = process_additional_conditions(additional_conditions)
-    select_simu_events_query_format = '''SELECT 
-          {columns}
+    select_simu_events_query_format = \
+       'SELECT '+columns_str+'''
         FROM spb_processing_event_ver2
         JOIN simu_event_spb_proc USING (event_id) 
         JOIN simu_event USING (simu_event_id) 
         JOIN simu_event_spb_proc_additional_info USING (relation_id) 
-        WHERE 
-        '''.format(columns=columns_str) + '''
+        WHERE ''' + '''
          source_data_type_num = {source_data_type_num:d}
          AND etruth_truetheta > {etruth_theta:.4f}
          AND num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
@@ -686,23 +685,24 @@ def get_query__select_simu_events_other_bgf(t1_source_data_type_num=3, t2_source
     limit_str = none_limit if limit is None else limit
     offset_str = none_offset if offset is None else offset
     additional_conditions = process_additional_conditions(additional_conditions)
-    select_simu_events_query_format = '''SELECT {columns}
-    FROM spb_processing_event_ver2 AS t1 
-    JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
-    JOIN simu_event_spb_proc ON (t2.event_id = simu_event_spb_proc.event_id) 
-    JOIN simu_event AS t2_simu_event USING (simu_event_id) 
-    JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id)'''.format(columns=columns_str) + ''' 
-    WHERE 
-         t1.source_data_type_num={t1_source_data_type_num:d} AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
-     AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
-     AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
-    ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC '''.format(
-        gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
-        num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
-        t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta) + ''' 
-    OFFSET {offset} LIMIT {limit}
-    ;'''.format(offset=offset_str, limit=limit_str)
-    return select_simu_events_query_format
+    select_simu_events_query_format = \
+       'SELECT ' + columns_str + '''
+        FROM spb_processing_event_ver2 AS t1 
+        JOIN spb_processing_event_ver2 AS t2 ON (t1.source_file_acquisition_full = t2.source_file_acquisition_full) 
+        JOIN simu_event_spb_proc ON (t2.event_id = simu_event_spb_proc.event_id) 
+        JOIN simu_event AS t2_simu_event USING (simu_event_id) 
+        JOIN simu_event_spb_proc_additional_info AS t2_additional USING (relation_id)''' + ''' 
+        WHERE 
+             t1.source_data_type_num={t1_source_data_type_num:d} AND t2.source_data_type_num={t2_source_data_type_num:d}  AND abs(t1.gtu_in_packet - t2.gtu_in_packet) < {gtu_in_packet_diff:d} 
+         AND t2_simu_event.etruth_truetheta > {etruth_theta:.4f} AND t2.num_triggered_pixels BETWEEN {num_triggered_pixels__ge:d} AND {num_triggered_pixels__le:d}
+         AND t2_additional.num_frames_signals_ge_bg BETWEEN {num_frames_signals_ge_bg__ge:d} AND {num_frames_signals_ge_bg__le:d} 
+        ORDER BY  t1.num_triggered_pixels ASC, t1.source_file_acquisition_full ASC, t1.event_id ASC '''.format(
+            gtu_in_packet_diff=gtu_in_packet_diff, num_triggered_pixels__ge=num_triggered_pixels__ge, num_triggered_pixels__le=num_triggered_pixels__le,
+            num_frames_signals_ge_bg__ge=num_frames_signals_ge_bg__ge, num_frames_signals_ge_bg__le=num_frames_signals_ge_bg__le,
+            t1_source_data_type_num=t1_source_data_type_num, t2_source_data_type_num=t2_source_data_type_num, etruth_theta=etruth_theta) + ''' 
+        OFFSET {offset} LIMIT {limit}
+        ;'''.format(offset=offset_str, limit=limit_str)
+        return select_simu_events_query_format
 
 
 def select_events(cur, query_format, columns, offset=0, limit=100000, check_selected_columns=True, column_prefix=''):
@@ -751,8 +751,8 @@ def get_query__select_training_data__low_energy_in_pmt(columns=None, limit=None,
     limit_str = none_limit if limit is None else limit
     offset_str = none_offset if offset is None else offset
     additional_conditions = process_additional_conditions(additional_conditions)
-    select_low_energy_in_pmt_query_format = '''
-    SELECT {columns} FROM spb_processing_event_ver2
+    select_low_energy_in_pmt_query_format = \
+    'SELECT '+columns_str+''' FROM spb_processing_event_ver2
     WHERE   
             source_data_type_num = 1
         AND num_gtu < 14
@@ -771,7 +771,7 @@ def get_query__select_training_data__low_energy_in_pmt(columns=None, limit=None,
     ORDER BY
         num_triggered_pixels DESC, event_id ASC 
     OFFSET {offset} LIMIT {limit}
-    '''.format(columns=columns_str, offset=offset_str, limit=limit_str)
+    '''.format(offset=offset_str, limit=limit_str)
     return select_low_energy_in_pmt_query_format
 
 
@@ -786,15 +786,15 @@ def get_query__select_training_data__led(columns=None, limit=None, offset=None, 
     limit_str = none_limit if limit is None else limit
     offset_str = none_offset if offset is None else offset
     additional_conditions = process_additional_conditions(additional_conditions)
-    select_led_query_format = '''
-    SELECT {columns} FROM spb_processing_event_ver2
+    select_led_query_format = \
+    'SELECT ' + columns_str + ''' FROM spb_processing_event_ver2
     WHERE   
             source_data_type_num = 1
         AND num_triggered_pixels > 500''' + additional_conditions + '''
     ORDER BY
         num_triggered_pixels DESC, event_id ASC 
     OFFSET {offset:d} LIMIT {limit:d}
-    '''.format(columns=columns_str, offset=offset_str, limit=limit_str)
+    '''.format(offset=offset_str, limit=limit_str)
     return select_led_query_format
 
 
