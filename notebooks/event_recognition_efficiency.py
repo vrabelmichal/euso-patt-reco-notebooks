@@ -1717,7 +1717,7 @@ def process_simu_group_statistics(simu_events_within_cond, simu_events_not_withi
     print(run_label+" ALL")
     # -----------------------------------------------------
 
-
+    print_len(simu_events_all, base_label_all)
 
     if len(simu_events_all) == 0:
         print('Cannot continue, not events')
