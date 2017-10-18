@@ -1602,6 +1602,8 @@ def simu_efficiency_stats(filtered_df,
 
     if do_vis: vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, '{}__packet_count_by_energy__thinned__fits'.format(merged_specifier))
     if do_vis: vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, '{}__packet_count_by_energy__thinned__1poly_fit'.format(merged_specifier))
+    if do_vis: vis_count_fraction_fits(x, y, xerrs, yerrs, [None, fits_p[1]], save_fig_dir, '{}__packet_count_by_energy__thinned__2poly_fit'.format(merged_specifier))
+    if do_vis: vis_count_fraction_fits(x, y, xerrs, yerrs, [None, None, fits_p[2]], save_fig_dir, '{}__packet_count_by_energy__thinned__3poly_fit'.format(merged_specifier))
 
     # -----------------------------------------------------
 
@@ -2186,7 +2188,8 @@ def main(argv):
 
             vis_count_fraction_fits(x, y, xerrs, yerrs, fits_p, save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__fits')
             vis_count_fraction_fits(x, y, xerrs, yerrs, [fits_p[0]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
-            vis_count_fraction_fits(x, y, xerrs, yerrs, [None, fits_p[1]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__1poly_fit')
+            vis_count_fraction_fits(x, y, xerrs, yerrs, [None, fits_p[1]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__2poly_fit')
+            vis_count_fraction_fits(x, y, xerrs, yerrs, [None, None, fits_p[2]], save_fig_dir, 'cond_all_merged_bgf05_and_bgf1_simu_events__packet_count_by_energy__thinned__3poly_fit')
 
             plt.close('all')
 
