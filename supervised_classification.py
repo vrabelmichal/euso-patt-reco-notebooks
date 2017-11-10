@@ -793,7 +793,7 @@ def get_query__select_training_data__led(columns=None, limit=None, offset=None, 
         AND num_triggered_pixels > 500''' + additional_conditions + '''
     ORDER BY
         num_triggered_pixels DESC, event_id ASC 
-    OFFSET {offset:d} LIMIT {limit:d}
+    OFFSET {offset} LIMIT {limit}
     '''.format(offset=offset_str, limit=limit_str)
     return select_led_query_format
 
