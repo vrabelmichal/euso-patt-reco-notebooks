@@ -630,7 +630,7 @@ def get_columns_for_classification():
 
 def get_columns_str(columns, column_prefix='', none_val='{columns}'):
     if columns is None:
-        return columns
+        return none_val
     if isinstance(columns, str):
         if column_prefix:
             columns_str = ', '.join([column_prefix+col.strip() for col in columns.split(',')])
