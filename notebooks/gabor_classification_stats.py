@@ -314,9 +314,9 @@ def main(argv):
     #visible_showers = supervised_classification.select_training_data__visible_showers(cur, columns);
     less34_visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(3, 4, 3, 800, 3), columns, limit=100000)[0]
     visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(5, 999, 3, 800, 3), columns, limit=100000)[0]
-    invisible_showers = supc.select_training_data__invisible_showers(cur, columns)
-    low_energy_in_pmt = supc.select_training_data__low_energy_in_pmt(cur, columns) # maybe too many gtu
-    led = supc.select_training_data__led(cur, columns)
+    # invisible_showers = supc.select_training_data__invisible_showers(cur, columns)
+    # low_energy_in_pmt = supc.select_training_data__low_energy_in_pmt(cur, columns) # maybe too many gtu
+    # led = supc.select_training_data__led(cur, columns)
 
     # save_projections(npy_dir_pathname, 'less34_visible_showers', *read_projections(less34_visible_showers, max_entries=100000))
     # save_projections(npy_dir_pathname, 'visible_showers', *read_projections(visible_showers, max_entries=100000))
@@ -341,13 +341,13 @@ def main(argv):
     # gtuy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_nogauss','gtuy_projections.npy'))
 
 
-    gtux_projections = np.load(os.path.join(npy_dir_pathname,'visible_showers','gtux_projections.npy'))
+    # gtux_projections = np.load(os.path.join(npy_dir_pathname,'visible_showers','gtux_projections.npy'))
     xy_projections = np.load(os.path.join(npy_dir_pathname,'visible_showers','xy_projections.npy'))
-    gtuy_projections = np.load(os.path.join(npy_dir_pathname,'visible_showers','gtuy_projections.npy'))
+    # gtuy_projections = np.load(os.path.join(npy_dir_pathname,'visible_showers','gtuy_projections.npy'))
 
-    less34_gtux_projections = np.load(os.path.join(npy_dir_pathname,'less34_visible_showers','gtux_projections.npy'))
+    # less34_gtux_projections = np.load(os.path.join(npy_dir_pathname,'less34_visible_showers','gtux_projections.npy'))
     less34_xy_projections = np.load(os.path.join(npy_dir_pathname,'less34_visible_showers','xy_projections.npy'))
-    less34_gtuy_projections = np.load(os.path.join(npy_dir_pathname,'less34_visible_showers','gtuy_projections.npy'))
+    # less34_gtuy_projections = np.load(os.path.join(npy_dir_pathname,'less34_visible_showers','gtuy_projections.npy'))
 
 
     # background_xy_projections = [None]*len(visible_showers)
@@ -391,12 +391,19 @@ def main(argv):
     ]
     
     with open(outfile_path, 'w') as f:
-        print('\t'.join(stats_header))
+        print('\t'.join(stats_header), file=f)
+
+    gabor_kernels = calc_gabor_kernels(6,(1,2,3),(0.05, 0.25, 0.55))
+    # gabor_kernel_labels = get_gabor_kernel_labels(6,(1,2,3),(0.05, 0.25, 0.55))
 
     for n in range(first_n, last_n):
         if n % every_nth != 0:
             continue
-    
+
+        print("-"*30)
+        print("{}: Training".format(n))
+        print("-"*30)
+
         base_xy_proj_w_bg = xy_projections[n] * (xy_projections[n]>0)
         base_xy_proj_w_bg_cent = (base_xy_proj_w_bg - base_xy_proj_w_bg.mean() )
         base_xy_proj_w_bg_max_norm = base_xy_proj_w_bg_cent/np.max(np.abs(base_xy_proj_w_bg_cent))
@@ -415,40 +422,62 @@ def main(argv):
 
         # gabor_kernels = calc_gabor_kernels(6,(1,2,3),(0.05, 0.25, 0.55))
         # gabor_kernel_labels = get_gabor_kernel_labels(6,(1,2,3),(0.05, 0.25, 0.55))
-        gabor_kernels = calc_gabor_kernels(6,(1,2,3),(0.05, 0.25, 0.55))
-        gabor_kernel_labels = get_gabor_kernel_labels(6,(1,2,3),(0.05, 0.25, 0.55))
 
 
         ## In[172]: ...
+
+        print("-"*30)
+        print("{}: Compute feats".format(n))
+        print("-"*30)
 
         ref_feats = np.zeros((2, len(gabor_kernels), 2), dtype=np.double)
         ref_feats[1, :, :] = compute_feats(base_xy_proj_w_bg_max_norm, gabor_kernels)  # base_xy_proj_max_norm
         ref_feats[0, :, :] = compute_feats(bg_xy_proj_cent_max_norm, gabor_kernels)
 
+        print("-"*30)
+        print("{}: Classifying visible".format(n))
+        print("-"*30)
+
         visible_shower_classes = classify_projections(xy_projections, ref_feats, gabor_kernels, exclude=[n])
 
-        print("visible_shower_classes")
+        # print("visible_shower_classes")
         print("num class 0:", len(visible_shower_classes) - np.count_nonzero(visible_shower_classes) )
         print("num class 1:", np.count_nonzero(visible_shower_classes) )
 
         print("error: ",(len(visible_shower_classes) - np.count_nonzero(visible_shower_classes))/len(visible_shower_classes))
         print("efficiency: ",np.count_nonzero(visible_shower_classes)/len(visible_shower_classes))
 
+        print("-"*30)
+        print("{}: Classifying less34 visible".format(n))
+        print("-"*30)
+
         less34_visible_shower_classes = classify_projections(less34_xy_projections, ref_feats, gabor_kernels, exclude=[])
 
-        print("less34_visible_shower_classes")
+        # print("less34_visible_shower_classes")
         print("num class 0:", len(less34_visible_shower_classes) - np.count_nonzero(less34_visible_shower_classes) )
         print("num class 1:", np.count_nonzero(less34_visible_shower_classes) )
 
+        print("-"*30)
+        print("{}: Classifying background".format(n))
+        print("-"*30)
+
         background_classes = classify_projections(background_xy_projections, ref_feats, gabor_kernels, exclude=[n])
         
-        print("background_classes")
+        # print("background_classes")
         print("num class 0:", len(background_classes) - np.count_nonzero(background_classes) )
         print("num class 1:", np.count_nonzero(background_classes) )
 
+        print("-"*30)
+        print("{}: Classifying less34 background".format(n))
+        print("-"*30)
+
         less34_background_classes = classify_projections(less34_background_xy_projections, ref_feats, gabor_kernels, [])
 
-        print("less34_background_classes")
+        print("-"*30)
+        print("{}: Stats".format(n))
+        print("-"*30)
+
+        # print("less34_background_classes")
         print("num class 0:", len(less34_background_classes) - np.count_nonzero(less34_background_classes) )
         print("num class 1:", np.count_nonzero(less34_background_classes) )
         print("error: ",(np.count_nonzero(background_classes))/len(background_classes))
