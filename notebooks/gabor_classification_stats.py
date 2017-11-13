@@ -559,7 +559,7 @@ def main(argv):
             print("{}\t{}".format(k,v))
         
         with open(outfile_path, 'a') as f:
-            print('\t'.join([n] + [str(v) in stats.items()]), file=f)
+            print('\t'.join([str(n)] + [str(v) in stats.items()]), file=f)
 
 
 
