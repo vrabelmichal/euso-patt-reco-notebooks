@@ -372,6 +372,7 @@ def main(argv):
     print("Outfile path: {}".format(outfile_path))
 
     stats_header = [
+        'n',
         'positive',
         'negative',
         'true_positive',
@@ -516,7 +517,7 @@ def main(argv):
             print("{}\t{}".format(k,v))
         
         with open(outfile_path, 'w') as f:
-            print('\t'.join([str(v) in stats.items()]), file=f)
+            print('\t'.join([n] + [str(v) in stats.items()]), file=f)
 
 
 
