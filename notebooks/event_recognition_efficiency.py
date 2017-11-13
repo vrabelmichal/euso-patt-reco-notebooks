@@ -48,6 +48,9 @@ import tool.acqconv
 import data_analysis_utils
 import supervised_classification as supc
 
+from data_analysis_utils import get_conn, ensure_ext, save_csv, fig_saving_msg, print_len, save_figure
+
+
 def get_selection_rules(min_gtu=10):
     cond_selection_rules = '''
         num_gtu BETWEEN {min_gtu:d} AND 40
@@ -251,27 +254,6 @@ def get_selection_rules(min_gtu=10):
     return cond_selection_rules
 
 
-def get_conn(**kwargs):
-    con = pg.connect(**kwargs) # "dbname=eusospb_data user=eusospb password= host=localhost"
-    cur = con.cursor()
-    return con, cur
-
-
-def ensure_ext(base_file_name, ext='.png'):
-    if not base_file_name.endswith(ext):
-        return "{}{}".format(base_file_name, ext)
-    return base_file_name
-
-
-def save_csv(df,save_txt_dir,base_file_name, sep='\t'):
-    if save_txt_dir:
-        csv_path = os.path.join(save_txt_dir, ensure_ext(base_file_name,".{}sv".format('t' if sep=='\t' else 'c')))
-        print('SAVING CSV {}'.format(csv_path))
-        df.to_csv(csv_path, sep=sep)
-        return csv_path
-    return None
-
-
 def get_spb_processing_event_ver2_columns(cur, queries_log=None):
     q = 'SELECT * FROM spb_processing_event_ver2 LIMIT 1'
     if queries_log:
@@ -298,20 +280,6 @@ def get_all_bgf05_and_bgf1_simu_events__packet_count_by_energy(con, queries_log=
     if queries_log:
         queries_log.write(simu_events_all_bgf05_and_bgf1__packet_count_by_energy_query)
     return psql.read_sql( simu_events_all_bgf05_and_bgf1__packet_count_by_energy_query, con)
-
-
-def fig_saving_msg(path):
-    print("SAVING FIGURE: {}".format(path))
-
-
-def print_len(l, label, comment=''):
-    print("len({}) = {}{}".format(label, len(l), '' if not comment else '   // {}'.format(comment)))
-
-
-def save_figure(fig, *path_parts):
-    path = ensure_ext(os.path.join(*path_parts), '.png')
-    fig_saving_msg(path)
-    fig.savefig(path)
 
 
 def vis_df_etruth_trueenergy_count_packets(simu_events_all_bgf05_and_bgf1__packet_count_by_energy, save_fig_dir, fig_file_name='simu_events_all_bgf05_and_bgf1__count_packets_by_energy.png'):
@@ -2427,14 +2395,14 @@ def main(argv):
 
             elif args.visualized_filter_setup == 2:
                 print(">> VISUALIZING FILTERED (EC_0_0/OTHER_EC < 0.6) WITHIN CONDITIONS")
-                vis_num_gtu_hist(filtered_flight_events_within_cond_ec_0_0_lt06, save_fig_dir, fig_file_name='filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu__num_gtu')
+                vis_num_gtu_hist(filtered_flight_events_within_cond_ec_0_0_lt06, save_fig_dir, fig_file_name='filtered_flight_events_within_cond_ec_0_0_lt06__num_gtu')
                 if not args.skip_vis_events:
                     vis_events_df(filtered_flight_events_within_cond_ec_0_0_lt06, save_fig_dir, 'filtered_flight_events_within_cond_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered)
     
                 print(">> VISUALIZING WITHIN CONDITIONS NOT PASSED THROUGH THE FILTER (EC_0_0/OTHER_EC < 0.6)")
                 vis_num_gtu_hist(flight_events_within_cond_not_filter_ec_0_0_lt06, save_fig_dir, fig_file_name='flight_events_within_cond_not_filter_ec_0_0_lt06__num_gtu')
                 if not args.skip_vis_events:
-                    vis_events_df(flight_events_within_cond_not_filter_ec_0_0_lt06, save_fig_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06_gt13gtu', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
+                    vis_events_df(flight_events_within_cond_not_filter_ec_0_0_lt06, save_fig_dir, 'flight_events_within_cond_not_filter_ec_0_0_lt06', additional_printed_columns=['ec_0_0_frac06_in','ec_0_0_frac06_out'], max_figures=args.max_vis_pages_within_cond_filtered_out)
 
 
         except Exception:
@@ -2769,11 +2737,11 @@ def main(argv):
         # low_energy_in_pmt_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
         # led_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
 
-        less34_visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        invisible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
-        # low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con) # maybe too many gtu ?
-        # led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules), con)
+        less34_visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(3, 4, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules_not), con)
+        visible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(5, 999, 3, 800, 3, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules_not), con)
+        invisible_showers_not_cond = psql.read_sql(supc.get_query__select_simu_events(0, 2, 0, 1, columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules_not), con)
+        # low_energy_in_pmt_not_cond = psql.read_sql(supc.get_query__select_training_data__low_energy_in_pmt(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules_not), con) # maybe too many gtu ?
+        # led_not_cond = psql.read_sql(supc.get_query__select_training_data__led(columns=labeled_events_columns, limit=10000, offset=0, additional_conditions=cond_selection_rules_not), con)
 
         process_simu_group_statistics(visible_showers_cond, visible_showers_not_cond, visible_showers_all,
                                       'visible_showers_cond', 'visible_showers_not_cond', 'visible_showers_all', 'VISIBLE SHOWERS',
