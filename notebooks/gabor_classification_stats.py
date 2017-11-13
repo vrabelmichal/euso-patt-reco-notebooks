@@ -312,8 +312,8 @@ def main(argv):
 
     columns = ['event_id', 'packet_id', 'gtu_in_packet', 'num_gtu','source_file_acquisition_full']
     #visible_showers = supervised_classification.select_training_data__visible_showers(cur, columns);
-    less34_visible_showers = supc.select_events(cur, supc.get_select_simu_events_query_format(3, 4, 3, 800, 3), columns, limit=100000)[0]
-    visible_showers = supc.select_events(cur, supc.get_select_simu_events_query_format(5, 999, 3, 800, 3), columns, limit=100000)[0]
+    less34_visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(3, 4, 3, 800, 3), columns, limit=100000)[0]
+    visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(5, 999, 3, 800, 3), columns, limit=100000)[0]
     invisible_showers = supc.select_training_data__invisible_showers(cur, columns)
     low_energy_in_pmt = supc.select_training_data__low_energy_in_pmt(cur, columns) # maybe too many gtu
     led = supc.select_training_data__led(cur, columns)
