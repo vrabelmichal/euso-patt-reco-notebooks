@@ -312,6 +312,11 @@ def main(argv):
 
     columns = ['event_id', 'packet_id', 'gtu_in_packet', 'num_gtu','source_file_acquisition_full']
     #visible_showers = supervised_classification.select_training_data__visible_showers(cur, columns);
+
+    print("-" * 30)
+    print("Selecting events from db")
+    print("-" * 30)
+
     less34_visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(3, 4, 3, 800, 3), columns, limit=100000)[0]
     visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(5, 999, 3, 800, 3), columns, limit=100000)[0]
     # invisible_showers = supc.select_training_data__invisible_showers(cur, columns)
@@ -333,9 +338,13 @@ def main(argv):
     # save_projections(npy_dir_pathname, 'low_energy_in_pmt_bgsub_30gtu_nogauss', *read_projections(low_energy_in_pmt, max_entries=10, substract_bg=True, apply_gaussian_filter=False))
     # save_projections(npy_dir_pathname, 'led_bgsub_30gtu_nogauss', *read_projections(led, max_entries=10, substract_bg=True, apply_gaussian_filter=False))
 
-    gtux_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','gtux_projections.npy'))
-    xy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','xy_projections.npy'))
-    gtuy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','gtuy_projections.npy'))
+    print("-" * 30)
+    print("Loading npy")
+    print("-" * 30)
+
+    # gtux_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','gtux_projections.npy'))
+    # xy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','xy_projections.npy'))
+    # gtuy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','gtuy_projections.npy'))
     # gtux_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_nogauss','gtux_projections.npy'))
     # xy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_nogauss','xy_projections.npy'))
     # gtuy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_nogauss','gtuy_projections.npy'))
@@ -355,6 +364,10 @@ def main(argv):
 
     # print( len(visible_showers) ,  len(less34_visible_showers) )
 
+    print("-" * 30)
+    print("Background projections")
+    print("-" * 30)
+
     background_xy_projections, background_avg_xy_projections = get_background_projections(visible_showers)
     less34_background_xy_projections, less34_background_avg_xy_projections = get_background_projections(less34_visible_showers)
 
@@ -363,7 +376,7 @@ def main(argv):
     if last_n < 0:
         last_n = len(visible_showers)
 
-    simu_xy_projections = [None]*len(visible_showers)
+    # simu_xy_projections = [None]*len(visible_showers)
     
     os.makedirs(stats_out_dir, exist_ok=True)
     outfile_name = 'gabor_classification_{}_{}_{}.tsv'.format(first_n, last_n, every_nth)
