@@ -537,29 +537,29 @@ def main(argv):
         # accuracy (ACC)
         accuracy = (true_positive+true_negative)/(positive+negative)
 
-        stats = {
-            'positive': positive,
-            'negative': negative,
-            'true_positive': true_positive,
-            'true_negative': true_negative,
-            'false_positive': false_positive,
-            'false_negative': false_negative,
-            'sensitivity': sensitivity,
-            'specificity': specificity,
-            'precision': precision,
-            'negative_predictive_value': negative_predictive_value,
-            'miss_rate': miss_rate,
-            'fall_out': fall_out,
-            'false_discovery_rate': false_discovery_rate,
-            'false_omission_rate': false_omission_rate,
-            'accuracy': accuracy
-        }
+        stats = (
+            ('positive', positive),
+            ('negative', negative),
+            ('true_positive', true_positive),
+            ('true_negative', true_negative),
+            ('false_positive', false_positive),
+            ('false_negative', false_negative),
+            ('sensitivity', sensitivity),
+            ('specificity', specificity),
+            ('precision', precision),
+            ('negative_predictive_value', negative_predictive_value),
+            ('miss_rate', miss_rate),
+            ('fall_out', fall_out),
+            ('false_discovery_rate', false_discovery_rate),
+            ('false_omission_rate', false_omission_rate),
+            ('accuracy', accuracy)
+        )
         
-        for k,v in stats.items():
+        for k,v in stats:
             print("{}\t{}".format(k,v))
         
         with open(outfile_path, 'a') as f:
-            print('\t'.join([str(n)] + [str(v) for k,v in stats.items()]), file=f)
+            print('\t'.join([str(n)] + [str(v) for k,v in stats]), file=f)
 
 
 
