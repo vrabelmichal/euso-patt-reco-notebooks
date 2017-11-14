@@ -416,6 +416,7 @@ def main(argv):
         print("-"*30)
         print("{}: Training".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         base_xy_proj_w_bg = xy_projections[n] * (xy_projections[n]>0)
         base_xy_proj_w_bg_cent = (base_xy_proj_w_bg - base_xy_proj_w_bg.mean() )
@@ -442,6 +443,7 @@ def main(argv):
         print("-"*30)
         print("{}: Compute feats".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         ref_feats = np.zeros((2, len(gabor_kernels), 2), dtype=np.double)
         ref_feats[1, :, :] = compute_feats(base_xy_proj_w_bg_max_norm, gabor_kernels)  # base_xy_proj_max_norm
@@ -450,6 +452,7 @@ def main(argv):
         print("-"*30)
         print("{}: Classifying visible".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         visible_shower_classes = classify_projections(xy_projections, ref_feats, gabor_kernels, exclude=[n])
 
@@ -463,6 +466,7 @@ def main(argv):
         print("-"*30)
         print("{}: Classifying less34 visible".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         less34_visible_shower_classes = classify_projections(less34_xy_projections, ref_feats, gabor_kernels, exclude=[])
 
@@ -473,6 +477,7 @@ def main(argv):
         print("-"*30)
         print("{}: Classifying background".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         background_classes = classify_projections(background_xy_projections, ref_feats, gabor_kernels, exclude=[n])
         
@@ -483,12 +488,14 @@ def main(argv):
         print("-"*30)
         print("{}: Classifying less34 background".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         less34_background_classes = classify_projections(less34_background_xy_projections, ref_feats, gabor_kernels, [])
 
         print("-"*30)
         print("{}: Stats".format(n))
         print("-"*30)
+        sys.stdout.flush()
 
         # print("less34_background_classes")
         print("num class 0:", len(less34_background_classes) - np.count_nonzero(less34_background_classes) )
@@ -561,6 +568,7 @@ def main(argv):
         with open(outfile_path, 'a') as f:
             print('\t'.join([str(n)] + [str(v) for k,v in stats]), file=f)
 
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":
