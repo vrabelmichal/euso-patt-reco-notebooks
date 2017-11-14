@@ -316,6 +316,7 @@ def main(argv):
     print("-" * 30)
     print("Selecting events from db")
     print("-" * 30)
+    sys.stdout.flush()
 
     less34_visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(3, 4, 3, 800, 3), columns, limit=100000)[0]
     visible_showers = supc.select_events(cur, supc.get_query__select_simu_events(5, 999, 3, 800, 3), columns, limit=100000)[0]
@@ -341,6 +342,7 @@ def main(argv):
     print("-" * 30)
     print("Loading npy")
     print("-" * 30)
+    sys.stdout.flush()
 
     # gtux_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','gtux_projections.npy'))
     # xy_projections_bgsub = np.load(os.path.join(npy_dir_pathname,'visible_showers_bgsub_30gtu_sigma3','xy_projections.npy'))
@@ -367,6 +369,7 @@ def main(argv):
     print("-" * 30)
     print("Background projections")
     print("-" * 30)
+    sys.stdout.flush()
 
     background_xy_projections, background_avg_xy_projections = get_background_projections(visible_showers)
     less34_background_xy_projections, less34_background_avg_xy_projections = get_background_projections(less34_visible_showers)
@@ -383,6 +386,7 @@ def main(argv):
     outfile_path = os.path.join(stats_out_dir, outfile_name)
     
     print("Outfile path: {}".format(outfile_path))
+    sys.stdout.flush()
 
     stats_header = [
         'n',
