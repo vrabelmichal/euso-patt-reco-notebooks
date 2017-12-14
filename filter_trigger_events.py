@@ -5,8 +5,9 @@ import sys
 import re
 import collections
 import configparser
+import json
 
-# Workarunfd to use Matplotlib without DISPLAY
+# Workaround to use Matplotlib without DISPLAY
 visualize_option_argv_key = '--visualize'
 use_agg = False
 if visualize_option_argv_key not in sys.argv:
@@ -21,6 +22,7 @@ if use_agg:
 
 import event_processing_v1
 import event_processing_v2
+import event_processing_v3
 import base_classes
 import safe_termination
 import processing_sync
@@ -42,7 +44,7 @@ def main(argv):
     parser.add_argument('-r', '--event-reader', default='acq', help="Event reader. Available event readers acq (default, processes acquisitions in \"Lech\" format), npy (processes acquisitions in npy format).")
     parser.add_argument('-o', '--out', default=None, help="Output specification")
     parser.add_argument('-f', '--output-type', default="stdout", help="Output type - tsv, stdout, sqlite, prostgresql")
-    parser.add_argument('-c', '--corr-map-file', default=None, help="Corrections map .npy file")
+    parser.add_argument('-c', '--calibration-map', default=None, help="Flat field map .npy file, orientation as kenji's L1 trigger")
     parser.add_argument('--gtu-before-trigger', type=int, default=None, help="Number of GTU included in track finding data before the trigger")
     parser.add_argument('--gtu-after-trigger', type=int, default=None, help="Number of GTU included in track finding data before the trigger")
     # parser.add_argument('--trigger-persistency', type=int, default=2, help="Number of GTU included in track finding data before the trigger")
@@ -66,6 +68,7 @@ def main(argv):
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
     parser.add_argument(visualize_option_argv_key, type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
+    # parser.add_argument("--savefig", type=str2bool_argparse, default=True, help="If this option is true and directories are provided, matplotlib figures are saved (default: True).")
     parser.add_argument("--no-overwrite--weak-check", type=str2bool_argparse, default=True, help="If this option is true, the existnece of records with same files and processing version is chceked BEFORE event is processed.")
     parser.add_argument("--no-overwrite--strong-check", type=str2bool_argparse, default=False, help="If this option is true, the existnece of records with same parameters is chceked AFTER event is processed")
     parser.add_argument("--dry-run", type=str2bool_argparse, default=False, help="If this option is true, the results are not saved")
@@ -88,6 +91,9 @@ def main(argv):
 
     parser.add_argument('--lockfile-dir', default="/tmp/spb_file_processing_sync", help="Path to the directory where synchronization lockfiles are stored")
 
+    parser.add_argument('--visualization-options', default='', help='Additional visualization options (default: "")')
+    parser.add_argument('--savefig-options', default='', help='Additional saved figure options (default: "")')
+
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
     config.read(args.config)
@@ -109,10 +115,17 @@ def main(argv):
         event_processing = event_processing_v1.EventProcessingV1()
     elif args.algorithm == 'ver2':
         event_processing = event_processing_v2.EventProcessingV2()
+    elif args.algorithm == 'ver3':
+        event_processing = event_processing_v3.EventProcessingV3()
     else:
         raise Exception('Unknown algorithm')
 
     proc_params = event_processing.event_processing_params_class().from_global_config(config)
+
+    flat_field_ndarray = None
+    if args.calibration_map:
+        flat_field_ndarray = np.load(args.calibration_map)
+        proc_params.calibration_map_path = args.calibration_map
 
     if args.output_type == "tsv" or args.output_type == "csv":
         output_storage_provider = TsvEventStorageProvider(args.out) # TODO probably not working
@@ -131,6 +144,9 @@ def main(argv):
         output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
     else:
         output_storage_provider = base_classes.BaseEventStorageProvider()
+
+    visualization_options = None if not args.visualization_options else json.loads(args.visualization_options)
+    savefig_options = None if not args.visualization_options else json.loads(args.savefig_options)
 
     if args.generate_web_figures:
         if "DatabaseBrowserWeb" not in config:
@@ -239,7 +255,8 @@ def main(argv):
                                 args.no_overwrite__weak_check, args.no_overwrite__strong_check, args.update,
                                 args.save_figures_base_dir, args.figure_name_format, gtus_ids, process_only_selected,
                                 run_proc_params if run_proc_params is not None else proc_params,
-                                False, sys.stdout, args.lockfile_dir)
+                                False, sys.stdout, args.lockfile_dir, flat_field_ndarray,
+                                visualization_options, savefig_options)
 
         if safe_termination.terminate_flag:
             break
@@ -255,7 +272,9 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             figure_img_base_dir=None, figure_img_name_format=None,
                             run_again_gtus_ids=None, run_again_exclusively=False,
                             proc_params=None, dry_run=False,
-                            log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing"):
+                            log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing", flat_field_ndarray=None,
+                            visualization_options=None, savefig_options=None
+                            ):
 
     if run_again_gtus_ids is None and run_again_exclusively:
         raise Exception("run_again_gtus is None but run_again_exclusively is True")
@@ -277,6 +296,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
     proc_params_id = output_storage_provider.save_config_info(proc_params) # should also
     proc_params_str = str(proc_params)
 
+    packet_frames = [] # !!!!!!!
+
     with event_reader_cls(source_file_acquisition, source_file_trigger) as event_reader:
 
         for gtu_pdm_data in event_reader.iter_gtu_pdm_data():
@@ -288,7 +309,10 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                 frame_buffer.clear()
                 process_event_down_counter = np.inf
                 event_start_gtu = -1
-                #frames_integrated = np.zeros((48,48))
+                #frames_integrated = np.zeros((48,48))            !!!!!!!!!!!!!!!!!!
+                packet_frames.clear()
+
+            packet_frames.append(gtu_pdm_data)
 
             if np.isinf(process_event_down_counter):
                 before_trg_frames_circ_buffer.append(gtu_pdm_data)
@@ -404,8 +428,13 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             event_processing.process_event(trigger_event_record=ev,
                                                            proc_params=proc_params,
                                                            do_visualization=do_visualization,
+                                                           do_savefig=save_fig_pathname_format is not None,
                                                            save_fig_pathname_format=save_fig_pathname_format,
-                                                           watermark_text=event_watermark)
+                                                           watermark_text=event_watermark,
+                                                           packet_gtu_data=packet_frames,
+                                                           calibration_arr=flat_field_ndarray,
+                                                           visualization_options=visualization_options,
+                                                           savefig_options=savefig_options)
 
                             log_file.write(" ; SAVING")
                             log_file.flush()
