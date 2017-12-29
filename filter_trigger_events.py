@@ -59,12 +59,8 @@ def main(argv):
 
     parser.add_argument("--save-figures-base-dir", default='', help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
-                        default="{program_version:.2f}"
-                                "/{triggered_pixels_group_max_gap:d}_{triggered_pixels_ht_line_thickness:.2f}_{triggered_pixels_ht_phi_num_steps:d}_{x_y_neighbour_selection_rules}"
-                                "_{x_y_ht_line_thickness:.2f}_{x_y_ht_phi_num_steps:d}_{x_y_ht_rho_step:.2f}_{x_y_ht_peak_threshold_frac_of_max:.2f}_{x_y_ht_peak_gap:d}"
-                                "_{x_y_ht_global_peak_threshold_frac_of_max:.2f}"
-                                "/{event_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}"
-                                "/{gtu_global:d}_{packet_id:d}_{gtu_in_packet:d}/{name}.png",
+                        default="{program_version:.2f}/config_{config_info_id}/event_{event_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/"\
+                                "pck_{packet_id:d}/inpck_{gtu_in_packet:d}__gtu_{gtu_global:d}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
     parser.add_argument(visualize_option_argv_key, type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
@@ -240,6 +236,7 @@ def main(argv):
                 processing_runs.append((source_file_acquisition, source_file_trigger, processing_config_info_records[config_info_id], sorted_gtus_ids, True)) # discarding config_info_id creates overhead, but gtu_before_triggerer might be changed
 
     if not acq_trg_params_added_to_processing_runs and args.acquisition_file and args.kenji_l1trigger_file:
+        proc_params.set_config_info_id_hash()
         processing_runs.append((args.acquisition_file, args.kenji_l1trigger_file, proc_params, None, False))
 
     for source_file_acquisition, source_file_trigger, run_proc_params, gtus_ids, process_only_selected in processing_runs:
@@ -309,7 +306,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                 frame_buffer.clear()
                 process_event_down_counter = np.inf
                 event_start_gtu = -1
-                #frames_integrated = np.zeros((48,48))            !!!!!!!!!!!!!!!!!!
+
                 packet_frames.clear()
 
             packet_frames.append(gtu_pdm_data)
@@ -412,6 +409,10 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         if run_event:
                             if run_event_id is not None and run_event_id >= 0:
                                 ev.event_id = run_event_id
+                            else:
+                                ev.set_event_id_hash()
+
+                            # in the current implementation the event_id should be -1 if run_event_id is not available
 
                             log_file.write(" ; PROCESSING")
                             log_file.flush()
