@@ -6,7 +6,7 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
         ('gtu_before_trigger', 'integer NOT NULL'),
         ('gtu_after_trigger', 'integer NOT NULL'),
 
-        ('calibration_map', 'text'),
+        # ('calibration_map', 'text'),
 
         ('substract_background', 'boolean NOT NULL'),
         ('background_offset', 'integer NOT NULL'),
@@ -56,14 +56,19 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
 
         ('trigg_gtu_y_thr_num_of_passed_phi_range_clue', 'integer NOT NULL'),
 
-        ('x_y_neighbour_selection_rules', 'text NOT NULL'),
+        ('x_y_trigger_neighbour_selection_rules', 'text NOT NULL'),
+        ('x_y_trigger_neighbour_selection_zero_value_seeds', 'boolean NOT NULL'),
+        ('x_y_trigger_neighbour_selection_pixel_value_border', 'integer NOT NULL'),
+        ('x_y_trigger_neighbour_selection_zero_values_in_mean', 'integer NOT NULL'),
 
         ('x_y_hough__min_phi_range_sep', 'real NOT NULL'),
 
         ('x_y_hough__line_thickness', 'real NOT NULL'),
         ('x_y_hough__phi_num_steps', 'integer NOT NULL'),
         ('x_y_hough__rho_step', 'real NOT NULL'),
-        ('x_y_counts_weight_map_gauss__sigma', 'real NOT NULL'),
+
+        ('x_y_counts_weight_from_trig__enabled', 'boolean NOT NULL'),
+        ('x_y_counts_weight_from_trig__gauss_sigma', 'real NOT NULL'),
 
         ('x_y_hough__pixel_peak_gap', 'integer NOT NULL'),
         ('x_y_hough__pi_norm_peak_gap', 'real NOT NULL'),
@@ -72,14 +77,19 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
         ('x_y_hough__peak_thr3', 'real NOT NULL'),
         ('x_y_hough__peak_thr4', 'real NOT NULL'),
 
-        ('gtu_x_neighbour_selection_rules', 'text NOT NULL'),
+        ('gtu_x_trigger_neighbour_selection_rules', 'text NOT NULL'),
+        ('gtu_x_trigger_neighbour_selection_zero_value_seeds', 'boolean NOT NULL'),
+        ('gtu_x_trigger_neighbour_selection_pixel_value_border', 'integer NOT NULL'),
+        ('gtu_x_trigger_neighbour_selection_zero_values_in_mean', 'integer NOT NULL'),
 
         ('gtu_x_hough__min_phi_range_sep', 'real NOT NULL'),
 
         ('gtu_x_hough__line_thickness', 'real NOT NULL'),
         ('gtu_x_hough__phi_num_steps', 'integer NOT NULL'),
         ('gtu_x_hough__rho_step', 'real NOT NULL'),
-        ('gtu_x_counts_weight_map_gauss__sigma', 'real NOT NULL'),
+
+        ('gtu_x_counts_weight_map_gauss__enabled', 'boolean NOT NULL'),
+        ('gtu_x_counts_weight_map_gauss__gauss_sigma', 'real NOT NULL'),
 
         ('gtu_x_hough__pixel_peak_gap', 'integer NOT NULL'),
         ('gtu_x_hough__pi_norm_peak_gap', 'real NOT NULL'),
@@ -88,14 +98,19 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
         ('gtu_x_hough__peak_thr3', 'real NOT NULL'),
         ('gtu_x_hough__peak_thr4', 'real NOT NULL'),
 
-        ('gtu_y_neighbour_selection_rules', 'text NOT NULL'),
+        ('gtu_y_trigger_neighbour_selection_rules', 'text NOT NULL'),
+        ('gtu_y_trigger_neighbour_selection_zero_value_seeds', 'boolean NOT NULL'),
+        ('gtu_y_trigger_neighbour_selection_pixel_value_border', 'integer NOT NULL'),
+        ('gtu_y_trigger_neighbour_selection_zero_values_in_mean', 'integer NOT NULL'),
 
         ('gtu_y_hough__min_phi_range_sep', 'real NOT NULL'),
 
         ('gtu_y_hough__line_thickness', 'real NOT NULL'),
         ('gtu_y_hough__phi_num_steps', 'integer NOT NULL'),
         ('gtu_y_hough__rho_step', 'real NOT NULL'),
-        ('gtu_y_counts_weight_map_gauss__sigma', 'real NOT NULL'),
+
+        ('gtu_y_counts_weight_from_trig__enabled', 'boolean NOT NULL'),
+        ('gtu_y_counts_weight_from_trig__gauss_sigma', 'real NOT NULL'),
 
         ('gtu_y_hough__pixel_peak_gap', 'integer NOT NULL'),
         ('gtu_y_hough__pi_norm_peak_gap', 'real NOT NULL'),
@@ -221,13 +236,13 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
         ('trigg_{dims}_hough__max_peak_line_coord_0_y', 'real NOT NULL'),
         ('trigg_{dims}_hough__max_peak_line_coord_1_x', 'real NOT NULL'),
         ('trigg_{dims}_hough__max_peak_line_coord_1_y', 'real NOT NULL'),
-        ('{dims}_neighbourhood_size', 'real NOT NULL'),
-        ('{dims}_neighbourhood_width', 'real NOT NULL'),
-        ('{dims}_neighbourhood_height', 'real NOT NULL'),
-        ('{dims}_neighbourhood_area', 'real NOT NULL'),
-        ('{dims}_neighbourhood_counts_sum', 'real NOT NULL'),
-        ('{dims}_neighbourhood_counts_avg', 'real NOT NULL'),
-        ('{dims}_neighbourhood_counts_norm_sum', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_size', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_width', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_height', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_area', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_counts_sum', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_counts_avg', 'real NOT NULL'),
+        ('{dims}_trigger_neighbourhood_counts_norm_sum', 'real NOT NULL'),
         ('{dims}_hough__max_peak_line_rot', 'real NOT NULL'),
         ('{dims}_hough__max_peak_line_coord_0_x', 'real NOT NULL'),
         ('{dims}_hough__max_peak_line_coord_0_y', 'real NOT NULL'),
