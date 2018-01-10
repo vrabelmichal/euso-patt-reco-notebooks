@@ -1,6 +1,8 @@
 from base_classes import BaseAnalysisRecordColumnInfo
 
 class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
+
+    # PostgreSQL's Max Identifier Length Is 63 Bytes
     config_info_table_columns = [
 
         ('gtu_before_trigger', 'integer NOT NULL'),
