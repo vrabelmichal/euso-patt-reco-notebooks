@@ -125,7 +125,6 @@ class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
         ('dbscan_min_samples', 'integer NOT NULL'),
     ]
 
-
     data_table_columns = [
         ('{data_table_program_version_column}', 'real NOT NULL'),
         ('{data_table_source_file_acquisition_column}', 'text NOT NULL'),
