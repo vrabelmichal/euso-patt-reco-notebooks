@@ -2,6 +2,8 @@ from base_classes import BaseAnalysisRecordColumnInfo
 
 class EventAnalysisRecordV3ColumnInfo(BaseAnalysisRecordColumnInfo):
 
+    # TODO rewrite to support new event analysis record v3 concept
+
     # PostgreSQL's Max Identifier Length Is 63 Bytes
     config_info_table_columns = [
 
