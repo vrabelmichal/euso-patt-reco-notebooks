@@ -276,7 +276,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
     if run_again_gtus_ids is None and run_again_exclusively:
         raise Exception("run_again_gtus is None but run_again_exclusively is True")
 
-    figure_img_name_format_nested = re.sub(r'\{(program_version|name)(:[^}]+)?\}', r'{\g<0>}', figure_img_name_format)
+    #  TODO should be following line used?
+    # figure_img_name_format_nested = re.sub(r'\{(program_version|name)(:[^}]+)?\}', r'{\g<0>}', figure_img_name_format)
 
     gtu_before_trigger = proc_params.gtu_before_trigger
     gtu_after_trigger = proc_params.gtu_after_trigger
