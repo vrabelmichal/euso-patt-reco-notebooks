@@ -141,6 +141,8 @@ def main(argv):
     else:
         output_storage_provider = base_classes.BaseEventStorageProvider()
 
+    output_storage_provider.initialize(proc_params=proc_params)
+
     visualization_options = None if not args.visualization_options else json.loads(args.visualization_options)
     savefig_options = None if not args.visualization_options else json.loads(args.savefig_options)
 
