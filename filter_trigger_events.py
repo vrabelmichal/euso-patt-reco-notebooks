@@ -6,6 +6,7 @@ import re
 import collections
 import configparser
 import json
+import time
 
 # Workaround to use Matplotlib without DISPLAY
 visualize_option_argv_key = '--visualize'
@@ -27,6 +28,7 @@ import base_classes
 import safe_termination
 import processing_sync
 #import processing_config
+from postgresql_v3_event_storage import PostgreSqlEventV3StorageProvider
 from postgresql_event_storage import PostgreSqlEventStorageProvider
 from sqlite_event_storage import Sqlite3EventStorageProvider
 from utility_funtions import str2bool_argparse
@@ -34,6 +36,8 @@ from event_reading import AcqL1EventReader, EventFilterOptions
 from tsv_event_storage import TsvEventStorageProvider
 from npy_l1_event_reader import NpyL1EventReader
 import query_functions
+
+OBJ_CACHE = {}
 
 def main(argv):
     # TODO replace default=None
@@ -59,8 +63,8 @@ def main(argv):
 
     parser.add_argument("--save-figures-base-dir", default='', help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
-                        default="{program_version:.2f}/config_{config_info_id}/event_{event_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/"\
-                                "pck_{packet_id:d}/inpck_{gtu_in_packet:d}__gtu_{gtu_global:d}/{name}.png",
+                        default="{program_version:.2f}/config_{config_info_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/"\
+                                "pck_{packet_id:d}/inpck_{gtu_in_packet:d}__gtu_{gtu_global:d}/event_{event_id}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
     parser.add_argument(visualize_option_argv_key, type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are shown.")
@@ -90,6 +94,8 @@ def main(argv):
     parser.add_argument('--visualization-options', default='', help='Additional visualization options (default: "")')
     parser.add_argument('--savefig-options', default='', help='Additional saved figure options (default: "")')
 
+    parser.add_argument('--base-infile-path', default='', help='Common part of path used to drive unique file name, if empty, file basename is used (default: "")')
+
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
     config.read(args.config)
@@ -117,31 +123,51 @@ def main(argv):
         raise Exception('Unknown algorithm')
 
     proc_params = event_processing.event_processing_params_class().from_global_config(config)
+    proc_params.set_config_info_id_hash()
 
     flat_field_ndarray = None
     if args.calibration_map:
-        flat_field_ndarray = np.load(args.calibration_map)
-        proc_params.calibration_map_path = args.calibration_map
+        if 'calibration_map' in OBJ_CACHE and OBJ_CACHE['calibration_map'][0] == args.calibration_map:
+            proc_params.calibration_map_path = OBJ_CACHE['calibration_map'][0]
+            flat_field_ndarray = OBJ_CACHE['calibration_map'][1]
+        else:
+            flat_field_ndarray = np.load(args.calibration_map)
+            proc_params.calibration_map_path = args.calibration_map
+            OBJ_CACHE['calibration_map'] = (args.calibration_map, flat_field_ndarray)
 
-    if args.output_type == "tsv" or args.output_type == "csv":
-        output_storage_provider = TsvEventStorageProvider(args.out) # TODO probably not working
-    elif args.output_type == "sqlite":
-        output_storage_provider = Sqlite3EventStorageProvider(args.out) # TODO probably not working
-    elif args.output_type == "postgresql":
-        args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
-                     event_processing.column_info, False]
-        if args.out:
-            print('WARNING: pareter output specification for postgresql not supported. Using configuration file "{}"'.format(args.config))
-            # args_list[0] = args.out
-            # output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
-        # else:
-        args_list[0] = config
-        args_list.append(args.algorithm)
-        output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
+    osp_cache_key = (args.output_type, proc_params.config_info_id, args.out,
+                     event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
+                     event_processing.column_info)
+
+    if 'output_storage_provider' in OBJ_CACHE and OBJ_CACHE['output_storage_provider'][0] == osp_cache_key:
+        output_storage_provider = OBJ_CACHE['output_storage_provider'][1]
     else:
-        output_storage_provider = base_classes.BaseEventStorageProvider()
+        if args.output_type == "tsv" or args.output_type == "csv":
+            output_storage_provider = TsvEventStorageProvider(args.out) # TODO probably not working
+        elif args.output_type == "sqlite":
+            output_storage_provider = Sqlite3EventStorageProvider(args.out) # TODO probably not working
+        elif args.output_type == "postgresql":
+            args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
+                         event_processing.column_info, False]
+            if args.out:
+                print('WARNING: pareter output specification for postgresql not supported. Using configuration file "{}"'.format(args.config))
+                # args_list[0] = args.out
+                # output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
+            # else:
+            args_list[0] = config
+            args_list.append(args.algorithm)
 
-    output_storage_provider.initialize(proc_params=proc_params)
+            if args.algorithm == 'ver3':
+                output_storage_provider = PostgreSqlEventV3StorageProvider.from_global_config(*args_list)
+            else:
+                output_storage_provider = PostgreSqlEventStorageProvider.from_global_config(*args_list)
+        else:
+            output_storage_provider = base_classes.BaseEventStorageProvider()
+
+        output_storage_provider.initialize(proc_params=proc_params,
+                                           attr_max_numbering=event_processing.get_attr_numbering_dict(proc_params))
+
+        OBJ_CACHE['output_storage_provider'] = (osp_cache_key, output_storage_provider)
 
     visualization_options = None if not args.visualization_options else json.loads(args.visualization_options)
     savefig_options = None if not args.visualization_options else json.loads(args.savefig_options)
@@ -238,7 +264,7 @@ def main(argv):
                 processing_runs.append((source_file_acquisition, source_file_trigger, processing_config_info_records[config_info_id], sorted_gtus_ids, True)) # discarding config_info_id creates overhead, but gtu_before_triggerer might be changed
 
     if not acq_trg_params_added_to_processing_runs and args.acquisition_file and args.kenji_l1trigger_file:
-        proc_params.set_config_info_id_hash()
+        # proc_params.set_config_info_id_hash() # called soorner
         processing_runs.append((args.acquisition_file, args.kenji_l1trigger_file, proc_params, None, False))
 
     for source_file_acquisition, source_file_trigger, run_proc_params, gtus_ids, process_only_selected in processing_runs:
@@ -255,7 +281,8 @@ def main(argv):
                                 args.save_figures_base_dir, args.figure_name_format, gtus_ids, process_only_selected,
                                 run_proc_params if run_proc_params is not None else proc_params,
                                 False, sys.stdout, args.lockfile_dir, flat_field_ndarray,
-                                visualization_options, savefig_options)
+                                visualization_options, savefig_options,
+                                args.base_infile_path)
 
         if safe_termination.terminate_flag:
             break
@@ -263,7 +290,7 @@ def main(argv):
     output_storage_provider.finalize()
 
 
-def read_and_process_events(source_file_acquisition, source_file_trigger, first_gtu, last_gtu, packet_size,
+def read_and_process_events(source_file_acquisition_full, source_file_trigger_full, first_gtu, last_gtu, packet_size,
                             filter_options,
                             event_reader_cls, output_storage_provider, event_processing,
                             do_visualization=True,
@@ -272,7 +299,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                             run_again_gtus_ids=None, run_again_exclusively=False,
                             proc_params=None, dry_run=False,
                             log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing", flat_field_ndarray=None,
-                            visualization_options=None, savefig_options=None
+                            visualization_options=None, savefig_options=None,
+                            base_infile_path=''
                             ):
 
     if run_again_gtus_ids is None and run_again_exclusively:
@@ -298,7 +326,20 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
     packet_frames = [] # !!!!!!!
 
-    with event_reader_cls(source_file_acquisition, source_file_trigger) as event_reader:
+    # event_exists_weak_check_conds = dict(output_storage_provider.default_event_exists_weak_check_conds)
+    # event_exists_weak_check_conds['{source_file_acquisition_full_column}'] = \
+    #     ('LIKE', lambda trigger_event: '%{}'.format(trigger_event.source_file_acquisition_full))
+    # event_exists_weak_check_conds['{source_file_trigger_full_column}'] = \
+    #     ('LIKE', lambda trigger_event: '%{}'.format(trigger_event.source_file_trigger_full))
+
+    with event_reader_cls(source_file_acquisition_full, source_file_trigger_full) as event_reader:
+
+        source_file_acquisition = \
+            source_file_acquisition_full[len(base_infile_path):] \
+                if base_infile_path and source_file_acquisition_full.startswith(base_infile_path) else os.path.basename(source_file_acquisition_full)
+        source_file_trigger = \
+            source_file_trigger_full[len(base_infile_path):] \
+                if base_infile_path and source_file_trigger_full.startswith(base_infile_path) else os.path.basename(source_file_trigger_full)
 
         for gtu_pdm_data in event_reader.iter_gtu_pdm_data():
 
@@ -310,7 +351,8 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                 process_event_down_counter = np.inf
                 event_start_gtu = -1
 
-                packet_frames.clear()
+                # packet_frames.clear()
+                packet_frames = [] # to assure last_packet_gtu_data is not packet_gtu_data
 
             packet_frames.append(gtu_pdm_data)
 
@@ -346,17 +388,20 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                         ev = output_storage_provider.event_processing_analysis_record_class()
                         ev.program_version = event_processing.program_version
-                        ev.source_file_acquisition_full = source_file_acquisition
-                        ev.source_file_trigger_full = source_file_trigger
+                        ev.source_file_acquisition_full = source_file_acquisition_full
+                        ev.source_file_trigger_full = source_file_trigger_full
                         ev.exp_tree = event_reader.exp_tree
                         ev.global_gtu = event_start_gtu
                         ev.packet_id = packet_id
                         ev.gtu_in_packet = event_start_gtu % packet_size
                         ev.gtu_data = frame_buffer
                         ev.config_info = proc_params
+                        ev.timestamp = time.time()
+                        ev.source_file_acquisition = source_file_acquisition
+                        ev.source_file_trigger = source_file_trigger
 
-                        acquisition_file_basename = os.path.basename(source_file_acquisition)
-                        kenji_l1trigger_file_basename = os.path.basename(source_file_trigger)
+                        acquisition_file_basename = os.path.basename(source_file_acquisition_full)
+                        kenji_l1trigger_file_basename = os.path.basename(source_file_trigger_full)
 
                         event_start_msg = "GLB.GTU: {} ; PCK: {} ; PCK.GTU: {}".format(event_start_gtu, packet_id, ev.gtu_in_packet)
                         event_files_msg = "ACK: {} ; TRG: {}".format(acquisition_file_basename, kenji_l1trigger_file_basename)
@@ -417,7 +462,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
 
                             # in the current implementation the event_id should be -1 if run_event_id is not available
 
-                            log_file.write(" ; PROCESSING")
+                            log_file.write(" ; PROCESSING ")
                             log_file.flush()
 
                             event_watermark = "{}\n{}".format(
@@ -440,7 +485,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                                                            visualization_options=visualization_options,
                                                            savefig_options=savefig_options)
 
-                            log_file.write(" ; SAVING")
+                            log_file.write("; SAVING")
                             log_file.flush()
 
                         ########################################################################################
@@ -466,7 +511,7 @@ def read_and_process_events(source_file_acquisition, source_file_trigger, first_
                         if lockfile_dir is not None and processing_lock:
                             processing_sync.release_lock(processing_lock)
 
-                        log_file.write(" ; EVENT FINISHED\n")
+                        log_file.write(" ; EVENT FINISHED ({}) \n".format(time.time() - ev.timestamp))
                         log_file.flush()
 
                     process_event_down_counter = np.inf
