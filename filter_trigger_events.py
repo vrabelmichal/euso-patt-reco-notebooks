@@ -95,6 +95,7 @@ def main(argv):
     parser.add_argument('--savefig-options', default='', help='Additional saved figure options (default: "")')
 
     parser.add_argument('--base-infile-path', default='', help='Common part of path used to drive unique file name, if empty, file basename is used (default: "")')
+    parser.add_argument("--cache-storage-provider", type=str2bool_argparse, default=False, help="If this option is true, storage provider is cached and not finalized.")
 
     args = parser.parse_args(argv)
     config = configparser.ConfigParser()
@@ -139,7 +140,7 @@ def main(argv):
                      event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
                      event_processing.column_info)
 
-    if 'output_storage_provider' in OBJ_CACHE and OBJ_CACHE['output_storage_provider'][0] == osp_cache_key:
+    if args.cache_storage_provider and 'output_storage_provider' in OBJ_CACHE and OBJ_CACHE['output_storage_provider'][0] == osp_cache_key:
         output_storage_provider = OBJ_CACHE['output_storage_provider'][1]
     else:
         if args.output_type == "tsv" or args.output_type == "csv":
@@ -150,10 +151,8 @@ def main(argv):
             args_list = [None, event_processing.event_processing_params_class, event_processing.event_analysis_record_class,
                          event_processing.column_info, False]
             if args.out:
-                print('WARNING: pareter output specification for postgresql not supported. Using configuration file "{}"'.format(args.config))
-                # args_list[0] = args.out
-                # output_storage_provider = PostgreSqlEventStorageProvider(*args_list)
-            # else:
+                print('WARNING: parameter output specification for postgresql not supported. Using configuration file "{}"'.format(args.config))
+
             args_list[0] = config
             args_list.append(args.algorithm)
 
@@ -166,8 +165,10 @@ def main(argv):
 
         output_storage_provider.initialize(proc_params=proc_params,
                                            attr_max_numbering=event_processing.get_attr_numbering_dict(proc_params))
-
-        OBJ_CACHE['output_storage_provider'] = (osp_cache_key, output_storage_provider)
+        if args.cache_storage_provider:
+            if 'output_storage_provider' in OBJ_CACHE and OBJ_CACHE['output_storage_provider'] is not None:
+                OBJ_CACHE['output_storage_provider'].finalize()
+            OBJ_CACHE['output_storage_provider'] = (osp_cache_key, output_storage_provider)
 
     visualization_options = None if not args.visualization_options else json.loads(args.visualization_options)
     savefig_options = None if not args.visualization_options else json.loads(args.savefig_options)
@@ -287,7 +288,8 @@ def main(argv):
         if safe_termination.terminate_flag:
             break
 
-    output_storage_provider.finalize()
+    if not args.cache_storage_provider:
+        output_storage_provider.finalize()
 
 
 def read_and_process_events(source_file_acquisition_full, source_file_trigger_full, first_gtu, last_gtu, packet_size,
