@@ -283,7 +283,7 @@ def main(argv):
                                 run_proc_params if run_proc_params is not None else proc_params,
                                 False, sys.stdout, args.lockfile_dir, flat_field_ndarray,
                                 visualization_options, savefig_options,
-                                args.base_infile_path)
+                                args.base_infile_path, args.source_data_type_num)
 
         if safe_termination.terminate_flag:
             break
@@ -302,7 +302,7 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
                             proc_params=None, dry_run=False,
                             log_file=sys.stdout, lockfile_dir="/tmp/trigger-events-processing", flat_field_ndarray=None,
                             visualization_options=None, savefig_options=None,
-                            base_infile_path=''
+                            base_infile_path='', source_data_type_num=None
                             ):
 
     if run_again_gtus_ids is None and run_again_exclusively:
@@ -401,6 +401,8 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
                         ev.timestamp = time.time()
                         ev.source_file_acquisition = source_file_acquisition
                         ev.source_file_trigger = source_file_trigger
+                        if source_data_type_num is not None:
+                            ev.source_data_type_num = source_data_type_num
 
                         acquisition_file_basename = os.path.basename(source_file_acquisition_full)
                         kenji_l1trigger_file_basename = os.path.basename(source_file_trigger_full)
