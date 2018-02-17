@@ -410,9 +410,7 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
                         event_start_msg = "GLB.GTU: {} ; PCK: {} ; PCK.GTU: {}".format(event_start_gtu, packet_id, ev.gtu_in_packet)
                         event_files_msg = "ACK: {} ; TRG: {}".format(acquisition_file_basename, kenji_l1trigger_file_basename)
 
-                        log_file.write("{} ; LAST.GTU: {} ; LAST.PCK.GTU: {} ; {}".format(event_start_msg,
-                                                                                 gtu_pdm_data.gtu, last_gtu_in_packet,
-                                                                                 event_files_msg))
+                        log_file.write("{} ; LAST.GTU: {} ; LAST.PCK.GTU: {} ; {}".format(event_start_msg, gtu_pdm_data.gtu, last_gtu_in_packet, event_files_msg))
                         run_event = True
                         run_event_id = None
                         not_run_reason = ''
