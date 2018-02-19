@@ -63,7 +63,7 @@ def main(argv):
 
     parser.add_argument("--save-figures-base-dir", default='', help="If this option is set, matplotlib figures are saved to this directory in format defined by --figure-pathname-format option.")
     parser.add_argument('--figure-name-format',
-                        default="{program_version:.2f}/config_{config_info_id}/{acquisition_file_basename}/{kenji_l1trigger_file_basename}/"\
+                        default="{program_version:.2f}/config_{config_info_id}/{source_files_combined}/"\
                                 "pck_{packet_id:d}/inpck_{gtu_in_packet:d}__gtu_{gtu_global:d}/event_{event_id}/{name}.png",
                         help="Format of a saved matplotib figure pathname relative to base directory.")
     parser.add_argument("--generate-web-figures", type=str2bool_argparse, default=False, help="If this option is true, matplotlib figures are generated in web directory.")
@@ -343,6 +343,11 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
             source_file_trigger_full[len(base_infile_path):] \
                 if base_infile_path and source_file_trigger_full.startswith(base_infile_path) else os.path.basename(source_file_trigger_full)
 
+        if source_file_acquisition[0] == '/':  # unix specific
+            source_file_acquisition = source_file_acquisition[1:]
+        if source_file_trigger[0] == '/':  # unix specific
+            source_file_trigger = source_file_trigger[1:]
+
         for gtu_pdm_data in event_reader.iter_gtu_pdm_data():
 
             last_gtu_in_packet = gtu_pdm_data.gtu % packet_size
@@ -404,11 +409,8 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
                         if source_data_type_num is not None:
                             ev.source_data_type_num = source_data_type_num
 
-                        acquisition_file_basename = os.path.basename(source_file_acquisition_full)
-                        kenji_l1trigger_file_basename = os.path.basename(source_file_trigger_full)
-
                         event_start_msg = "GLB.GTU: {} ; PCK: {} ; PCK.GTU: {}".format(event_start_gtu, packet_id, ev.gtu_in_packet)
-                        event_files_msg = "ACK: {} ; TRG: {}".format(acquisition_file_basename, kenji_l1trigger_file_basename)
+                        event_files_msg = "ACK: {} ; TRG: {}".format(source_file_acquisition, source_file_trigger)
 
                         log_file.write("{} ; LAST.GTU: {} ; LAST.PCK.GTU: {} ; {}".format(event_start_msg, gtu_pdm_data.gtu, last_gtu_in_packet, event_files_msg))
                         run_event = True
