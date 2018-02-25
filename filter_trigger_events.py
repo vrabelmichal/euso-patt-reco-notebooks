@@ -349,7 +349,7 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
             source_file_trigger = source_file_trigger[1:]
 
         for gtu_pdm_data in event_reader.iter_gtu_pdm_data():
-
+            # print('frame loop')
             last_gtu_in_packet = gtu_pdm_data.gtu % packet_size
             if last_gtu_in_packet == 0:
                 packet_id += 1 # starts at -1
@@ -496,7 +496,8 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
 
                             if not no_overwrite__strong_check or not output_storage_provider.check_event_exists_strong(ev):
                                 if not dry_run:
-                                    save_result = output_storage_provider.save_event(ev, update)
+                                    # save_result = output_storage_provider.save_event(ev, update)  # TODO ################################################
+                                    save_result = None
                                     if not save_result:
                                         log_file.write(" ; FAILED")
                                     elif save_result=='update':
