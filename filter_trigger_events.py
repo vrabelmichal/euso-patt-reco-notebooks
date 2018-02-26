@@ -78,7 +78,7 @@ def main(argv):
     parser.add_argument('--first-gtu', type=int, default=0, help="GTU before will be skipped")
     parser.add_argument('--last-gtu', type=int, default=sys.maxsize, help="GTU after will be skipped")
 
-    parser.add_argument('--save-source-data-type-num', type=str2bool_argparse, default=False, help="If true, number in --data-type-num parameter is saved in the output.")  # TODO implement
+    parser.add_argument('--save-source-data-type-num', type=str2bool_argparse, default=True, help="If true, number in --data-type-num parameter is saved in the output.")  # TODO implement
     parser.add_argument('--source-data-type-num', type=int, default=-1, help="Number indicating type of processed data in the output / database (default: -1)")
     #parser.add_argument('--additional-img-path-segment', default='', help="Additional arbitrary path segment that might be included in path given _figure_name_format config option (empty by default)")
 
@@ -187,6 +187,9 @@ def main(argv):
                 .format(basedir=os.path.dirname(os.path.abspath(__file__))))
 
         args.figure_name_format = config['DatabaseBrowserWeb'][figure_name_format_key]
+
+    if not args.save_source_data_type_num:
+        source_data_type_num = None
 
     processing_runs = []
 
@@ -496,8 +499,7 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
 
                             if not no_overwrite__strong_check or not output_storage_provider.check_event_exists_strong(ev):
                                 if not dry_run:
-                                    # save_result = output_storage_provider.save_event(ev, update)  # TODO ################################################
-                                    save_result = None
+                                    save_result = output_storage_provider.save_event(ev, update)
                                     if not save_result:
                                         log_file.write(" ; FAILED")
                                     elif save_result=='update':
