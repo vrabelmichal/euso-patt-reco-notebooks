@@ -1142,7 +1142,6 @@ def select_utah_events_within_cond(con, cond_selection_rules, spb_processing_eve
     return utah_events_within_cond
 
 
-
 def rows_generator(iterrows):
     for t in iterrows:
         yield t[1]
