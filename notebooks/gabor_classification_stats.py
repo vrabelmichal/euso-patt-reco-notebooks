@@ -16,13 +16,11 @@ if app_base_dir not in sys.path:
 import re
 # import collections
 import numpy as np
-import psycopg2 as pg
 import scipy.ndimage.filters
 # import scipy.signal
 # import pandas as pd
 # import pandas.io.sql as psql
 # import matplotlib as mpl
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 # from tqdm import tqdm
 # import glob
@@ -35,7 +33,7 @@ import skimage.filters
 
 # In[2]:
 
-import supervised_classification as supc
+from notebooks import supervised_classification as supc
 import tool.acqconv
 
 import scipy.optimize

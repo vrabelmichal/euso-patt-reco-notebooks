@@ -30,43 +30,6 @@ from utility_funtions import str2bool_argparse
 from dataset_query_functions_v2 import *
 
 
-
-def balanced_subsample(x,y,subsample_size=1.0):
-
-    class_xs = []
-    min_elems = None
-
-    for yi in np.unique(y):
-        elems = x[(y == yi)]
-        class_xs.append((yi, elems))
-        if min_elems == None or elems.shape[0] < min_elems:
-            min_elems = elems.shape[0]
-
-    use_elems = min_elems
-    if subsample_size < 1:
-        use_elems = int(min_elems*subsample_size)
-
-    xs = []
-    ys = []
-
-    for ci,this_xs in class_xs:
-        if len(this_xs) > use_elems:
-            np.random.shuffle(this_xs)
-
-        x_ = this_xs[:use_elems]
-        y_ = np.empty(use_elems)
-        y_.fill(ci)
-
-        xs.append(x_)
-        ys.append(y_)
-
-    xs = np.concatenate(xs)
-    ys = np.concatenate(ys)
-
-    return xs,ys
-
-
-
 def load_train_test(cur, columns, random_state=None, get_class_1_func=select_training_data__visible_showers, scaler_pathname=None, scaler_pathname_overwrite=False):
     print('Loading data - visible showers...')
     X = np.array(get_class_1_func(cur, columns), dtype=np.float32)
@@ -234,8 +197,6 @@ def main(argv):
     score = classifier.score(X_test, y_test)
 
     print("Score for {}: {}".format(classifier.__class__.__name__, score))
-
-
 
 
 if __name__ == '__main__':

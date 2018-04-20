@@ -1,6 +1,5 @@
 import sys
 import os
-import subprocess
 
 app_base_dir = '/home/eusobg/EUSO-SPB/euso-spb-patt-reco-v1'
 if app_base_dir not in sys.path:
@@ -9,16 +8,13 @@ if app_base_dir not in sys.path:
 import re
 # import collections
 import numpy as np
-import psycopg2 as pg
 import pandas as pd
 import pandas.io.sql as psql
 import getpass
 import matplotlib as mpl
 import argparse
-import glob
 # from tqdm import tqdm
 import traceback
-import hashlib
 
 from utility_funtions import str2bool_argparse
 
@@ -46,9 +42,9 @@ import matplotlib.pyplot as plt
 # import tool.npy_frames_visualization as npy_vis
 import tool.acqconv
 import data_analysis_utils
-import supervised_classification as supc
+from notebooks import supervised_classification as supc
 
-from data_analysis_utils import get_conn, ensure_ext, save_csv, fig_saving_msg, print_len, save_figure
+from data_analysis_utils import get_conn, ensure_ext, save_csv, print_len, save_figure
 
 
 def get_selection_rules(min_gtu=10):
@@ -1155,7 +1151,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
     pickled_flight_events_num_max_pix_on_pmt = {}
     pickled_events_num_max_pix_on_ec = {}
 
-    hashstr = '' #hashlib.md5(df.values.tobytes()).hexdigest()
+    hashstr = '' #df.values.tobytes()).hexdigest()
 
     # TODO hash entries, then hash all
 
