@@ -180,7 +180,7 @@ def count_num_max_pix_on_pmt_and_ec(df, fractions=[0.6, 0.8, 0.9], save_npy_dir=
             for frac in fractions:
                 for i in range(6):
                     for j in range(6):
-                        np.save(get_npy_pathname('events_num_max_pix_on_pmt', frac, i, j),
+                        np.save(get_npy_pathname('num_max_gitpix_on_pmt', frac, i, j),
                                 events_num_max_pix_on_pmt[frac][(i, j)])
 
         return events_num_max_pix_on_pmt, events_num_max_pix_on_ec
