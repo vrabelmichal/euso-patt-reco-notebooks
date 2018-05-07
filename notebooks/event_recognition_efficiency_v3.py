@@ -246,3 +246,31 @@ def normalize_phi(phi):
 #     if r >= np.pi:
 #         r = 2*np.pi - r
 #     return r
+
+
+def add_diff_columns(events_df, events_df_w_diff):
+    events_df_w_diff['proc2_gtu_y_gtu_x_hough_peak_thr3_major_line_phi_diff'] = events_df.apply(
+        lambda x: smaller_angle_difference(x['proc2_gtu_x_hough_peak_thr3_major_line_phi'],
+                                           x['proc2_gtu_y_hough_peak_thr3_major_line_phi']), axis=1)
+    events_df_w_diff['proc2_gtu_y_hough_peak_thr3_major_line_phi_diff_0'] = events_df.apply(
+        lambda x: smaller_angle_difference(0, x['proc2_gtu_y_hough_peak_thr3_major_line_phi']), axis=1)
+    events_df_w_diff['proc2_gtu_y_hough_peak_thr3_major_line_phi_diff_pi_over_2'] = events_df.apply(
+        lambda x: smaller_angle_difference(np.pi / 2, x['proc2_gtu_y_hough_peak_thr3_major_line_phi']), axis=1)
+    events_df_w_diff['proc2_gtu_x_hough_peak_thr3_major_line_phi_diff_0'] = events_df.apply(
+        lambda x: smaller_angle_difference(0, x['proc2_gtu_x_hough_peak_thr3_major_line_phi']), axis=1)
+    events_df_w_diff['proc2_gtu_x_hough_peak_thr3_major_line_phi_diff_pi_over_2'] = events_df.apply(
+        lambda x: smaller_angle_difference(np.pi / 2, x['proc2_gtu_x_hough_peak_thr3_major_line_phi']), axis=1)
+
+    events_df_w_diff['alt1_gtu_y_gtu_x_hough_peak_thr1_major_line_phi_diff'] = events_df.apply(
+        lambda x: smaller_angle_difference(x['alt1_gtu_x_hough_peak_thr1_major_line_phi'],
+                                           x['alt1_gtu_y_hough_peak_thr1_major_line_phi']), axis=1)
+    events_df_w_diff['alt1_gtu_y_hough_peak_thr1_major_line_phi_diff_0'] = events_df.apply(
+        lambda x: smaller_angle_difference(0, x['alt1_gtu_y_hough_peak_thr1_major_line_phi']), axis=1)
+    events_df_w_diff['alt1_gtu_y_hough_peak_thr1_major_line_phi_diff_pi_over_2'] = events_df.apply(
+        lambda x: smaller_angle_difference(np.pi / 2, x['alt1_gtu_y_hough_peak_thr1_major_line_phi']), axis=1)
+    events_df_w_diff['alt1_gtu_x_hough_peak_thr1_major_line_phi_diff_0'] = events_df.apply(
+        lambda x: smaller_angle_difference(0, x['alt1_gtu_x_hough_peak_thr1_major_line_phi']), axis=1)
+    events_df_w_diff['alt1_gtu_x_hough_peak_thr1_major_line_phi_diff_pi_over_2'] = events_df.apply(
+        lambda x: smaller_angle_difference(np.pi / 2, x['alt1_gtu_x_hough_peak_thr1_major_line_phi']), axis=1)
+
+    return events_df_w_diff
