@@ -102,19 +102,38 @@ def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
     return  X_train, X_test, y_train, y_test, scaler, scaler_pathname, X_data_md5
 
 
-def load_data(single_query_limit=100000, offset=0):
-    query_functions_simu = dataset_query_functions_v3.Ver3DatasetQueryFunctions(
-        # event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
-        # event_processing_class=event_processing_v3.EventProcessingV3,
-        event_storage_provider_config_file='config.ini', table_names_version='ver3',
-        # calibration_map_path=None,
-        simu_table_name='spb_processing_v3.simu_event',
-        simu_additional_table_name='spb_processing_v3.simu_event_additional'
-    )
+def load_data(query_functions_simu, columns_for_classification_dict):
+
+    simu_where_clauses, simu_join_clauses, simu_joined_tables_set = \
+        query_functions_simu.get_query_clauses__where_simu(
+            gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
+            etruth_theta__ge=None, etruth_theta__le=None)
+
+    common_select_clauses, (simu_join_clauses, ), common_joined_tables_set = \
+        query_functions_simu.get_query_clauses__select(columns_for_classification_dict, joined_tables=set(), check_joins=True)
+
+        # system_columns = ['event_id', 'program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num', 'config_info_id', ]
+
+    simu_where_clauses, simu_join_clauses, simu_joined_tables_set = \
+        query_functions_simu.get_query_clauses__where_simu(
+            gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
+            etruth_theta__ge=None, etruth_theta__le=None)
+
+    simu_source_data_types_nums = [3, 30]
+
+    simu_source_data_types_counts = []
+
+    for source_data_type_num in simu_source_data_types_nums:
+        query_functions_simu.get_events_selection_query_plain(
+            source_data_type_num=source_data_type_num,
+            select_additional=common_select_clauses, join_additional=common_join_clauses+simu_join_clauses,
+            where_additional=simu_where_clauses,
+            order_by='event_id', limit=1000000, offset=0,
+            base_select='COUNT(*)')
 
     positive_sample_queries = []
 
-    for source_data_type_num in enumerate((3, 30, 70)):
+    for source_data_type_num in enumerate((3, 30)):
 
         positive_sample_queries.append(
             query_functions_simu.get_event_selection_query__simu_by_num_frames__excluding_columns(
@@ -138,7 +157,7 @@ def load_data(single_query_limit=100000, offset=0):
 
     negative_sample_queries = []
 
-    for source_data_type_num in enumerate((1, 30, 70)):
+    for source_data_type_num in enumerate((1, 30)):
         negative_sample_queries.append(
             query_functions_simu.get_event_selection_query_excluding_columns(
                 source_data_type_num=source_data_type_num,
@@ -212,8 +231,32 @@ def main(argv):
 
     np.random.seed(args.seed)
 
+    query_functions_simu = dataset_query_functions_v3.Ver3DatasetQueryFunctions(
+        # event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
+        # event_processing_class=event_processing_v3.EventProcessingV3,
+        event_storage_provider_config_file='config.ini', table_names_version='ver3',
+        # calibration_map_path=None,
+        simu_table_name='spb_processing_v3.simu_event',
+        simu_additional_table_name='spb_processing_v3.simu_event_additional'
+    )
+
+    # should be configurable
+    columns_for_classification = query_functions_simu.get_columns_for_classification_dict__by_excluding(
+        excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
+        default_included_columns_re_list=[]
+        # default_excluded_columns_re_list=['source_file_.+'] + system_columns,
+    )
+
+
+
+
+
+
+
+
     con = pg.connect(dbname=args.dbname, user=args.user, password=args.password, host=args.host)
     cur = con.cursor()
+
 
     columns = get_columns_for_classification()
 
