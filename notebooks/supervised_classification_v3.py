@@ -28,6 +28,8 @@ import sklearn.preprocessing
 
 from utility_funtions import str2bool_argparse
 
+import event_processing_v3
+import postgresql_v3_event_storage
 import dataset_query_functions_v3
 
 
@@ -102,41 +104,102 @@ def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
     return  X_train, X_test, y_train, y_test, scaler, scaler_pathname, X_data_md5
 
 
-def load_data(query_functions_simu, columns_for_classification_dict):
+def load_data(query_functions, columns_for_classification_dict,
+              max_inter_class_ratio_off_balance=.05, max_deviation_from_intra_class_balance=.1):
 
-    simu_where_clauses, simu_join_clauses, simu_joined_tables_set = \
-        query_functions_simu.get_query_clauses__where_simu(
+    flight_noise_joined_tables_set = {}
+
+    conn = query_functions.event_storage.connection
+    cur = conn.cursor()
+
+    simu_where_clauses_str, simu_joined_tables_set = \
+        query_functions.get_query_clauses__where_simu(
             gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
             etruth_theta__ge=None, etruth_theta__le=None)
 
-    common_select_clauses, (simu_join_clauses, ), common_joined_tables_set = \
-        query_functions_simu.get_query_clauses__select(columns_for_classification_dict, joined_tables=set(), check_joins=True)
+    common_select_clause_str = \
+        query_functions.get_query_clauses__select(columns_for_classification_dict,
+                                                  [simu_joined_tables_set, flight_noise_joined_tables_set])
 
-        # system_columns = ['event_id', 'program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num', 'config_info_id', ]
-
-    simu_where_clauses, simu_join_clauses, simu_joined_tables_set = \
-        query_functions_simu.get_query_clauses__where_simu(
-            gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
-            etruth_theta__ge=None, etruth_theta__le=None)
+    simu_join_clauses_str = query_functions.get_query_clauses__join(simu_joined_tables_set)
 
     simu_source_data_types_nums = [3, 30]
+    simu_source_data_types_counts = [None, None]
+    simu_source_data_types_ratios = [0.5, 0.5]
 
-    simu_source_data_types_counts = []
-
-    for source_data_type_num in simu_source_data_types_nums:
-        query_functions_simu.get_events_selection_query_plain(
+    for i, source_data_type_num in enumerate(simu_source_data_types_nums):
+        q = query_functions.get_events_selection_query_plain(
             source_data_type_num=source_data_type_num,
-            select_additional=common_select_clauses, join_additional=common_join_clauses+simu_join_clauses,
-            where_additional=simu_where_clauses,
-            order_by='event_id', limit=1000000, offset=0,
+            select_additional='', join_additional=simu_join_clauses_str,
+            where_additional=simu_where_clauses_str,
+            order_by='event_id', limit=1, offset=0,
             base_select='COUNT(*)')
+
+        cur.execute(q)
+        res = cur.fetchone()
+        if res is None or len(res) < 1:
+            raise RuntimeError('Unable to query COUNT(*) for simu source_data_type_num={}'.format(source_data_type_num))
+        simu_source_data_types_counts[i] = int(res[0])
+
+    noise_join_clauses_str = query_functions.get_query_clauses__join(flight_noise_joined_tables_set)
+    noise_where_clauses_str = ' AND abs(gtu_in_packet-42) >= 20 '
+
+    noise_source_data_types_nums = [1, 30]
+    noise_source_data_types_counts = [None, None]
+    noise_source_data_types_ratios = [0.5, 0.5]
+
+    for i, source_data_type_num in enumerate(noise_source_data_types_nums):
+        q = query_functions.get_events_selection_query_plain(
+            source_data_type_num=source_data_type_num,
+            select_additional='', join_additional=noise_join_clauses_str,
+            where_additional=noise_where_clauses_str,
+            order_by='event_id', limit=1, offset=0,
+            base_select='COUNT(*)')
+
+        cur.execute(q)
+        res = cur.fetchone()
+        if res is None or len(res) < 1:
+            raise RuntimeError('Unable to query COUNT(*) for simu source_data_type_num={}'.format(source_data_type_num))
+        noise_source_data_types_counts[i] = int(res[0])
+
+    classification_class_entries_tot_counts = [np.sum(simu_source_data_types_counts), np.sum(noise_source_data_types_counts)]
+
+    for tot_count, entries_count, expected_ratio in zip(classification_class_entries_tot_counts,
+                                                        [simu_source_data_types_counts, noise_source_data_types_counts],
+                                                        [simu_source_data_types_ratios, noise_source_data_types_ratios]):
+        actual_ratio = entries_count/tot_count
+        d = actual_ratio - expected_ratio
+        # if np.abs()
+
+    argmin_class_entries_count = np.argmin(classification_class_entries_tot_counts)
+    min_class_entries_count = classification_class_entries_tot_counts[argmin_class_entries_count]
+
+    for i, class_entries_count in enumerate(classification_class_entries_tot_counts):
+        if i == argmin_class_entries_count:
+            continue
+        if abs(class_entries_count - min_class_entries_count)/min_class_entries_count > max_inter_class_ratio_off_balance:
+            classification_class_entries_tot_counts[i] = min_class_entries_count*(1 + max_inter_class_ratio_off_balance)
+
+
+
+    # ....
+
+
+
+    query_functions.get_events_selection_query_plain(
+        source_data_type_num=source_data_type_num,
+        select_additional=common_select_clause_str, join_additional=common_join_clauses+simu_join_clauses,
+        where_additional=simu_where_clauses_str,
+        order_by='event_id', limit=1000000, offset=0)
+
+
 
     positive_sample_queries = []
 
     for source_data_type_num in enumerate((3, 30)):
 
         positive_sample_queries.append(
-            query_functions_simu.get_event_selection_query__simu_by_num_frames__excluding_columns(
+            query_functions.get_event_selection_query__simu_by_num_frames__excluding_columns(
                 source_data_type_num=source_data_type_num,
                 num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
                 etruth_theta__ge=None, limit=single_query_limit, offset=offset,
@@ -159,7 +222,7 @@ def load_data(query_functions_simu, columns_for_classification_dict):
 
     for source_data_type_num in enumerate((1, 30)):
         negative_sample_queries.append(
-            query_functions_simu.get_event_selection_query_excluding_columns(
+            query_functions.get_event_selection_query_excluding_columns(
                 source_data_type_num=source_data_type_num,
                 where_additional=' AND abs(gtu_in_packet-42) >= 20 ',
                 limit=single_query_limit, offset=offset,
@@ -231,23 +294,26 @@ def main(argv):
 
     np.random.seed(args.seed)
 
-    query_functions_simu = dataset_query_functions_v3.Ver3DatasetQueryFunctions(
-        # event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
-        # event_processing_class=event_processing_v3.EventProcessingV3,
+    event_v3_storage_provider = dataset_query_functions_v3.build_event_v3_storage_provider(
         event_storage_provider_config_file='config.ini', table_names_version='ver3',
-        # calibration_map_path=None,
+        event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
+        event_processing_class=event_processing_v3.EventProcessingV3
+    )
+
+    query_functions = dataset_query_functions_v3.Ver3DatasetQueryFunctions(
+        event_v3_storage_provider,
         simu_table_name='spb_processing_v3.simu_event',
         simu_additional_table_name='spb_processing_v3.simu_event_additional'
     )
 
     # should be configurable
-    columns_for_classification = query_functions_simu.get_columns_for_classification_dict__by_excluding(
+    columns_for_classification_dict = query_functions.get_columns_for_classification_dict__by_excluding(
         excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
         default_included_columns_re_list=[]
         # default_excluded_columns_re_list=['source_file_.+'] + system_columns,
     )
 
-
+    load_data(query_functions, columns_for_classification_dict)
 
 
 
