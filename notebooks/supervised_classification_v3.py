@@ -17,6 +17,9 @@ import array
 # import matplotlib.pyplot as plt
 import hashlib
 
+import pandas as pd
+import pandas.io.sql as psql
+
 import sklearn.tree
 import sklearn.ensemble
 import sklearn.model_selection
@@ -105,7 +108,8 @@ def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
 
 
 def load_data(query_functions, columns_for_classification_dict,
-              max_inter_class_ratio_off_balance=.05, max_deviation_from_intra_class_balance=.1):
+              max_inter_class_ratio_off_balance=.05, max_deviation_from_intra_class_balance=.1,
+              allow_missing_dataset_parts=False):
 
     flight_noise_joined_tables_set = {}
 
@@ -164,12 +168,22 @@ def load_data(query_functions, columns_for_classification_dict,
 
     classification_class_entries_tot_counts = [np.sum(simu_source_data_types_counts), np.sum(noise_source_data_types_counts)]
 
-    for tot_count, entries_count, expected_ratio in zip(classification_class_entries_tot_counts,
+    # TODO following is not correct especially for multiple dataset parts
+
+    for i, (tot_count, entries_counts, expected_ratios) in enumerate(zip(classification_class_entries_tot_counts,
                                                         [simu_source_data_types_counts, noise_source_data_types_counts],
-                                                        [simu_source_data_types_ratios, noise_source_data_types_ratios]):
-        actual_ratio = entries_count/tot_count
-        d = actual_ratio - expected_ratio
-        # if np.abs()
+                                                        [simu_source_data_types_ratios, noise_source_data_types_ratios])):
+        for j, (entries_count, expected_ratio) in enumerate(zip(entries_counts, expected_ratios)):
+            actual_ratio = entries_count/tot_count
+            if actual_ratio != 1:
+                d = actual_ratio - expected_ratio
+                if d > max_deviation_from_intra_class_balance:
+                    entries_counts[j] = tot_count*(expected_ratio+max_deviation_from_intra_class_balance)
+            elif not allow_missing_dataset_parts:
+                raise RuntimeError('Missing dataset part {} of class {}'.format(j,i))
+            else:
+                print('WARNING: only dataset part {} available for class {}'.format(j,i))
+
 
     argmin_class_entries_count = np.argmin(classification_class_entries_tot_counts)
     min_class_entries_count = classification_class_entries_tot_counts[argmin_class_entries_count]
@@ -180,7 +194,9 @@ def load_data(query_functions, columns_for_classification_dict,
         if abs(class_entries_count - min_class_entries_count)/min_class_entries_count > max_inter_class_ratio_off_balance:
             classification_class_entries_tot_counts[i] = min_class_entries_count*(1 + max_inter_class_ratio_off_balance)
 
+    #
 
+    pd
 
     # ....
 
