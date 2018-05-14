@@ -248,7 +248,20 @@ def normalize_phi(phi):
 #     return r
 
 
-def add_diff_columns(events_df, events_df_w_diff):
+ver3_angle_difference_pairs = [
+    ('proc2_gtu_x_hough_peak_thr3_major_line_phi', 'proc2_gtu_y_hough_peak_thr3_major_line_phi'),
+    (0, 'proc2_gtu_y_hough_peak_thr3_major_line_phi'),
+    (np.pi / 2, 'proc2_gtu_y_hough_peak_thr3_major_line_phi'),
+    (0, 'proc2_gtu_x_hough_peak_thr3_major_line_phi'),
+    (np.pi / 2, 'proc2_gtu_x_hough_peak_thr3_major_line_phi'),
+    ('alt1_gtu_x_hough_peak_thr1_major_line_phi','alt1_gtu_y_hough_peak_thr1_major_line_phi'),
+    (0, 'alt1_gtu_y_hough_peak_thr1_major_line_phi'),
+    (np.pi / 2, 'alt1_gtu_y_hough_peak_thr1_major_line_phi'),
+    (0, 'alt1_gtu_x_hough_peak_thr1_major_line_phi'),
+    (np.pi / 2, 'alt1_gtu_x_hough_peak_thr1_major_line_phi')
+]
+
+def add_diff_columns(events_df, events_df_w_diff, difference_pairs=ver3_angle_difference_pairs):
     events_df_w_diff['proc2_gtu_y_gtu_x_hough_peak_thr3_major_line_phi_diff'] = events_df.apply(
         lambda x: smaller_angle_difference(x['proc2_gtu_x_hough_peak_thr3_major_line_phi'],
                                            x['proc2_gtu_y_hough_peak_thr3_major_line_phi']), axis=1)

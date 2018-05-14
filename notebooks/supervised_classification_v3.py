@@ -16,6 +16,8 @@ import array
 # mpl.use("Agg")
 # import matplotlib.pyplot as plt
 import hashlib
+import pickle
+import json
 
 import pandas as pd
 import pandas.io.sql as psql
@@ -108,8 +110,21 @@ def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
 
 
 def load_data(query_functions, columns_for_classification_dict,
-              max_inter_class_ratio_off_balance=.05, max_deviation_from_intra_class_balance=.1,
-              allow_missing_dataset_parts=False):
+              max_deviation_from_inter_class_balance=.05,
+              max_deviation_from_intra_class_balance=.1, # of expected count
+              allow_missing_dataset_parts=False,
+              single_query_limit=200000, include_event_id=False,
+              return_single_df=False):
+
+    classes_entries_counts_ratios = [0.5, 0.5]
+
+    simu_source_data_types_nums = [3, 30]
+    simu_source_data_types_counts = [None, None]
+    simu_source_data_types_ratios = [0.5, 0.5]
+
+    noise_source_data_types_nums = [1, 30]
+    noise_source_data_types_counts = [None, None]
+    noise_source_data_types_ratios = [0.5, 0.5]
 
     flight_noise_joined_tables_set = {}
 
@@ -126,10 +141,6 @@ def load_data(query_functions, columns_for_classification_dict,
                                                   [simu_joined_tables_set, flight_noise_joined_tables_set])
 
     simu_join_clauses_str = query_functions.get_query_clauses__join(simu_joined_tables_set)
-
-    simu_source_data_types_nums = [3, 30]
-    simu_source_data_types_counts = [None, None]
-    simu_source_data_types_ratios = [0.5, 0.5]
 
     for i, source_data_type_num in enumerate(simu_source_data_types_nums):
         q = query_functions.get_events_selection_query_plain(
@@ -148,10 +159,6 @@ def load_data(query_functions, columns_for_classification_dict,
     noise_join_clauses_str = query_functions.get_query_clauses__join(flight_noise_joined_tables_set)
     noise_where_clauses_str = ' AND abs(gtu_in_packet-42) >= 20 '
 
-    noise_source_data_types_nums = [1, 30]
-    noise_source_data_types_counts = [None, None]
-    noise_source_data_types_ratios = [0.5, 0.5]
-
     for i, source_data_type_num in enumerate(noise_source_data_types_nums):
         q = query_functions.get_events_selection_query_plain(
             source_data_type_num=source_data_type_num,
@@ -166,99 +173,91 @@ def load_data(query_functions, columns_for_classification_dict,
             raise RuntimeError('Unable to query COUNT(*) for simu source_data_type_num={}'.format(source_data_type_num))
         noise_source_data_types_counts[i] = int(res[0])
 
-    classification_class_entries_tot_counts = [np.sum(simu_source_data_types_counts), np.sum(noise_source_data_types_counts)]
+    classes_source_data_type_entries_counts = [simu_source_data_types_counts, noise_source_data_types_counts]
+    classes_source_data_type_entries_expected_ratios = [simu_source_data_types_ratios, noise_source_data_types_ratios]
+    for i, entries_counts in enumerate(classes_source_data_type_entries_counts):
+        for j, entries_count in enumerate(entries_counts):
+            if entries_count > single_query_limit:
+                entries_counts[j] = single_query_limit
 
-    # TODO following is not correct especially for multiple dataset parts
+    classes_entries_tot_counts = [np.sum(simu_source_data_types_counts), np.sum(noise_source_data_types_counts)]
 
-    for i, (tot_count, entries_counts, expected_ratios) in enumerate(zip(classification_class_entries_tot_counts,
-                                                        [simu_source_data_types_counts, noise_source_data_types_counts],
-                                                        [simu_source_data_types_ratios, noise_source_data_types_ratios])):
-        for j, (entries_count, expected_ratio) in enumerate(zip(entries_counts, expected_ratios)):
-            actual_ratio = entries_count/tot_count
-            if actual_ratio != 1:
-                d = actual_ratio - expected_ratio
-                if d > max_deviation_from_intra_class_balance:
-                    entries_counts[j] = tot_count*(expected_ratio+max_deviation_from_intra_class_balance)
-            elif not allow_missing_dataset_parts:
-                raise RuntimeError('Missing dataset part {} of class {}'.format(j,i))
+    argmax_expected_class_ratio =  np.argmax(classes_entries_counts_ratios)
+    hundred_percent_count = classes_entries_tot_counts[argmax_expected_class_ratio]
+
+    for i, (class_entries_tot_count, expected_ratio, entries_counts) in \
+            enumerate(zip(classes_entries_tot_counts,
+                          classes_entries_counts_ratios,
+                          classes_source_data_type_entries_counts)):
+        new_class_entries_tot_count = expected_ratio * hundred_percent_count
+        class_entries_count_change_ratio = class_entries_tot_count / new_class_entries_tot_count
+        if new_class_entries_tot_count - max_deviation_from_inter_class_balance * new_class_entries_tot_count > class_entries_tot_count:
+            if allow_missing_dataset_parts:
+                print('WARNING: Unable to acquire required percentage of a dataset part {} for class {}'.format(j, i),
+                      file=sys.stderr)
             else:
-                print('WARNING: only dataset part {} available for class {}'.format(j,i))
+                raise RuntimeError('Unable to acquire required percentage of a dataset part {} for class {}'.format(j, i))
+        for j, entries_count in enumerate(entries_counts):
+            entries_counts[j] = int(np.ceil(entries_count * class_entries_count_change_ratio))
+        class_entries_tot_count[i] = np.sum(entries_counts) #new_class_entries_tot_count
 
+    for i, (tot_count, entries_counts, expected_ratios) in \
+            enumerate(zip(classes_entries_tot_counts,
+                          classes_source_data_type_entries_counts,
+                          classes_source_data_type_entries_expected_ratios)):
 
-    argmin_class_entries_count = np.argmin(classification_class_entries_tot_counts)
-    min_class_entries_count = classification_class_entries_tot_counts[argmin_class_entries_count]
+        argmax_expected_ratio = np.argmax(classes_source_data_type_entries_expected_ratios)
+        hundred_percent_count = classes_source_data_type_entries_counts[argmax_expected_ratio] / \
+                            classes_source_data_type_entries_expected_ratios[argmax_expected_ratio]
 
-    for i, class_entries_count in enumerate(classification_class_entries_tot_counts):
-        if i == argmin_class_entries_count:
-            continue
-        if abs(class_entries_count - min_class_entries_count)/min_class_entries_count > max_inter_class_ratio_off_balance:
-            classification_class_entries_tot_counts[i] = min_class_entries_count*(1 + max_inter_class_ratio_off_balance)
+        for j, (entries_count, expected_ratio) in enumerate(zip(entries_counts, expected_ratios)):
+            new_entries_count = int(np.ceil(expected_ratio * hundred_percent_count))
+            if new_entries_count - max_deviation_from_intra_class_balance * new_entries_count > entries_counts:
+                if allow_missing_dataset_parts:
+                    print('WARNING: Unable to acquire required percentage of a dataset part {} for class {}'.format(j, i), file=sys.stderr)
+                else:
+                    raise RuntimeError('Unable to acquire required percentage of a dataset part {} for class {}'.format(j, i))
+            entries_counts[j] = new_entries_count
 
-    #
+    if not return_single_df:
+        class_data = [None]*len(class_entries_tot_count)
+    else:
+        class_data = None
 
-    pd
+    query_base_select = query_functions.event_storage.data_table_name + '.event_id' if include_event_id else ''
 
-    # ....
+    # this is probably not efficient
 
+    for i, (source_data_type_nums, entries_counts, join_clauses_str, where_clauses_str) in enumerate([
+        (simu_source_data_types_nums, simu_source_data_types_counts, simu_join_clauses_str, simu_where_clauses_str),
+        (noise_source_data_types_nums, noise_source_data_types_counts, noise_join_clauses_str, noise_where_clauses_str),
+    ]):
+        for entries_count, source_data_type_num in zip(entries_counts, source_data_type_nums):
+            q = query_functions.get_events_selection_query_plain(
+                    source_data_type_num=source_data_type_num,
+                    select_additional=common_select_clause_str, join_additional=join_clauses_str,
+                    where_additional=where_clauses_str,
+                    order_by='RANDOM()', limit=entries_count, offset=0,
+                base_select=query_base_select)
 
+            events_df = psql.read_sql(q, conn)
+            if return_single_df:
+                events_df['class'] = i
 
-    query_functions.get_events_selection_query_plain(
-        source_data_type_num=source_data_type_num,
-        select_additional=common_select_clause_str, join_additional=common_join_clauses+simu_join_clauses,
-        where_additional=simu_where_clauses_str,
-        order_by='event_id', limit=1000000, offset=0)
+            if not return_single_df:
+                curr_class_data_df = class_data[i]
+            else:
+                curr_class_data_df = class_data
 
+            if curr_class_data_df is None:
+                if return_single_df:
+                    class_data = events_df
+                else:
+                    class_data[i] = events_df
+            else:
+                curr_class_data_df.append(events_df)
 
-
-    positive_sample_queries = []
-
-    for source_data_type_num in enumerate((3, 30)):
-
-        positive_sample_queries.append(
-            query_functions.get_event_selection_query__simu_by_num_frames__excluding_columns(
-                source_data_type_num=source_data_type_num,
-                num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
-                etruth_theta__ge=None, limit=single_query_limit, offset=offset,
-                gtu_in_packet_distance=(42,10),
-                excluded_columns_re_list=(
-                  'gtu_in_packet', '.+_seed_coords_[xy].*',
-                ),
-                default_excluded_columns_re_list=(
-                  # 'event_id','program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num', 'config_info_id',
-                    'source_file_.+',
-                ),
-                default_included_columns_re_list=(
-                  'event_id', 'program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num', 'config_info_id',
-                )
-            )
-        )
-        # subsample directly in the select ?
-
-    negative_sample_queries = []
-
-    for source_data_type_num in enumerate((1, 30)):
-        negative_sample_queries.append(
-            query_functions.get_event_selection_query_excluding_columns(
-                source_data_type_num=source_data_type_num,
-                where_additional=' AND abs(gtu_in_packet-42) >= 20 ',
-                limit=single_query_limit, offset=offset,
-                excluded_columns_re_list=(
-                    'gtu_in_packet', '.+_seed_coords_[xy].*',
-                ),
-                default_excluded_columns_re_list=(
-                    # 'event_id','program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num', 'config_info_id',
-                    'source_file_.+',
-                ),
-                default_included_columns_re_list=(
-                    'event_id', 'program_version', 'timestamp', 'global_gtu', 'packet_id', 'source_data_type_num',
-                    'config_info_id',
-                )
-            )
-        )
-
-
-    # TODO on new data
-    # TODO on kenji's events
+    return class_data
 
     # print('Loading data - visible showers...')
     # X = np.array(get_class_1_func(cur, columns), dtype=np.float32)
@@ -281,28 +280,100 @@ def load_data(query_functions, columns_for_classification_dict,
     # y[:len_class_1] = 1
 
 
+def scale_data(X, scaler_picke_pathname, pickle_overwrite=False, scaler_class=sklearn.preprocessing.StandardScaler):
+    scaler = None
+    data_md5 = None
+
+    if scaler_picke_pathname:
+        if isinstance(scaler_picke_pathname, str) and os.path.isdir(scaler_picke_pathname):
+            print('Calculating hash of data ...')
+            data_md5 = hashlib.md5(pickle.dumps(X, protocol=0))
+            scaler_picke_pathname = os.path.join(scaler_picke_pathname, 'scaler_for_{}.joblib.pkl'.format(data_md5.hexdigest()))
+
+        if os.path.exists(scaler_picke_pathname) and not pickle_overwrite:
+            print("Loading existing scaler...")
+            scaler = sklearn.externals.joblib.load(scaler_picke_pathname)
+
+    if not scaler:
+        print('StandardScaler - fitting and transforming data ...')
+        scaler = sklearn.preprocessing.StandardScaler()
+
+        if scaler_picke_pathname:
+            print("Saving scaled data into file {}".format(scaler_picke_pathname))
+            sklearn.externals.joblib.dump(scaler, scaler_picke_pathname)
+
+        X = scaler_class().fit_transform(X)
+    else:
+        print('Scaler - transforming data ...')
+        X = scaler.transform(X)
+
+    return X
+
 
 def main(argv):
 
     parser = argparse.ArgumentParser(description='Draw histograms of parameter values')
     parser.add_argument('-d','--dbname',default='eusospb_data')
     parser.add_argument('-U','--user',default='eusospb')
-    parser.add_argument('--password')
     parser.add_argument('-s','--host',default='localhost')
+    parser.add_argument('--password')
     parser.add_argument('--out', default='.')
-    parser.add_argument('--random-state', type=int, default=42)
-    parser.add_argument('--get-class1-func', type=int, default=0)
-    parser.add_argument('--model-config', type=int, default=0)
+    # parser.add_argument('--get-class1-func', type=int, default=0)
+    # parser.add_argument('--model-config', type=int, default=0)
+
     parser.add_argument('--seed', type=int, default=123)
+
     parser.add_argument('-c','--classifier', default='adaboost')
+    parser.add_argument('--classifier-params-json', default='{}')
+    parser.add_argument('--meta-classifier-params-json', default='{}')
+    parser.add_argument('--random-state', type=int, default=42)
+
+    parser.add_argument('--do-test-train-split', type=str2bool_argparse, default=True, help='If true, sets are created')
+    parser.add_argument('--apply-scaler', type=str2bool_argparse, default=True, help='If true, data are scaled')
+
     parser.add_argument('--overwrite', type=str2bool_argparse, default=False, help='Overwrite output model file')
-    parser.add_argument('--apply-scaler', type=str2bool_argparse, default=False, help='If true data are scaled')
+    parser.add_argument('--classifier-file', default='', help='By default the filename is determined from data and out directory is used')
     parser.add_argument('--scaler-file', default='', help='By default the filename is determined from data and out directory is used')
     parser.add_argument('--read', default="", help='Only read exiting model')
 
     # parser.add_argument('--print-queries', type=str2bool_argparse, default='Only print queries')
 
     args = parser.parse_args(argv)
+
+    # http://scikit-learn.org/stable/modules/preprocessing.html#standardization-or-mean-removal-and-variance-scaling
+    scaler_pickle_pathname = None
+    if args.apply_scaler:
+        if os.path.isdir(args.out):
+            if not args.scaler_file:
+                scaler_pickle_pathname = os.path.join(args.out, 'scaler_{class_name}_{data_md5}.pkl')
+            else:
+                scaler_pickle_pathname = os.path.join(args.out, args.scaler_file)
+        elif args.scaler_file:
+            scaler_pickle_pathname = args.scaler_file
+
+    classifier_pickle_pathname = None
+    if os.path.isdir(args.out):
+        if not args.classifier_file:
+            classifier_pickle_pathname = os.path.join(args.out, 'classifier_{class_name}_{data_md5}_{params_md5}.pkl')
+        else:
+            classifier_pickle_pathname = os.path.join(args.out, args.classifier_file)
+    elif args.scaler_file:
+        classifier_pickle_pathname = args.classifier_file
+
+    metaclassifier_params = json.loads(args.meta_classifier_params_json)
+    classifier_params = json.loads(args.classifier_params_json)
+
+    if not isinstance(classifier_params,dict):
+        raise RuntimeError('Invalid meta_classifier_params')
+    if not isinstance(metaclassifier_params,dict):
+        raise RuntimeError('Invalid classifier_params')
+
+    classifier_params = {'random_state':args.random_state,**classifier_params}
+    metaclassifier_params = {'random_state': args.random_state, **metaclassifier_params}
+
+    params_str = str([args.seed, classifier_params, metaclassifier_params, args.random_state, args.do_test_train_split,
+              args.apply_scaler])
+    params_str_hexdigest = hashlib.md5(params_str).hexdigest()
 
     classifier = None
     if not args.password:
@@ -322,6 +393,7 @@ def main(argv):
         simu_additional_table_name='spb_processing_v3.simu_event_additional'
     )
 
+
     # should be configurable
     columns_for_classification_dict = query_functions.get_columns_for_classification_dict__by_excluding(
         excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
@@ -329,46 +401,40 @@ def main(argv):
         # default_excluded_columns_re_list=['source_file_.+'] + system_columns,
     )
 
-    load_data(query_functions, columns_for_classification_dict)
+    all_classes_data_df = load_data(query_functions, columns_for_classification_dict)
 
+    # class_hashes = [None] * len(all_classes_data_df)
+    # for i, class_data in all_classes_data_df:
+    #     print('Calculating hash of data for class {} ...'.format(i))
+    #     class_hashes[i] = hashlib.md5(pickle.dumps(class_data[i].values, protocol=0))
+    # merged_hexdigset = hashlib.md5("-".join([class_hash.hexdiget() for class_hash in class_hashes]))
 
+    data_hexdigest = hashlib.md5(pickle.dumps(all_classes_data_df.values, protocol=0)).hexdigest()
 
+    X = all_classes_data_df.loc[:, all_classes_data_df.columns != 'class']
+    y = all_classes_data_df['class']
 
-
-
-    con = pg.connect(dbname=args.dbname, user=args.user, password=args.password, host=args.host)
-    cur = con.cursor()
-
-
-    columns = get_columns_for_classification()
-
-    if args.get_class1_func == 0:
-        get_class1_func = select_training_data__visible_showers
-    elif args.get_class1_func == 1:
-        get_class1_func = select_training_data__visible_showers_other_bgf
-    else:
-        raise Exception('Invalid class1 func')
-
-    # http://scikit-learn.org/stable/modules/preprocessing.html#standardization-or-mean-removal-and-variance-scaling
-    scaler_pathname = None
     if args.apply_scaler:
-        if os.path.isdir(args.out):
-            if not args.scaler_file:
-                scaler_pathname = args.out
-            else:
-                scaler_pathname = os.path.join(args.out, scaler_pathname)
-        elif args.scaler_file:
-            scaler_pathname = args.scaler_file
-        else:
-            scaler_pathname = True
+        X = scale_data(X,
+                       scaler_picke_pathname=scaler_pickle_pathname.format(
+                           class_name='StandardScaler', data_md5=data_hexdigest, params_md5=params_str_hexdigest),
+                       pickle_overwrite=False,
+                       scaler_class=sklearn.preprocessing.StandardScaler)
 
-    X_train, X_test, y_train, y_test, scaler, scaler_pathname, data_md5 = \
-        load_train_test(cur, columns, args.random_state, get_class_1_func=get_class1_func, scaler_pathname=scaler_pathname, scaler_pathname_overwrite=args.overwrite)
+    classifier = None
 
-    if not args.read:
+    if args.read and os.path.exists(classifier_pickle_pathname):
+        print("Loading existing classifier...")
+        classifier = sklearn.externals.joblib.load(classifier_pickle_pathname)
 
-        metaclassifier_params = {}
-        classifier_params = {'random_state': args.random_state}
+    if args.do_test_train_split:
+        X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, random_state=args.random_state)
+    else:
+        X_train = X_test = X
+        y_train, y_test = y
+
+    if classifier is None:
+
 
         classifier = None
         if args.classifier == 'adaboost':
@@ -376,18 +442,19 @@ def main(argv):
             classifier = sklearn.ensemble.AdaBoostClassifier(**classifier_params)
         elif args.classifier == 'randomforest':
             classifier = sklearn.ensemble.RandomForestClassifier(**classifier_params)
+        elif args.classifier == 'extra_trees':
+            classifier = sklearn.ensemble.ExtraTreesClassifier(**classifier_params)
         elif args.classifier == 'decision_tree':
             # http://scikit-learn.org/stable/modules/tree.html#tree
             classifier = sklearn.tree.DecisionTreeClassifier(**classifier_params)
         elif args.classifier == 'bagged_decision_tree':
             # http://scikit-learn.org/stable/auto_examples/ensemble/plot_bias_variance.html#sphx-glr-auto-examples-ensemble-plot-bias-variance-py
-            metaclassifier_params = {'random_state': args.random_state}
             classifier = sklearn.ensemble.BaggingRegressor(sklearn.tree.DecisionTreeClassifier(**classifier_params), **metaclassifier_params)
         elif args.classifier == 'mlp':
-            if args.model_config == 1:
-                classifier_params['hidden_layer_sizes'] = (300,150)
-            if args.model_config == 2:
-                classifier_params['hidden_layer_sizes'] = (500, 400, 100)
+            # if args.model_config == 1:
+            #     classifier_params['hidden_layer_sizes'] = (300,150)
+            # if args.model_config == 2:
+            #     classifier_params['hidden_layer_sizes'] = (500, 400, 100)
             classifier = sklearn.neural_network.MLPClassifier(**classifier_params)
         elif args.classifier == 'naive_bayes':
             classifier_params = {}
@@ -397,29 +464,24 @@ def main(argv):
         else:
             raise Exception('Unexpected classifier')
 
-        outfile_pathname = None
 
-        if args.out:
-            if os.path.isdir(args.out):
-                outfile_pathname = os.path.join(args.out, "{}.{}.joblib.pkl".format(
-                    args.classifier,
-                    hashlib.md5((str(args) + str(metaclassifier_params) + str(classifier_params)).encode()).hexdigest()
-                ))
-            else:
-                outfile_pathname = args.out
-
-            if os.path.exists(outfile_pathname) and not args.overwrite and not args.read:
-                raise Exception('Model file "{}" already exists'.format(outfile_pathname))
+        if os.path.exists(classifier_pickle_pathname) and not args.overwrite and not args.read:
+            print('WARNING: Model file "{}" already exists'.format(classifier_pickle_pathname))
 
         print("Fitting data using {}".format(classifier.__class__.__name__))
 
         # cross_val_score # k-fold ... http://scikit-learn.org/stable/modules/cross_validation.html#cross-validation
         classifier.fit(X_train, y_train)
 
-
-        if outfile_pathname:
-            print("Saving model {} into file {}".format(classifier.__class__.__name__, outfile_pathname))
-            sklearn.externals.joblib.dump(classifier, outfile_pathname)
+        if classifier_pickle_pathname:
+            print("Saving model {} into file {}".format(classifier.__class__.__name__, classifier_pickle_pathname))
+            if os.path.exists(classifier_pickle_pathname):
+                if args.overwrite:
+                    print('WARNING: Overwriting file "{}".'.format(classifier_pickle_pathname))
+                else:
+                    print('File "{}" already exists - nothing saved.'.format(classifier_pickle_pathname))
+            if not os.path.exists(classifier_pickle_pathname) or args.overwrite:
+                sklearn.externals.joblib.dump(classifier, classifier_pickle_pathname)
     else:
         classifier = sklearn.externals.joblib.load(args.read)
 
