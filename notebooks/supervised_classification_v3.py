@@ -72,8 +72,7 @@ def balanced_subsample(x,y,subsample_size=1.0):
 
     return xs,ys
 
-
-
+# to be removed?
 def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
                     scaler_pathname=None, scaler_pathname_overwrite=False,
                     balance_subsample=True, subsample_size=1.0):
@@ -392,7 +391,6 @@ def main(argv):
         simu_table_name='spb_processing_v3.simu_event',
         simu_additional_table_name='spb_processing_v3.simu_event_additional'
     )
-
 
     # should be configurable
     columns_for_classification_dict = query_functions.get_columns_for_classification_dict__by_excluding(
