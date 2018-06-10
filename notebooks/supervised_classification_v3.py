@@ -72,48 +72,16 @@ def balanced_subsample(x,y,subsample_size=1.0):
 
     return xs,ys
 
-# to be removed?
-def make_train_test(X, y, test_train_split_kwargs={'random_state':None},
-                    scaler_pathname=None, scaler_pathname_overwrite=False,
-                    balance_subsample=True, subsample_size=1.0):
-
-    scaler = None
-    X_data_md5 = None
-
-    if scaler_pathname:
-        if isinstance(scaler_pathname, str):
-            if os.path.isdir(scaler_pathname):
-                print('Calculating hash of data ...')
-                X_data_md5 = hashlib.md5(X.tobytes())
-                y_data_md5 = hashlib.md5(y.tobytes())
-                scaler_pathname = os.path.join(scaler_pathname, 'scaler_for_{}_{}.joblib.pkl'.format(
-                    X_data_md5.hexdigest(), y_data_md5.hexdigest()))
-
-        if os.path.exists(scaler_pathname) and not scaler_pathname_overwrite:
-            print("Loading existing scaler...")
-            scaler = sklearn.externals.joblib.load(scaler_pathname)
-
-        if not scaler:
-            print('StandardScaler - fitting and transforming data ...')
-            scaler = sklearn.preprocessing.StandardScaler()
-            X = sklearn.preprocessing.StandardScaler().fit_transform(X)
-        else:
-            print('Scaler - transforming data ...')
-            X = scaler.transform(X)
-
-    if balance_subsample:
-        X = balanced_subsample(X, y, subsample_size)
-
-    X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, **test_train_split_kwargs)
-    return  X_train, X_test, y_train, y_test, scaler, scaler_pathname, X_data_md5
-
 
 def load_data(query_functions, columns_for_classification_dict,
               max_deviation_from_inter_class_balance=.05,
               max_deviation_from_intra_class_balance=.1, # of expected count
               allow_missing_dataset_parts=False,
               single_query_limit=200000, include_event_id=False,
-              return_single_df=False):
+              return_single_df=False,
+              simu_event_relation_table_name='spb_processing_v3.simu_event_relation',
+              simu_event_table_name = 'spb_processing_v3.simu_event',
+              simu_event_additional_table_name = 'spb_processing_v3.simu_event_additional'):
 
     classes_entries_counts_ratios = [0.5, 0.5]
 
@@ -125,21 +93,24 @@ def load_data(query_functions, columns_for_classification_dict,
     noise_source_data_types_counts = [None, None]
     noise_source_data_types_ratios = [0.5, 0.5]
 
-    flight_noise_joined_tables_set = {}
+    flight_noise_joined_tables_list = []
 
     conn = query_functions.event_storage.connection
     cur = conn.cursor()
 
-    simu_where_clauses_str, simu_joined_tables_set = \
+    # TODO simu_signal
+    simu_where_clauses_str, simu_joined_tables_list = \
         query_functions.get_query_clauses__where_simu(
             gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
-            etruth_theta__ge=None, etruth_theta__le=None)
+            etruth_theta__ge=None, etruth_theta__le=None,
+            simu_event_relation_table_name=simu_event_relation_table_name,
+            simu_event_table_name=simu_event_table_name,
+            simu_event_additional_table_name=simu_event_additional_table_name
+        )
 
-    common_select_clause_str = \
-        query_functions.get_query_clauses__select(columns_for_classification_dict,
-                                                  [simu_joined_tables_set, flight_noise_joined_tables_set])
+    common_select_clause_str, common_joined_tables_list = query_functions.get_query_clauses__select(columns_for_classification_dict)
 
-    simu_join_clauses_str = query_functions.get_query_clauses__join(simu_joined_tables_set)
+    simu_join_clauses_str = query_functions.get_query_clauses__join(common_joined_tables_list + simu_joined_tables_list)
 
     for i, source_data_type_num in enumerate(simu_source_data_types_nums):
         q = query_functions.get_events_selection_query_plain(
@@ -155,7 +126,7 @@ def load_data(query_functions, columns_for_classification_dict,
             raise RuntimeError('Unable to query COUNT(*) for simu source_data_type_num={}'.format(source_data_type_num))
         simu_source_data_types_counts[i] = int(res[0])
 
-    noise_join_clauses_str = query_functions.get_query_clauses__join(flight_noise_joined_tables_set)
+    noise_join_clauses_str = query_functions.get_query_clauses__join(common_joined_tables_list + flight_noise_joined_tables_list)
     noise_where_clauses_str = ' AND abs(gtu_in_packet-42) >= 20 '
 
     for i, source_data_type_num in enumerate(noise_source_data_types_nums):
@@ -181,7 +152,7 @@ def load_data(query_functions, columns_for_classification_dict,
 
     classes_entries_tot_counts = [np.sum(simu_source_data_types_counts), np.sum(noise_source_data_types_counts)]
 
-    argmax_expected_class_ratio =  np.argmax(classes_entries_counts_ratios)
+    argmax_expected_class_ratio =  np.argmax(classes_entries_counts_ratios).item()
     hundred_percent_count = classes_entries_tot_counts[argmax_expected_class_ratio]
 
     for i, (class_entries_tot_count, expected_ratio, entries_counts) in \
@@ -205,13 +176,13 @@ def load_data(query_functions, columns_for_classification_dict,
                           classes_source_data_type_entries_counts,
                           classes_source_data_type_entries_expected_ratios)):
 
-        argmax_expected_ratio = np.argmax(classes_source_data_type_entries_expected_ratios)
+        argmax_expected_ratio = np.argmax(classes_source_data_type_entries_expected_ratios).item()
         hundred_percent_count = classes_source_data_type_entries_counts[argmax_expected_ratio] / \
                             classes_source_data_type_entries_expected_ratios[argmax_expected_ratio]
 
         for j, (entries_count, expected_ratio) in enumerate(zip(entries_counts, expected_ratios)):
             new_entries_count = int(np.ceil(expected_ratio * hundred_percent_count))
-            if new_entries_count - max_deviation_from_intra_class_balance * new_entries_count > entries_counts:
+            if new_entries_count - max_deviation_from_intra_class_balance * new_entries_count > len(entries_counts):
                 if allow_missing_dataset_parts:
                     print('WARNING: Unable to acquire required percentage of a dataset part {} for class {}'.format(j, i), file=sys.stderr)
                 else:
@@ -219,7 +190,7 @@ def load_data(query_functions, columns_for_classification_dict,
             entries_counts[j] = new_entries_count
 
     if not return_single_df:
-        class_data = [None]*len(class_entries_tot_count)
+        class_data = [None]*len(classes_entries_tot_counts)
     else:
         class_data = None
 
@@ -281,7 +252,6 @@ def load_data(query_functions, columns_for_classification_dict,
 
 def scale_data(X, scaler_picke_pathname, pickle_overwrite=False, scaler_class=sklearn.preprocessing.StandardScaler):
     scaler = None
-    data_md5 = None
 
     if scaler_picke_pathname:
         if isinstance(scaler_picke_pathname, str) and os.path.isdir(scaler_picke_pathname):
@@ -323,6 +293,8 @@ def main(argv):
     parser.add_argument('--seed', type=int, default=123)
 
     parser.add_argument('-c','--classifier', default='adaboost')
+    parser.add_argument('--event-storage-provider-config', default='../config.ini')
+
     parser.add_argument('--classifier-params-json', default='{}')
     parser.add_argument('--meta-classifier-params-json', default='{}')
     parser.add_argument('--random-state', type=int, default=42)
@@ -372,7 +344,7 @@ def main(argv):
 
     params_str = str([args.seed, classifier_params, metaclassifier_params, args.random_state, args.do_test_train_split,
               args.apply_scaler])
-    params_str_hexdigest = hashlib.md5(params_str).hexdigest()
+    params_str_hexdigest = hashlib.md5(params_str.encode('utf8')).hexdigest()
 
     classifier = None
     if not args.password:
@@ -381,21 +353,17 @@ def main(argv):
     np.random.seed(args.seed)
 
     event_v3_storage_provider = dataset_query_functions_v3.build_event_v3_storage_provider(
-        event_storage_provider_config_file='config.ini', table_names_version='ver3',
+        event_storage_provider_config_file=args.event_storage_provider_config, table_names_version='ver3',
         event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
         event_processing_class=event_processing_v3.EventProcessingV3
     )
 
-    query_functions = dataset_query_functions_v3.Ver3DatasetQueryFunctions(
-        event_v3_storage_provider,
-        simu_table_name='spb_processing_v3.simu_event',
-        simu_additional_table_name='spb_processing_v3.simu_event_additional'
-    )
+    query_functions = dataset_query_functions_v3.Ver3DatasetQueryFunctions(event_v3_storage_provider)
 
     # should be configurable
     columns_for_classification_dict = query_functions.get_columns_for_classification_dict__by_excluding(
-        excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
-        default_included_columns_re_list=[]
+        # excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
+        # included_columns_re_list=[]
         # default_excluded_columns_re_list=['source_file_.+'] + system_columns,
     )
 
