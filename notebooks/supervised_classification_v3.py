@@ -365,6 +365,7 @@ def main(argv):
         # excluded_columns_re_list=['gtu_in_packet', '.+_seed_coords_[xy].*', ],
         # included_columns_re_list=[]
         # default_excluded_columns_re_list=['source_file_.+'] + system_columns,
+        included_columns_re_list=[('^$','^source_file_acquisition')]
     )
 
     all_classes_data_df = load_data(query_functions, columns_for_classification_dict)
