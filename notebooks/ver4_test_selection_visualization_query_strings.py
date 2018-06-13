@@ -1,0 +1,518 @@
+select_additional = ''',
+    
+alt1_x_y_hough_peak_thr1.major_line_phi AS alt1_x_y_hough_peak_thr1_major_line_phi,  
+alt1_x_y_hough_peak_thr1.major_line_rho AS alt1_x_y_hough_peak_thr1_major_line_rho, 
+alt1_gtu_x_hough_peak_thr1.major_line_phi AS alt1_gtu_x_hough_peak_thr1_major_line_phi,
+alt1_gtu_y_hough_peak_thr1.major_line_phi AS alt1_gtu_y_hough_peak_thr1_major_line_phi,  
+alt1_gtu_x_hough_peak_thr1.major_line_rho AS alt1_gtu_x_hough_peak_thr1_major_line_rho, 
+alt1_gtu_y_hough_peak_thr1.major_line_rho AS alt1_gtu_y_hough_peak_thr1_major_line_rho, 
+
+------------------------------------------------------------
+
+proc1_x_y_hough_peak_thr1.major_line_phi AS proc1_x_y_hough_peak_thr1_major_line_phi, 
+proc1_gtu_x_hough_peak_thr1.major_line_phi AS proc1_gtu_x_hough_peak_thr1_major_line_phi, 
+proc1_gtu_y_hough_peak_thr1.major_line_phi AS proc1_gtu_y_hough_peak_thr1_major_line_phi,
+proc1_x_y_hough_peak_thr2.major_line_phi AS proc1_x_y_hough_peak_thr2_major_line_phi, 
+proc1_gtu_x_hough_peak_thr2.major_line_phi AS proc1_gtu_x_hough_peak_thr2_major_line_phi, 
+proc1_gtu_y_hough_peak_thr2.major_line_phi AS proc1_gtu_y_hough_peak_thr2_major_line_phi,
+proc1_x_y_hough_peak_thr3.major_line_phi AS proc1_x_y_hough_peak_thr3_major_line_phi, 
+proc1_gtu_x_hough_peak_thr3.major_line_phi AS proc1_gtu_x_hough_peak_thr3_major_line_phi, 
+proc1_gtu_y_hough_peak_thr3.major_line_phi AS proc1_gtu_y_hough_peak_thr3_major_line_phi,
+proc1_x_y_hough_peak_thr4.major_line_phi AS proc1_x_y_hough_peak_thr4_major_line_phi, 
+proc1_gtu_x_hough_peak_thr4.major_line_phi AS proc1_gtu_x_hough_peak_thr4_major_line_phi, 
+proc1_gtu_y_hough_peak_thr4.major_line_phi AS proc1_gtu_y_hough_peak_thr4_major_line_phi,
+
+proc2_x_y_hough_peak_thr1.major_line_phi AS proc2_x_y_hough_peak_thr1_major_line_phi, 
+proc2_gtu_x_hough_peak_thr1.major_line_phi AS proc2_gtu_x_hough_peak_thr1_major_line_phi, 
+proc2_gtu_y_hough_peak_thr1.major_line_phi AS proc2_gtu_y_hough_peak_thr1_major_line_phi,
+proc2_x_y_hough_peak_thr2.major_line_phi AS proc2_x_y_hough_peak_thr2_major_line_phi, 
+proc2_gtu_x_hough_peak_thr2.major_line_phi AS proc2_gtu_x_hough_peak_thr2_major_line_phi, 
+proc2_gtu_y_hough_peak_thr2.major_line_phi AS proc2_gtu_y_hough_peak_thr2_major_line_phi,
+proc2_x_y_hough_peak_thr3.major_line_phi AS proc2_x_y_hough_peak_thr3_major_line_phi, 
+proc2_gtu_x_hough_peak_thr3.major_line_phi AS proc2_gtu_x_hough_peak_thr3_major_line_phi, 
+proc2_gtu_y_hough_peak_thr3.major_line_phi AS proc2_gtu_y_hough_peak_thr3_major_line_phi,    
+proc2_x_y_hough_peak_thr4.major_line_phi AS proc2_x_y_hough_peak_thr4_major_line_phi, 
+proc2_gtu_x_hough_peak_thr4.major_line_phi AS proc2_gtu_x_hough_peak_thr4_major_line_phi, 
+proc2_gtu_y_hough_peak_thr4.major_line_phi AS proc2_gtu_y_hough_peak_thr4_major_line_phi,
+
+proc3_x_y_hough_peak_thr1.major_line_phi AS proc3_x_y_hough_peak_thr1_major_line_phi, 
+proc3_gtu_x_hough_peak_thr1.major_line_phi AS proc3_gtu_x_hough_peak_thr1_major_line_phi, 
+proc3_gtu_y_hough_peak_thr1.major_line_phi AS proc3_gtu_y_hough_peak_thr1_major_line_phi,
+proc3_x_y_hough_peak_thr2.major_line_phi AS proc3_x_y_hough_peak_thr2_major_line_phi, 
+proc3_gtu_x_hough_peak_thr2.major_line_phi AS proc3_gtu_x_hough_peak_thr2_major_line_phi, 
+proc3_gtu_y_hough_peak_thr2.major_line_phi AS proc3_gtu_y_hough_peak_thr2_major_line_phi,
+proc3_x_y_hough_peak_thr3.major_line_phi AS proc3_x_y_hough_peak_thr3_major_line_phi, 
+proc3_gtu_x_hough_peak_thr3.major_line_phi AS proc3_gtu_x_hough_peak_thr3_major_line_phi, 
+proc3_gtu_y_hough_peak_thr3.major_line_phi AS proc3_gtu_y_hough_peak_thr3_major_line_phi,
+proc3_x_y_hough_peak_thr4.major_line_phi AS proc3_x_y_hough_peak_thr4_major_line_phi, 
+proc3_gtu_x_hough_peak_thr4.major_line_phi AS proc3_gtu_x_hough_peak_thr4_major_line_phi, 
+proc3_gtu_y_hough_peak_thr4.major_line_phi AS proc3_gtu_y_hough_peak_thr4_major_line_phi,
+
+------------------------------------------------------------
+
+proc1_x_y_hough_peak_thr1.major_line_rho AS proc1_x_y_hough_peak_thr1_major_line_rho, 
+proc1_gtu_x_hough_peak_thr1.major_line_rho AS proc1_gtu_x_hough_peak_thr1_major_line_rho, 
+proc1_gtu_y_hough_peak_thr1.major_line_rho AS proc1_gtu_y_hough_peak_thr1_major_line_rho,
+proc1_x_y_hough_peak_thr2.major_line_rho AS proc1_x_y_hough_peak_thr2_major_line_rho, 
+proc1_gtu_x_hough_peak_thr2.major_line_rho AS proc1_gtu_x_hough_peak_thr2_major_line_rho, 
+proc1_gtu_y_hough_peak_thr2.major_line_rho AS proc1_gtu_y_hough_peak_thr2_major_line_rho,
+proc1_x_y_hough_peak_thr3.major_line_rho AS proc1_x_y_hough_peak_thr3_major_line_rho, 
+proc1_gtu_x_hough_peak_thr3.major_line_rho AS proc1_gtu_x_hough_peak_thr3_major_line_rho, 
+proc1_gtu_y_hough_peak_thr3.major_line_rho AS proc1_gtu_y_hough_peak_thr3_major_line_rho,
+proc1_x_y_hough_peak_thr4.major_line_rho AS proc1_x_y_hough_peak_thr4_major_line_rho, 
+proc1_gtu_x_hough_peak_thr4.major_line_rho AS proc1_gtu_x_hough_peak_thr4_major_line_rho, 
+proc1_gtu_y_hough_peak_thr4.major_line_rho AS proc1_gtu_y_hough_peak_thr4_major_line_rho,
+
+proc2_x_y_hough_peak_thr1.major_line_rho AS proc2_x_y_hough_peak_thr1_major_line_rho, 
+proc2_gtu_x_hough_peak_thr1.major_line_rho AS proc2_gtu_x_hough_peak_thr1_major_line_rho, 
+proc2_gtu_y_hough_peak_thr1.major_line_rho AS proc2_gtu_y_hough_peak_thr1_major_line_rho,
+proc2_x_y_hough_peak_thr2.major_line_rho AS proc2_x_y_hough_peak_thr2_major_line_rho, 
+proc2_gtu_x_hough_peak_thr2.major_line_rho AS proc2_gtu_x_hough_peak_thr2_major_line_rho, 
+proc2_gtu_y_hough_peak_thr2.major_line_rho AS proc2_gtu_y_hough_peak_thr2_major_line_rho,
+proc2_x_y_hough_peak_thr3.major_line_rho AS proc2_x_y_hough_peak_thr3_major_line_rho,
+proc2_gtu_x_hough_peak_thr3.major_line_rho AS proc2_gtu_x_hough_peak_thr3_major_line_rho, 
+proc2_gtu_y_hough_peak_thr3.major_line_rho AS proc2_gtu_y_hough_peak_thr3_major_line_rho,
+proc2_x_y_hough_peak_thr4.major_line_rho AS proc2_x_y_hough_peak_thr4_major_line_rho, 
+proc2_gtu_x_hough_peak_thr4.major_line_rho AS proc2_gtu_x_hough_peak_thr4_major_line_rho, 
+proc2_gtu_y_hough_peak_thr4.major_line_rho AS proc2_gtu_y_hough_peak_thr4_major_line_rho,
+
+proc3_x_y_hough_peak_thr1.major_line_rho AS proc3_x_y_hough_peak_thr1_major_line_rho, 
+proc3_gtu_x_hough_peak_thr1.major_line_rho AS proc3_gtu_x_hough_peak_thr1_major_line_rho, 
+proc3_gtu_y_hough_peak_thr1.major_line_rho AS proc3_gtu_y_hough_peak_thr1_major_line_rho,
+proc3_x_y_hough_peak_thr2.major_line_rho AS proc3_x_y_hough_peak_thr2_major_line_rho, 
+proc3_gtu_x_hough_peak_thr2.major_line_rho AS proc3_gtu_x_hough_peak_thr2_major_line_rho, 
+proc3_gtu_y_hough_peak_thr2.major_line_rho AS proc3_gtu_y_hough_peak_thr2_major_line_rho,
+proc3_x_y_hough_peak_thr3.major_line_rho AS proc3_x_y_hough_peak_thr3_major_line_rho, 
+proc3_gtu_x_hough_peak_thr3.major_line_rho AS proc3_gtu_x_hough_peak_thr3_major_line_rho, 
+proc3_gtu_y_hough_peak_thr3.major_line_rho AS proc3_gtu_y_hough_peak_thr3_major_line_rho,
+proc3_x_y_hough_peak_thr4.major_line_rho AS proc3_x_y_hough_peak_thr4_major_line_rho, 
+proc3_gtu_x_hough_peak_thr4.major_line_rho AS proc3_gtu_x_hough_peak_thr4_major_line_rho, 
+proc3_gtu_y_hough_peak_thr4.major_line_rho AS proc3_gtu_y_hough_peak_thr4_major_line_rho,
+
+------------------------------------------------------------
+
+proc1_x_y_hough_peak_thr1.line_clusters_count AS proc1_x_y_hough_peak_thr1_line_clusters_count, 
+proc2_x_y_hough_peak_thr1.line_clusters_count AS proc2_x_y_hough_peak_thr1_line_clusters_count, 
+proc3_x_y_hough_peak_thr1.line_clusters_count AS proc3_x_y_hough_peak_thr1_line_clusters_count, 
+proc1_x_y_hough_peak_thr2.line_clusters_count AS proc1_x_y_hough_peak_thr2_line_clusters_count, 
+proc2_x_y_hough_peak_thr2.line_clusters_count AS proc2_x_y_hough_peak_thr2_line_clusters_count, 
+proc3_x_y_hough_peak_thr2.line_clusters_count AS proc3_x_y_hough_peak_thr2_line_clusters_count, 
+proc1_x_y_hough_peak_thr3.line_clusters_count AS proc1_x_y_hough_peak_thr3_line_clusters_count, 
+proc2_x_y_hough_peak_thr3.line_clusters_count AS proc2_x_y_hough_peak_thr3_line_clusters_count, 
+proc3_x_y_hough_peak_thr3.line_clusters_count AS proc3_x_y_hough_peak_thr3_line_clusters_count, 
+proc1_x_y_hough_peak_thr4.line_clusters_count AS proc1_x_y_hough_peak_thr4_line_clusters_count, 
+proc2_x_y_hough_peak_thr4.line_clusters_count AS proc2_x_y_hough_peak_thr4_line_clusters_count, 
+proc3_x_y_hough_peak_thr4.line_clusters_count AS proc3_x_y_hough_peak_thr4_line_clusters_count, 
+
+proc1_gtu_y_hough_peak_thr1.line_clusters_count AS proc1_gtu_y_hough_peak_thr1_line_clusters_count,
+proc2_gtu_y_hough_peak_thr1.line_clusters_count AS proc2_gtu_y_hough_peak_thr1_line_clusters_count, 
+proc3_gtu_y_hough_peak_thr1.line_clusters_count AS proc3_gtu_y_hough_peak_thr1_line_clusters_count,
+proc1_gtu_y_hough_peak_thr2.line_clusters_count AS proc1_gtu_y_hough_peak_thr2_line_clusters_count,
+proc2_gtu_y_hough_peak_thr2.line_clusters_count AS proc2_gtu_y_hough_peak_thr2_line_clusters_count, 
+proc3_gtu_y_hough_peak_thr2.line_clusters_count AS proc3_gtu_y_hough_peak_thr2_line_clusters_count,
+proc1_gtu_y_hough_peak_thr3.line_clusters_count AS proc1_gtu_y_hough_peak_thr3_line_clusters_count,
+proc2_gtu_y_hough_peak_thr3.line_clusters_count AS proc2_gtu_y_hough_peak_thr3_line_clusters_count, 
+proc3_gtu_y_hough_peak_thr3.line_clusters_count AS proc3_gtu_y_hough_peak_thr3_line_clusters_count,
+proc1_gtu_y_hough_peak_thr4.line_clusters_count AS proc1_gtu_y_hough_peak_thr4_line_clusters_count,
+proc2_gtu_y_hough_peak_thr4.line_clusters_count AS proc2_gtu_y_hough_peak_thr4_line_clusters_count, 
+proc3_gtu_y_hough_peak_thr4.line_clusters_count AS proc3_gtu_y_hough_peak_thr4_line_clusters_count,
+
+proc1_gtu_x_hough_peak_thr1.line_clusters_count AS proc1_gtu_x_hough_peak_thr1_line_clusters_count, 
+proc2_gtu_x_hough_peak_thr1.line_clusters_count AS proc2_gtu_x_hough_peak_thr1_line_clusters_count, 
+proc3_gtu_x_hough_peak_thr1.line_clusters_count AS proc3_gtu_x_hough_peak_thr1_line_clusters_count,  
+proc1_gtu_x_hough_peak_thr2.line_clusters_count AS proc1_gtu_x_hough_peak_thr2_line_clusters_count, 
+proc2_gtu_x_hough_peak_thr2.line_clusters_count AS proc2_gtu_x_hough_peak_thr2_line_clusters_count, 
+proc3_gtu_x_hough_peak_thr2.line_clusters_count AS proc3_gtu_x_hough_peak_thr2_line_clusters_count,  
+proc1_gtu_x_hough_peak_thr3.line_clusters_count AS proc1_gtu_x_hough_peak_thr3_line_clusters_count, 
+proc2_gtu_x_hough_peak_thr3.line_clusters_count AS proc2_gtu_x_hough_peak_thr3_line_clusters_count, 
+proc3_gtu_x_hough_peak_thr3.line_clusters_count AS proc3_gtu_x_hough_peak_thr3_line_clusters_count,  
+proc1_gtu_x_hough_peak_thr4.line_clusters_count AS proc1_gtu_x_hough_peak_thr4_line_clusters_count, 
+proc2_gtu_x_hough_peak_thr4.line_clusters_count AS proc2_gtu_x_hough_peak_thr4_line_clusters_count, 
+proc3_gtu_x_hough_peak_thr4.line_clusters_count AS proc3_gtu_x_hough_peak_thr4_line_clusters_count,  
+
+--------------------------- --------------------------------
+
+proc1_x_y_clusters.count              AS proc1_x_y_clusters_count, 
+proc1_x_y_clusters.max_sum_clu_width  AS proc1_x_y_clusters_max_sum_clu_width, 
+proc1_x_y_clusters.max_sum_clu_height AS proc1_x_y_clusters_max_sum_clu_height,
+
+proc2_x_y_clusters.count              AS proc2_x_y_clusters_count, 
+proc2_x_y_clusters.max_sum_clu_width  AS proc2_x_y_clusters_max_sum_clu_width, 
+proc2_x_y_clusters.max_sum_clu_height AS proc2_x_y_clusters_max_sum_clu_height,
+
+proc3_x_y_clusters.count              AS proc3_x_y_clusters_count, 
+proc3_x_y_clusters.max_sum_clu_width  AS proc3_x_y_clusters_max_sum_clu_width, 
+proc3_x_y_clusters.max_sum_clu_height AS proc3_x_y_clusters_max_sum_clu_height,
+
+trg_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS trg_x_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+trg_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS trg_x_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+trg_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS trg_x_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+trg_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS trg_x_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+trg_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width AS trg_gtu_x_hough_peak_thr1_line_clusters_max_sum_clu_width,
+trg_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width AS trg_gtu_x_hough_peak_thr2_line_clusters_max_sum_clu_width,
+trg_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width AS trg_gtu_x_hough_peak_thr3_line_clusters_max_sum_clu_width,
+trg_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width AS trg_gtu_x_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+trg_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS trg_gtu_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+trg_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS trg_gtu_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+trg_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS trg_gtu_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+trg_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS trg_gtu_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+--
+
+alt1_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS alt1_x_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+alt1_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS alt1_x_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+alt1_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS alt1_x_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+alt1_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS alt1_x_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+alt1_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width AS alt1_gtu_x_hough_peak_thr1_line_clusters_max_sum_clu_width,
+alt1_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width AS alt1_gtu_x_hough_peak_thr2_line_clusters_max_sum_clu_width,
+alt1_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width AS alt1_gtu_x_hough_peak_thr3_line_clusters_max_sum_clu_width,
+alt1_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width AS alt1_gtu_x_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+alt1_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS alt1_gtu_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+alt1_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS alt1_gtu_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+alt1_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS alt1_gtu_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+alt1_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS alt1_gtu_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+--
+
+proc1_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc1_x_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+proc1_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc1_x_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+proc1_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc1_x_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+proc1_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc1_x_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+proc1_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc1_x_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc1_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc1_x_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc1_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc1_x_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc1_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc1_x_y_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+proc2_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc2_x_y_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc2_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc2_x_y_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc2_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc2_x_y_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc2_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc2_x_y_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc2_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc2_x_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc2_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc2_x_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc2_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc2_x_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc2_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc2_x_y_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+proc3_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc3_x_y_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc3_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc3_x_y_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc3_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc3_x_y_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc3_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc3_x_y_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc3_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc3_x_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc3_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc3_x_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc3_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc3_x_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc3_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc3_x_y_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+--
+
+proc1_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc1_gtu_x_hough_peak_thr1_line_clusters_max_sum_clu_width,
+proc1_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc1_gtu_x_hough_peak_thr2_line_clusters_max_sum_clu_width,
+proc1_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc1_gtu_x_hough_peak_thr3_line_clusters_max_sum_clu_width,
+proc1_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc1_gtu_x_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+proc1_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc1_gtu_x_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc1_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc1_gtu_x_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc1_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc1_gtu_x_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc1_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc1_gtu_x_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+proc2_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc2_gtu_x_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc2_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc2_gtu_x_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc2_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc2_gtu_x_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc2_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc2_gtu_x_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc2_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc2_gtu_x_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc2_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc2_gtu_x_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc2_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc2_gtu_x_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc2_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc2_gtu_x_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+proc3_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc3_gtu_x_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc3_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc3_gtu_x_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc3_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc3_gtu_x_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc3_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc3_gtu_x_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc3_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc3_gtu_x_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc3_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc3_gtu_x_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc3_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc3_gtu_x_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc3_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc3_gtu_x_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+--
+
+proc1_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc1_gtu_y_hough_peak_thr1_line_clusters_max_sum_clu_width,
+proc1_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc1_gtu_y_hough_peak_thr2_line_clusters_max_sum_clu_width,
+proc1_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc1_gtu_y_hough_peak_thr3_line_clusters_max_sum_clu_width,
+proc1_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc1_gtu_y_hough_peak_thr4_line_clusters_max_sum_clu_width,
+
+proc1_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc1_gtu_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc1_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc1_gtu_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc1_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc1_gtu_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc1_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc1_gtu_y_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+
+proc2_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc2_gtu_y_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc2_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc2_gtu_y_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc2_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc2_gtu_y_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc2_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc2_gtu_y_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc2_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc2_gtu_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc2_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc2_gtu_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc2_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc2_gtu_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc2_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc2_gtu_y_hough_peak_thr4_line_clusters_max_peak_clu_width,
+
+
+proc3_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width AS proc3_gtu_y_hough_peak_thr1_line_clusters_max_sum_clu_width, 
+proc3_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width AS proc3_gtu_y_hough_peak_thr2_line_clusters_max_sum_clu_width, 
+proc3_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width AS proc3_gtu_y_hough_peak_thr3_line_clusters_max_sum_clu_width, 
+proc3_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width AS proc3_gtu_y_hough_peak_thr4_line_clusters_max_sum_clu_width, 
+
+proc3_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width AS proc3_gtu_y_hough_peak_thr1_line_clusters_max_peak_clu_width,
+proc3_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width AS proc3_gtu_y_hough_peak_thr2_line_clusters_max_peak_clu_width,
+proc3_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width AS proc3_gtu_y_hough_peak_thr3_line_clusters_max_peak_clu_width,
+proc3_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width AS proc3_gtu_y_hough_peak_thr4_line_clusters_max_peak_clu_width     
+
+'''
+
+join_additional = '''  
+LEFT JOIN {schema_prefix}event_proc1_x_y_clusters   AS proc1_x_y_clusters    USING (event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_x_clusters AS proc1_gtu_x_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_y_clusters AS proc1_gtu_y_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_proc2_x_y_clusters   AS proc2_x_y_clusters    USING (event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_x_clusters AS proc2_gtu_x_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_y_clusters AS proc2_gtu_y_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_proc3_x_y_clusters   AS proc3_x_y_clusters    USING (event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_x_clusters AS proc3_gtu_x_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_y_clusters AS proc3_gtu_y_clusters  USING (event_id)
+LEFT JOIN {schema_prefix}event_alt1_x_y_clusters    AS alt1_x_y_clusters     USING (event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_x_clusters  AS alt1_gtu_x_clusters   USING (event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_y_clusters  AS alt1_gtu_y_clusters   USING (event_id)
+
+LEFT JOIN {schema_prefix}event_proc1_gtu_x_hough_peak_thr1 AS proc1_gtu_x_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_y_hough_peak_thr1 AS proc1_gtu_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_x_hough_peak_thr2 AS proc1_gtu_x_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_y_hough_peak_thr2 AS proc1_gtu_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_x_hough_peak_thr3 AS proc1_gtu_x_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_y_hough_peak_thr3 AS proc1_gtu_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_x_hough_peak_thr4 AS proc1_gtu_x_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc1_gtu_y_hough_peak_thr4 AS proc1_gtu_y_hough_peak_thr4 USING(event_id)
+---
+LEFT JOIN {schema_prefix}event_proc2_gtu_x_hough_peak_thr1 AS proc2_gtu_x_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_y_hough_peak_thr1 AS proc2_gtu_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_x_hough_peak_thr2 AS proc2_gtu_x_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_y_hough_peak_thr2 AS proc2_gtu_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_x_hough_peak_thr3 AS proc2_gtu_x_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_y_hough_peak_thr3 AS proc2_gtu_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_x_hough_peak_thr4 AS proc2_gtu_x_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc2_gtu_y_hough_peak_thr4 AS proc2_gtu_y_hough_peak_thr4 USING(event_id)
+---
+LEFT JOIN {schema_prefix}event_proc3_gtu_x_hough_peak_thr1 AS proc3_gtu_x_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_y_hough_peak_thr1 AS proc3_gtu_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_x_hough_peak_thr2 AS proc3_gtu_x_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_y_hough_peak_thr2 AS proc3_gtu_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_x_hough_peak_thr3 AS proc3_gtu_x_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_y_hough_peak_thr3 AS proc3_gtu_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_x_hough_peak_thr4 AS proc3_gtu_x_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_gtu_y_hough_peak_thr4 AS proc3_gtu_y_hough_peak_thr4 USING(event_id)
+---
+LEFT JOIN {schema_prefix}event_proc1_x_y_hough_peak_thr1 AS proc1_x_y_hough_peak_thr1 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc1_x_y_hough_peak_thr2 AS proc1_x_y_hough_peak_thr2 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc1_x_y_hough_peak_thr3 AS proc1_x_y_hough_peak_thr3 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc1_x_y_hough_peak_thr4 AS proc1_x_y_hough_peak_thr4 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc2_x_y_hough_peak_thr1 AS proc2_x_y_hough_peak_thr1 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc2_x_y_hough_peak_thr2 AS proc2_x_y_hough_peak_thr2 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc2_x_y_hough_peak_thr3 AS proc2_x_y_hough_peak_thr3 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc2_x_y_hough_peak_thr4 AS proc2_x_y_hough_peak_thr4 USING(event_id) 
+LEFT JOIN {schema_prefix}event_proc3_x_y_hough_peak_thr1 AS proc3_x_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_x_y_hough_peak_thr2 AS proc3_x_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_x_y_hough_peak_thr3 AS proc3_x_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_proc3_x_y_hough_peak_thr4 AS proc3_x_y_hough_peak_thr4 USING(event_id)
+--- 
+LEFT JOIN {schema_prefix}event_trg_x_y_hough_peak_thr1 AS trg_x_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_x_y_hough_peak_thr2 AS trg_x_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_x_y_hough_peak_thr3 AS trg_x_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_x_y_hough_peak_thr4 AS trg_x_y_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_x_hough_peak_thr1 AS trg_gtu_x_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_x_hough_peak_thr2 AS trg_gtu_x_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_x_hough_peak_thr3 AS trg_gtu_x_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_x_hough_peak_thr4 AS trg_gtu_x_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_y_hough_peak_thr1 AS trg_gtu_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_y_hough_peak_thr2 AS trg_gtu_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_y_hough_peak_thr3 AS trg_gtu_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_trg_gtu_y_hough_peak_thr4 AS trg_gtu_y_hough_peak_thr4 USING(event_id)
+--
+LEFT JOIN {schema_prefix}event_alt1_x_y_hough_peak_thr1 AS alt1_x_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_x_y_hough_peak_thr2 AS alt1_x_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_x_y_hough_peak_thr3 AS alt1_x_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_x_y_hough_peak_thr4 AS alt1_x_y_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_x_hough_peak_thr1 AS alt1_gtu_x_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_x_hough_peak_thr2 AS alt1_gtu_x_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_x_hough_peak_thr3 AS alt1_gtu_x_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_x_hough_peak_thr4 AS alt1_gtu_x_hough_peak_thr4 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_y_hough_peak_thr1 AS alt1_gtu_y_hough_peak_thr1 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_y_hough_peak_thr2 AS alt1_gtu_y_hough_peak_thr2 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_y_hough_peak_thr3 AS alt1_gtu_y_hough_peak_thr3 USING(event_id)
+LEFT JOIN {schema_prefix}event_alt1_gtu_y_hough_peak_thr4 AS alt1_gtu_y_hough_peak_thr4 USING(event_id)
+'''
+
+where_fix_conds='''
+AND 
+(event.program_version=4.1 OR (event.program_version=4.0 
+AND NOT (
+   proc1_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    
+    ------------------------------------------------------------
+    
+OR proc1_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+
+    ------------------------------------------------------------
+    
+OR proc1_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+    --
+OR proc1_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+OR proc3_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {proc_min_val} 
+    
+OR proc1_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc2_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+OR proc3_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {proc_min_val}
+
+--------------------------------------------------------------
+
+OR trg_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {trg_proc_min_val}
+--
+OR trg_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+OR trg_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {trg_proc_min_val}
+--
+OR alt1_x_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr1.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr2.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr3.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr4.line_clusters_max_sum_clu_width {cond} {alt_proc_min_val}
+--
+OR alt1_x_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_x_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_x_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr1.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr2.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr3.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+OR alt1_gtu_y_hough_peak_thr4.line_clusters_max_peak_clu_width {cond} {alt_proc_min_val}
+)))
+    '''.format(cond='=', proc_min_val=179, trg_proc_min_val=89, alt_proc_min_val=179)
