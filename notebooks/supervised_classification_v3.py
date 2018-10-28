@@ -98,7 +98,6 @@ def load_data(query_functions, columns_for_classification_dict,
     conn = query_functions.event_storage.connection
     cur = conn.cursor()
 
-    # TODO simu_signal
     simu_where_clauses_str, simu_joined_tables_list = \
         query_functions.get_query_clauses__where_simu(
             gtu_in_packet_distacne=(42, 10), num_frames_signals_ge_bg__ge=3, num_frames_signals_ge_bg__le=999,
@@ -250,26 +249,26 @@ def load_data(query_functions, columns_for_classification_dict,
     # y[:len_class_1] = 1
 
 
-def scale_data(X, scaler_picke_pathname, pickle_overwrite=False, scaler_class=sklearn.preprocessing.StandardScaler):
+def scale_data(X, scaler_pickle_pathname, pickle_overwrite=False, scaler_class=sklearn.preprocessing.StandardScaler):
     scaler = None
 
-    if scaler_picke_pathname:
-        if isinstance(scaler_picke_pathname, str) and os.path.isdir(scaler_picke_pathname):
+    if scaler_pickle_pathname:
+        if isinstance(scaler_pickle_pathname, str) and os.path.isdir(scaler_pickle_pathname):
             print('Calculating hash of data ...')
             data_md5 = hashlib.md5(pickle.dumps(X, protocol=0))
-            scaler_picke_pathname = os.path.join(scaler_picke_pathname, 'scaler_for_{}.joblib.pkl'.format(data_md5.hexdigest()))
+            scaler_pickle_pathname = os.path.join(scaler_pickle_pathname, 'scaler_for_{}.joblib.pkl'.format(data_md5.hexdigest()))
 
-        if os.path.exists(scaler_picke_pathname) and not pickle_overwrite:
+        if os.path.exists(scaler_pickle_pathname) and not pickle_overwrite:
             print("Loading existing scaler...")
-            scaler = sklearn.externals.joblib.load(scaler_picke_pathname)
+            scaler = sklearn.externals.joblib.load(scaler_pickle_pathname)
 
     if not scaler:
         print('StandardScaler - fitting and transforming data ...')
         scaler = sklearn.preprocessing.StandardScaler()
 
-        if scaler_picke_pathname:
-            print("Saving scaled data into file {}".format(scaler_picke_pathname))
-            sklearn.externals.joblib.dump(scaler, scaler_picke_pathname)
+        if scaler_pickle_pathname:
+            print("Saving scaled data into file {}".format(scaler_pickle_pathname))
+            sklearn.externals.joblib.dump(scaler, scaler_pickle_pathname)
 
         X = scaler_class().fit_transform(X)
     else:
@@ -383,7 +382,7 @@ def main(argv):
 
     if args.apply_scaler:
         X = scale_data(X,
-                       scaler_picke_pathname=scaler_pickle_pathname.format(
+                       scaler_pickle_pathname=scaler_pickle_pathname.format(
                            class_name='StandardScaler', data_md5=data_hexdigest, params_md5=params_str_hexdigest),
                        pickle_overwrite=False,
                        scaler_class=sklearn.preprocessing.StandardScaler)
