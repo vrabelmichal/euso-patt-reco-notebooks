@@ -18,7 +18,7 @@ mpl.use("Agg")
 mpl.rcParams['figure.dpi'] = 150
 import matplotlib.pyplot as plt
 import npy_l1_event_reader
-import tool.npy_frames_visualization as npy_vis
+import tool.frames_visualization as npy_vis
 
 
 def vis_triggers(ev_npy_pathname, tbgf05_pathname=None, tbgf075_pathname=None, tbgf10_pathname=None):
