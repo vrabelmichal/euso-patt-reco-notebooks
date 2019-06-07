@@ -44,18 +44,21 @@ from utility_funtions import str2bool_argparse
 def main(argv):
     parser = argparse.ArgumentParser(description='Trigger rate for acquisition and l1trg.')
     parser.add_argument('--files-dir-abspath', default='/home/spbproc/SPBDATA_flight')
-    parser.add_argument('-f', '--trg-files-dir-abspath-format', default='/home/spbproc/SPBDATA_processed/{acq_dirname}/{acq_basename_no_ext}/l1_trigger_kenji/{l1trg_root_filename}')
+    parser.add_argument('-b', '--trg-files-dir-abspath-base-dir', default='/home/spbproc/SPBDATA_processed')
+    parser.add_argument('-f', '--trg-files-dir-abspath-format', default='{base_dir}/{acq_dirname}/{acq_basename_no_ext}/l1_trigger_kenji/{l1trg_root_filename}')
     parser.add_argument('-m', '--flat-field-map-pathname', default='/home/spbproc/euso-spb-patt-reco-v1/resources/inverse_flat_average_directions_4m_flipud.txt')
     parser.add_argument('-s', '--data-snippets-dir', default='trigger_rate_for_l1trg')
 
     parser.add_argument('-p', '--file-name-prefix', default='')
     parser.add_argument('--trg-type', default='l1')
 
+    parser.add_argument('--skipped-files-count', type=int, default=0)
     parser.add_argument('--bgf', type=float, default=0.5)
 
     parser.add_argument('--recreate-pickles', type=str2bool_argparse, default=False,)
     parser.add_argument('--one-trg-per-packet', type=str2bool_argparse, default=True,)
     parser.add_argument('--skip-missing-files', type=str2bool_argparse, default=True,)
+    parser.add_argument('--skip-exceptions', type=str2bool_argparse, default=False,)
 
     args = parser.parse_args(argv)
 
@@ -77,7 +80,7 @@ def main(argv):
         flat_field_map_pathname = None if args.flat_field_map_pathname == '' else args.flat_field_map_pathname
 
         l1trg_files = [create_l1_trigger_data_pathname(
-            f, args.files_dir_abspath, args.trg_files_dir_abspath_format, args.bgf, flat_field_map_pathname
+            f, args.files_dir_abspath, args.trg_files_dir_abspath_base_dir, args.trg_files_dir_abspath_format, args.bgf, flat_field_map_pathname
         ) for f in processed_files]
     else:
         l1trg_files = None
@@ -91,11 +94,13 @@ def main(argv):
     otgpp_trigger_num_per_file_list_pathname, otgpp_trigger_rate_per_file_list_pathname, otgpp_file_trigger_datetimes_list_pathname, \
     otgpp_file_trigger_p_r_list_pathname, otgpp_file_trigger_timedelta_list_pathname, otgpp_file_indices_list_pathname = \
         count_trigger_rate_per_file(
-            processed_files, l1trg_files,
+            processed_files[args.skipped_files_count:], l1trg_files[args.skipped_files_count:],
             data_snippets_dir=data_snippets_dir, file_name_prefix='',
             trg_type='l1',
             return_filenames=True, recreate_pickles=args.recreate_pickles,
             one_trg_per_packet=False, packet_size=128,
+            skip_missing_files=args.skip_missing_files,
+            skip_exceptions=args.skip_exceptions,
         )
 
     print('-'*50)
