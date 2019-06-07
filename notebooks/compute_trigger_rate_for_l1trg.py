@@ -99,13 +99,14 @@ def main(argv):
 
     otgpp_file_trigger_datetime_list, otgpp_file_timedelta_list, otgpp_file_trigger_p_r_list, otgpp_trigger_num_per_file_list, otgpp_file_trigger_rate_list, otgpp_file_indices_list, \
     otgpp_trigger_num_per_file_list_pathname, otgpp_trigger_rate_per_file_list_pathname, otgpp_file_trigger_datetimes_list_pathname, \
-    otgpp_file_trigger_p_r_list_pathname, otgpp_file_trigger_timedelta_list_pathname, otgpp_file_indices_list_pathname = \
+    otgpp_file_trigger_p_r_list_pathname, otgpp_file_trigger_timedelta_list_pathname, otgpp_file_indices_list_pathname, \
+    otgpp_info_pathname = \
         count_trigger_rate_per_file(
             processed_files[args.skipped_files_count:], l1trg_files[args.skipped_files_count:],
             data_snippets_dir=data_snippets_dir, file_name_prefix=file_name_prefix,
             trg_type='l1',
             return_filenames=True, recreate_pickles=args.recreate_pickles,
-            one_trg_per_packet=False, packet_size=128,
+            one_trg_per_packet=args.one_trg_per_packet, packet_size=128,
             skip_missing_files=args.skip_missing_files,
             skip_exceptions=args.skip_exceptions,
         )
@@ -117,6 +118,7 @@ def main(argv):
     print('file_trigger_p_r_list_pathname       ', otgpp_file_trigger_p_r_list_pathname)
     print('file_trigger_timedelta_list_pathname ', otgpp_file_trigger_timedelta_list_pathname)
     print('file_indices_list_pathname           ', otgpp_file_indices_list_pathname)
+    print('info_pathname                        ', otgpp_info_pathname)
 
 
 if __name__ == "__main__":
