@@ -45,10 +45,10 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Trigger rate for acquisition and l1trg.')
     parser.add_argument('--files-dir-abspath', default='/home/spbproc/SPBDATA_flight')
     parser.add_argument('-f', '--trg-files-dir-abspath-format', default='/home/spbproc/SPBDATA_processed/{acq_dirname}/{acq_basename_no_ext}/l1_trigger_kenji/{l1trg_root_filename}')
-    parser.add_argument('--flat-field-map-pathname', default='/home/spbproc/euso-spb-patt-reco-v1/resources/inverse_flat_average_directions_4m_flipud.txt')
+    parser.add_argument('-m', '--flat-field-map-pathname', default='/home/spbproc/euso-spb-patt-reco-v1/resources/inverse_flat_average_directions_4m_flipud.txt')
     parser.add_argument('-s', '--data-snippets-dir', default='trigger_rate_for_l1trg')
 
-    parser.add_argument('--file-name-prefix', default='')
+    parser.add_argument('-p', '--file-name-prefix', default='')
     parser.add_argument('--trg-type', default='l1')
 
     parser.add_argument('--bgf', type=float, default=0.5)
@@ -74,8 +74,10 @@ def main(argv):
         [os.path.join(dp, f) for dp, dn, fn in os.walk(args.files_dir_abspath) for f in fn if filter_func(f, dp)])
 
     if args.trg_type == 'l1':
+        flat_field_map_pathname = None if args.flat_field_map_pathname == '' else args.flat_field_map_pathname
+
         l1trg_files = [create_l1_trigger_data_pathname(
-            f, args.files_dir_abspath, args.trg_files_dir_abspath_format, args.bgf, args.flat_field_map_pathname
+            f, args.files_dir_abspath, args.trg_files_dir_abspath_format, args.bgf, flat_field_map_pathname
         ) for f in processed_files]
     else:
         l1trg_files = None
