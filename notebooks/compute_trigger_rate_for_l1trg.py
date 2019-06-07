@@ -62,6 +62,13 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
+    if args.file_name_prefix == '':
+        file_name_prefix = hashlib.md5(';'.join([
+            str(k)+str(v) for k,v in vars(args) if k not in ('recreate_pickles', 'file_name_prefix')
+        ]).encode()).hexdigest()[0:8]
+    else:
+        file_name_prefix = args.file_name_prefix
+
     data_snippets_dir = args.data_snippets_dir if args.data_snippets_dir != '' else None
 
     if data_snippets_dir is not None:
@@ -95,7 +102,7 @@ def main(argv):
     otgpp_file_trigger_p_r_list_pathname, otgpp_file_trigger_timedelta_list_pathname, otgpp_file_indices_list_pathname = \
         count_trigger_rate_per_file(
             processed_files[args.skipped_files_count:], l1trg_files[args.skipped_files_count:],
-            data_snippets_dir=data_snippets_dir, file_name_prefix='',
+            data_snippets_dir=data_snippets_dir, file_name_prefix=file_name_prefix,
             trg_type='l1',
             return_filenames=True, recreate_pickles=args.recreate_pickles,
             one_trg_per_packet=False, packet_size=128,
