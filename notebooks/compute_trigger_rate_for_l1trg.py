@@ -102,9 +102,10 @@ def main(argv):
     otgpp_file_trigger_p_r_list_pathname, otgpp_file_trigger_timedelta_list_pathname, otgpp_file_indices_list_pathname, \
     otgpp_info_pathname = \
         count_trigger_rate_per_file(
-            processed_files[args.skipped_files_count:], l1trg_files[args.skipped_files_count:],
+            processed_files[args.skipped_files_count:],
+            l1trg_files[args.skipped_files_count:] if l1trg_files is not None else None,
             data_snippets_dir=data_snippets_dir, file_name_prefix=file_name_prefix,
-            trg_type='l1',
+            trg_type=args.trg_type,
             return_filenames=True, recreate_pickles=args.recreate_pickles,
             one_trg_per_packet=args.one_trg_per_packet, packet_size=128,
             skip_missing_files=args.skip_missing_files,
