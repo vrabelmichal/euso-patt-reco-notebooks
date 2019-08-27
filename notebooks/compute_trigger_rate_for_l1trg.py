@@ -49,6 +49,8 @@ def main(argv):
     parser.add_argument('-m', '--flat-field-map-pathname', default='/home/spbproc/euso-spb-patt-reco-v1/resources/inverse_flat_average_directions_4m_flipud.txt')
     parser.add_argument('-s', '--data-snippets-dir', default='trigger_rate_for_l1trg')
 
+    parser.add_argument('-n', '--acq-file-name-pattern-name', default='0424')
+
     parser.add_argument('-p', '--file-name-prefix', default='')
     parser.add_argument('--trg-type', default='l1')
 
@@ -62,9 +64,13 @@ def main(argv):
 
     args = parser.parse_args(argv)
 
+    excluded_args_from_hash = ['recreate_pickles', 'file_name_prefix']
+    if args.acq_file_name_pattern_name == '0424':
+        excluded_args_from_hash.append('acq_file_name_pattern_name')
+
     if args.file_name_prefix == '':
         file_name_prefix = hashlib.md5(';'.join([
-            str(k)+str(v) for k,v in vars(args) if k not in ('recreate_pickles', 'file_name_prefix')
+            str(k)+str(v) for k,v in vars(args) if k not in excluded_args_from_hash
         ]).encode()).hexdigest()[0:8]
     else:
         file_name_prefix = args.file_name_prefix
@@ -75,9 +81,18 @@ def main(argv):
         os.makedirs(data_snippets_dir, exist_ok=True)
         # os.makedirs(os.path.join(data_snippets_dir, 'figures'), exist_ok=True)
 
+    if args.acq_file_name_pattern_name == '0424':
+        patt = r'SPBDATA_flight/allpackets-SPBEUSO-ACQUISITION-20170(42[4-9]|430|5\d+)$'
+    elif args.acq_file_name_pattern_name == '0420':
+        patt = r'SPBDATA_flight/allpackets-SPBEUSO-ACQUISITION-20170(42[0-9]|430|5\d+)$'
+    elif args.acq_file_name_pattern_name == 'all':
+        patt = r'SPBDATA_flight/allpackets-SPBEUSO-ACQUISITION-\d+$'
+    else:
+        raise RuntimeError('Invalid acq_file_name_pattern_name value')
+
     def filter_func(f, d):
         r = os.path.splitext(f)[1] == ".root" and "ACQUISITION" in os.path.basename(f) and re.search(
-            r'SPBDATA_flight/allpackets-SPBEUSO-ACQUISITION-20170(42[4-9]|430|5\d+)$', d) is not None
+            patt, d) is not None
         return r
 
     processed_files = sorted(
