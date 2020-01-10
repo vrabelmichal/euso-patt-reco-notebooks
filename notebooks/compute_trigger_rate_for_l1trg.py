@@ -37,7 +37,7 @@ from data_analysis_utils_trigger_rate import *
 # import supervised_classification as supc
 # from utility_funtions import key_vals2val_keys
 
-from utility_funtions import str2bool_argparse
+from utility_functions import str2bool_argparse
 
 # import event_reading
 

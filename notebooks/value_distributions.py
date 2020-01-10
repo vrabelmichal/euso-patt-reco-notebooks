@@ -18,7 +18,7 @@ mpl.use("Agg")
 
 import matplotlib.pyplot as plt
 
-from utility_funtions import str2bool_argparse
+from utility_functions import str2bool_argparse
 
 
 def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=100000, max_rows=1000000,

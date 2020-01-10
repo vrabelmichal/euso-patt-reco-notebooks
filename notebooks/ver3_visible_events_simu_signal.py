@@ -26,7 +26,7 @@ import glob
 import traceback
 import hashlib
 
-from utility_funtions import str2bool_argparse
+from utility_functions import str2bool_argparse
 
 mpl.rcParams['figure.dpi'] = 80
 

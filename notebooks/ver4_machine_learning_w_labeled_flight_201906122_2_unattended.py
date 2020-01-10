@@ -93,7 +93,7 @@ import tool.acqconv
 from data_analysis_utils import *
 from data_analysis_utils_dataframes import *
 # import supervised_classification as supc    
-from utility_funtions import key_vals2val_keys
+from utility_functions import key_vals2val_keys
 
 
 # In[3]:

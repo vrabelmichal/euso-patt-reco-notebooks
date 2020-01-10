@@ -26,7 +26,7 @@ import sklearn.neighbors
 import sklearn.externals
 import sklearn.preprocessing
 
-from utility_funtions import str2bool_argparse
+from utility_functions import str2bool_argparse
 from dataset_query_functions_v2 import *
 
 
