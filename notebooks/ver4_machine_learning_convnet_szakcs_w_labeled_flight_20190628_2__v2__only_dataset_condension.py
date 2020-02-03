@@ -1263,10 +1263,13 @@ def get_non_shower_subsets_list(
         ))
 
         if new_len > len_limit:
+            # !!!! THIS IS A BUG, sampling is incorrect
             non_shower_subset_df =                 non_shower_subset_df.iloc[
                     np.random.randint(0, len(non_shower_subset_df), 
                                       len_limit - non_shower_subsets_tot_len)
             ]
+            # corrected solution
+            # np.random.choice(len(non_shower_subset_df), len_limit - non_shower_subsets_tot_len, replace=False)
 
         non_shower_subsets_list.append(non_shower_subset_df)
         non_shower_subsets_tot_len += len(non_shower_subset_df)
