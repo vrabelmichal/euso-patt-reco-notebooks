@@ -1,15 +1,12 @@
 import sys
 import os
-import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 import argparse
 import getpass
-import collections
 import numpy as np
 import psycopg2 as pg
-import array
 #import pandas as pd
 #import pandas.io.sql as psql
 # import matplotlib as mpl
@@ -26,8 +23,8 @@ import sklearn.neighbors
 import sklearn.externals
 import sklearn.preprocessing
 
-from utility_functions import str2bool_argparse
-from dataset_query_functions_v2 import *
+from utils.utility_functions import str2bool_argparse
+from dataset_query_functions.qf2 import *
 
 
 def load_train_test(cur, columns, random_state=None, get_class_1_func=select_training_data__visible_showers, scaler_pathname=None, scaler_pathname_overwrite=False):

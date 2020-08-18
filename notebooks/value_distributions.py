@@ -1,13 +1,11 @@
 import sys
 import os
-import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 import argparse
 import getpass
 import collections
-import numpy as np
 import numbers
 import psycopg2 as pg
 #import pandas as pd
@@ -18,7 +16,7 @@ mpl.use("Agg")
 
 import matplotlib.pyplot as plt
 
-from utility_functions import str2bool_argparse
+from utils.utility_functions import str2bool_argparse
 
 
 def draw_distributions(query_format, con, num_columns_at_once=60, num_at_once=100000, max_rows=1000000,

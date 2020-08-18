@@ -8,16 +8,13 @@ app_base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pard
 if app_base_dir not in sys.path:
     sys.path.append(app_base_dir)
 
-import collections
 import numpy as np
 import psycopg2 as pg
-import pandas as pd
-import pandas.io.sql as psql
 import matplotlib as mpl
 mpl.use("Agg")
 mpl.rcParams['figure.dpi'] = 150
 import matplotlib.pyplot as plt
-import npy_l1_event_reader
+from event_reading import npy_l1_event_reader
 import tool.frames_visualization as npy_vis
 
 

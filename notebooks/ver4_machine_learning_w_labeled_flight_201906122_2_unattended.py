@@ -53,22 +53,8 @@
 
 
 import sys
-import os
-import subprocess
-import re
-import numpy as np
-import psycopg2 as pg
-import pandas as pd
 import pandas.io.sql as psql
-import getpass
 import matplotlib as mpl
-import argparse
-import glob
-import traceback
-import hashlib
-import math
-import collections
-import functools
 
 mpl.use('Agg')
 mpl.rcParams['figure.dpi'] = 80
@@ -84,16 +70,12 @@ app_base_dir = '/home/spbproc/euso-spb-patt-reco-v1'
 if app_base_dir not in sys.path:
     sys.path.append(app_base_dir)
 
-import event_processing_v3
-import event_processing_v4
-import postgresql_v3_event_storage
-import dataset_query_functions_v3
+from event_processing.ep4 import event_processing_v4
+from event_storage import postgresql_v3_event_storage
+from dataset_query_functions import qf3
 
-import tool.acqconv
-from data_analysis_utils import *
-from data_analysis_utils_dataframes import *
-# import supervised_classification as supc    
-from utility_functions import key_vals2val_keys
+from data_analysis_utils.dataframes import *
+# import supervised_classification as supc
 
 
 # In[3]:
@@ -124,28 +106,28 @@ os.makedirs(os.path.join(data_snippets_dir, 'figures'), exist_ok=True)
 
 
 event_processing_cls = event_processing_v4.EventProcessingV4
-event_v3_storage_provider_simu = dataset_query_functions_v3.build_event_v3_storage_provider(
+event_v3_storage_provider_simu = qf3.build_event_v3_storage_provider(
     event_storage_provider_config_file=os.path.join(app_base_dir,'config_simu_w_flatmap.ini'), 
     table_names_version='ver4',
     event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
     event_processing_class=event_processing_cls
 )
 
-query_functions_simu = dataset_query_functions_v3.Ver3DatasetQueryFunctions(event_v3_storage_provider_simu)
+query_functions_simu = qf3.Ver3DatasetQueryFunctions(event_v3_storage_provider_simu)
 
 
 # In[6]:
 
 
 event_processing_cls = event_processing_v4.EventProcessingV4
-event_v3_storage_provider_flight = dataset_query_functions_v3.build_event_v3_storage_provider(
+event_v3_storage_provider_flight = qf3.build_event_v3_storage_provider(
     event_storage_provider_config_file=os.path.join(app_base_dir,'config_w_flatmap.ini'), 
     table_names_version='ver4',
     event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
     event_processing_class=event_processing_cls
 )
 
-query_functions_flight = dataset_query_functions_v3.Ver3DatasetQueryFunctions(event_v3_storage_provider_flight)
+query_functions_flight = qf3.Ver3DatasetQueryFunctions(event_v3_storage_provider_flight)
 
 
 # ### Selected columns
@@ -2144,7 +2126,7 @@ del minmax_scaler_on_train   # should not be necessary anymore
 # In[108]:
 
 
-from data_analysis_utils_performance import *
+from data_analysis_utils.cls_performance import *
 
 
 # In[109]:
@@ -3428,8 +3410,7 @@ plt.show()
 # In[143]:
 
 
-import rfecv_weighted
-
+from utils import rfecv_weighted
 
 # In[144]:
 

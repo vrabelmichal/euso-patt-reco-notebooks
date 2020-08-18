@@ -1,15 +1,11 @@
 import sys
 import os
-import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 import argparse
 import getpass
-import collections
 import numpy as np
-import psycopg2 as pg
-import array
 #import pandas as pd
 #import pandas.io.sql as psql
 # import matplotlib as mpl
@@ -19,7 +15,6 @@ import hashlib
 import pickle
 import json
 
-import pandas as pd
 import pandas.io.sql as psql
 
 import sklearn.tree
@@ -31,11 +26,11 @@ import sklearn.neighbors
 import sklearn.externals
 import sklearn.preprocessing
 
-from utility_functions import str2bool_argparse
+from utils.utility_functions import str2bool_argparse
 
-import event_processing_v3
-import postgresql_v3_event_storage
-import dataset_query_functions_v3
+from event_processing.ep3 import event_processing_v3
+from event_storage import postgresql_v3_event_storage
+from dataset_query_functions import qf3
 
 
 def balanced_subsample(x,y,subsample_size=1.0):
@@ -351,13 +346,13 @@ def main(argv):
 
     np.random.seed(args.seed)
 
-    event_v3_storage_provider = dataset_query_functions_v3.build_event_v3_storage_provider(
+    event_v3_storage_provider = qf3.build_event_v3_storage_provider(
         event_storage_provider_config_file=args.event_storage_provider_config, table_names_version='ver3',
         event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
         event_processing_class=event_processing_v3.EventProcessingV3
     )
 
-    query_functions = dataset_query_functions_v3.Ver3DatasetQueryFunctions(event_v3_storage_provider)
+    query_functions = qf3.Ver3DatasetQueryFunctions(event_v3_storage_provider)
 
     # should be configurable
     columns_for_classification_dict = query_functions.get_columns_for_classification_dict__by_excluding(

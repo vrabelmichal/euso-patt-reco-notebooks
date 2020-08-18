@@ -5,36 +5,13 @@
 
 
 import sys
-import os
-import subprocess
-import re
-import numpy as np
-import psycopg2 as pg
-import pandas as pd
 import pandas.io.sql as psql
-import getpass
 import matplotlib as mpl
-import argparse
-import glob
-import traceback
-import hashlib
-import math
 import collections
-import functools
 
-import sklearn.preprocessing
-import sklearn.feature_selection
-import sklearn.ensemble 
-import sklearn.neural_network
-import sklearn.model_selection
-import sklearn.metrics
-import sklearn.pipeline
-from sklearn.externals import joblib
-
-mpl.use('Agg') 
+mpl.use('Agg')
 mpl.rcParams['figure.dpi'] = 80
 
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 
@@ -45,15 +22,12 @@ app_base_dir = '/home/spbproc/euso-spb-patt-reco-v1'
 if app_base_dir not in sys.path:
     sys.path.append(app_base_dir)
 
-import event_processing_v3
-import event_processing_v4
-import postgresql_v3_event_storage
-import dataset_query_functions_v3
+from event_processing.ep4 import event_processing_v4
+from event_storage import postgresql_v3_event_storage
+from dataset_query_functions import qf3
 
-import tool.acqconv
-from data_analysis_utils import *
-from data_analysis_utils_dataframes import *
-from data_analysis_utils_trigger_rate import *
+from data_analysis_utils.dataframes import *
+from data_analysis_utils.trigger_rate import *
 # import supervised_classification as supc    
 
 
@@ -81,7 +55,7 @@ os.makedirs(data_snippets_dir, exist_ok=True)
 
 
 event_processing_cls = event_processing_v4.EventProcessingV4
-event_v3_storage_provider_flight = dataset_query_functions_v3.build_event_v3_storage_provider(
+event_v3_storage_provider_flight = qf3.build_event_v3_storage_provider(
     event_storage_provider_config_file=os.path.join(app_base_dir,'config_w_flatmap.ini'), 
     table_names_version='ver4',
     event_storage_class=postgresql_v3_event_storage.PostgreSqlEventV3StorageProvider,
@@ -89,7 +63,7 @@ event_v3_storage_provider_flight = dataset_query_functions_v3.build_event_v3_sto
     readonly=False
 )
 
-query_functions_flight = dataset_query_functions_v3.Ver3DatasetQueryFunctions(event_v3_storage_provider_flight)
+query_functions_flight = qf3.Ver3DatasetQueryFunctions(event_v3_storage_provider_flight)
 
 
 # ## Columns
@@ -1050,8 +1024,6 @@ mpl.rcParams.update(mpl.rcParamsDefault)
 #get_ipython().magic('load_ext wurlitzer')
 # from sklearn.manifold import TSNE
 import MulticoreTSNE
-from sklearn.externals import joblib
-
 
 # In[ ]:
 

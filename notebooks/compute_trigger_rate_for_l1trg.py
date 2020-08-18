@@ -1,21 +1,10 @@
 import sys
-import os
-import numpy as np
-import re
 import argparse
 # import psycopg2 as pg
 # import pandas as pd
 # import pandas.io.sql as psql
 # import getpass
 import matplotlib as mpl
-import hashlib
-import math
-import collections
-import functools
-import datetime
-from sklearn.externals import joblib
-import pickle
-import physt
 
 mpl.rcParams['figure.dpi'] = 80
 
@@ -33,11 +22,11 @@ if app_base_dir not in sys.path:
 
 # import tool.acqconv
 # from data_analysis_utils import *
-from data_analysis_utils_trigger_rate import *
+from data_analysis_utils.trigger_rate import *
 # import supervised_classification as supc
 # from utility_funtions import key_vals2val_keys
 
-from utility_functions import str2bool_argparse
+from utils.utility_functions import str2bool_argparse
 
 # import event_reading
 

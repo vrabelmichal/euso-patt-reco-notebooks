@@ -5,28 +5,19 @@
 
 
 import sys
-import os
-import subprocess
 
 app_base_dir = '/home/spbproc/euso-spb-patt-reco-v1'
 if app_base_dir not in sys.path:
     sys.path.append(app_base_dir)
 
-import re
 # import collections
-import numpy as np
 import psycopg2 as pg
-import pandas as pd
 import pandas.io.sql as psql
 import getpass
 import matplotlib as mpl
 import argparse
-import glob
-# from tqdm import tqdm
-import traceback
-import hashlib
 
-from utility_functions import str2bool_argparse
+# from tqdm import tqdm
 
 mpl.rcParams['figure.dpi'] = 80
 
@@ -35,9 +26,7 @@ import matplotlib.pyplot as plt
 #import ROOT
 
 # import tool.npy_frames_visualization as npy_vis
-import tool.acqconv
-from data_analysis_utils import *
-from data_analysis_utils_dataframes import *
+from data_analysis_utils.dataframes import *
 # import supervised_classification as supc
 
 

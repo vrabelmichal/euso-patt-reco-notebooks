@@ -16,7 +16,7 @@ import argparse
 # from tqdm import tqdm
 import traceback
 
-from utility_functions import str2bool_argparse
+from utils.utility_functions import str2bool_argparse
 
 
 def __check_agg():
