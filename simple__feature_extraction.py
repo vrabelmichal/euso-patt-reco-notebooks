@@ -672,16 +672,16 @@ def read_and_process_events(source_file_acquisition_full, source_file_trigger_fu
                             ret_ev_list = None
 
                             try:
-                                ret_ev = event_processing.process_event(trigger_event_record=ev,
-                                                               proc_params=proc_params,
-                                                               do_visualization=do_visualization,
-                                                               do_savefig=save_fig_pathname_format is not None,
-                                                               save_fig_pathname_format=save_fig_pathname_format,
-                                                               watermark_text=event_watermark,
-                                                               packet_gtu_data=packet_frames,
-                                                               visualization_options=visualization_options,
-                                                               savefig_options=savefig_options,
-                                                               debug=debug)
+                                ret_ev = event_processing.process_event(pdm_analysis_record=ev,
+                                                                        proc_params=proc_params,
+                                                                        do_visualization=do_visualization,
+                                                                        do_savefig=save_fig_pathname_format is not None,
+                                                                        save_fig_pathname_format=save_fig_pathname_format,
+                                                                        watermark_text=event_watermark,
+                                                                        packet_gtu_data=packet_frames,
+                                                                        visualization_options=visualization_options,
+                                                                        savefig_options=savefig_options,
+                                                                        debug=debug)
 
                                 if ret_ev is None:
                                     raise RuntimeError('process_event returned None')
